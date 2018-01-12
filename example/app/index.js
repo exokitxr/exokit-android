@@ -8,6 +8,7 @@ var server = http.createServer(function (req, res) {
     <html>
     <body>
       <h1>Welcome to Node.js hacking on Android</h1>
+      <h2>${JSON.stringify(process.versions, null, 2)}</h2>
     </body>
     </html>
   `)

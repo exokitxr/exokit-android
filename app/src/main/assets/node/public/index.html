@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="js/index.js"></script>
+</head>
+<body style="margin: 0;">
+  <div style="display: flex; width: 100vw; height: 100vh; flex-direction: column;">
+    <button id=vr-button style="display: flex; background-color: #2196f3; border: 0; color: #FFF; flex: 1; justify-content: center; align-items: center;">VR</button>
+    <button id=ar-button style="display: flex; background-color: #8bc34a; border: 0; color: #FFF; flex: 1; justify-content: center; align-items: center;">AR</button>
+  </div>
+  <script>
+    console.log('native menu typeof ' + typeof window.nativeMenu + ' ' + typeof window.enterVr + ' ' + JSON.stringify(Object.keys(window.nativeMenu)));
+    document.getElementById('vr-button').addEventListener('click', e => {
+      console.log('enter vr button 1');
+      window.nativeMenu.enterVr();
+      console.log('enter vr button 2');
+    });
+    document.getElementById('ar-button').addEventListener('click', e => {
+      console.log('enter ar button 1');
+      window.nativeMenu.enterAr();
+      console.log('enter ar button 2');
+    });
+  </script>
+</body>
+</html>

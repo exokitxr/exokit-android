@@ -4,7 +4,7 @@ import android.app.Service;
 import android.content.Intent;
 import android.content.res.AssetManager;
 import android.os.IBinder;
-import android.support.annotation.Nullable;
+// import android.support.annotation.Nullable;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -50,7 +50,7 @@ public class NodeService extends Service {
         return START_REDELIVER_INTENT;
     }
 
-    @Nullable
+    // @Nullable
     @Override
     public IBinder onBind(Intent intent) {
         return null;

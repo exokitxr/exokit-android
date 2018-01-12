@@ -1,46 +1,108 @@
-apply plugin: 'com.android.application'
+// apply plugin: 'com.android.application'
+apply plugin: 'com.android.model.application'
+// apply plugin: 'com.android.library'
 
-android {
-    compileSdkVersion 26
-    buildToolsVersion "26.0.1"
-    defaultConfig {
-        applicationId "com.mafintosh.nodeonandroid"
-        minSdkVersion 19
-        targetSdkVersion 24
-        versionCode 1
-        versionName "1.0"
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
-        ndk {
-            abiFilters 'arm64-v8a'
-        }
-        externalNativeBuild {
-            cmake {
-                arguments "-DANDROID_TOOLCHAIN=clang",
-                        "-DANDROID_STL=c++_shared"
-                        "-DANDROID_PLATFORM=android-19"
-                cppFlags "-std=c++11"
-            }
-        }
+// def ndkDir = plugins.getPlugin('com.android.library').sdkHandler.getNdkFolder()
+// def ndkDir = project.plugins.findPlugin('com.android.application').getNdkFolder()
+Properties properties = new Properties()
+properties.load(project.rootProject.file('local.properties').newDataInputStream())
+def ndkDir = properties.getProperty('ndk.dir')
+
+model {
+  android {
+      compileSdkVersion 27
+      buildToolsVersion "27.0.2"
+
+      defaultConfig {
+          applicationId "com.mafintosh.nodeonandroid"
+          minSdkVersion.apiLevel 25
+          targetSdkVersion.apiLevel 25
+          versionCode 1
+          versionName "1.0"
+          testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+          // ndk {
+          //     abiFilters 'arm64-v8a'
+          // }
+          /* externalNativeBuild {
+              cmake {
+                  arguments "-DANDROID_TOOLCHAIN=clang",
+                          "-DANDROID_STL=c++_shared"
+                          "-DANDROID_PLATFORM=android-19"
+                  cppFlags "-std=c++11"
+              }
+          } */
+      }
+      ndk {
+        moduleName = "nodeonandroid_jni"
+        cppFlags.addAll([
+          "-I" + file("src/main/jni").absolutePath,
+          "-I" + file("src/main/jni/include").absolutePath,
+          "-I" + ndkDir + "/sources/android/native_app_glue",
+        ])
+
+        stl = "gnustl_shared"
+        ldFlags.add("-L" + file("src/main/jniLibs/arm64-v8a").absolutePath)
+        ldFlags.add("-lnode")
+        // ldFlags.add("-L" + file("src/main/jni/lib").absolutePath)
+        // ldFlags.add("-lstlport_static")
+
+        /* ldFlags.add("-lv8_base")
+        ldFlags.add("-lv8_nosnapshot")
+        ldFlags.add("-lv8_libbase.arm") */
+
+        /* // Add the necessary GVR headers.
+        cppFlags.add("-I" + file("${project.rootDir}/libraries/headers").absolutePath)
+
+        stl = "gnustl_shared"
+        // Add the necessary GVR .so files for all architectures.
+        ldFlags.add("-L" + file("${project.rootDir}/libraries/jni/arm64-v8a").absolutePath)
+        ldFlags.add("-L" + file("${project.rootDir}/libraries/jni/armeabi-v7a").absolutePath)
+        ldFlags.add("-L" + file("${project.rootDir}/libraries/jni/x86").absolutePath) */
+
+        ldLibs.addAll(["log", "android", "EGL", "GLESv2"])
+
+        // Specific the particular .so files this sample links against.
+        /* ldLibs.add("gvr") */
     }
-    buildTypes {
-        release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-        }
-    }
-    externalNativeBuild {
-        cmake {
-            path "CMakeLists.txt"
-        }
-    }
+      buildTypes {
+          release {
+              minifyEnabled true
+              proguardFiles.add(file('../proguard.txt'))
+          }
+      }
+      productFlavors {
+
+          create("arm") {
+
+              ndk {
+
+                  // You can customize the NDK configurations for each
+
+                  // productFlavors and buildTypes.
+
+                  abiFilters.add("arm64-v8a")
+
+              }
+
+          }
+      }
+      /* externalNativeBuild {
+          cmake {
+              path "CMakeLists.txt"
+              // arguments "-DANDROID_TOOLCHAIN=clang", "-DANDROID_STL=c++_shared", "-DANDROID_PLATFORM=android-25"
+              // cppFlags "-std=c++11"
+          }
+      } */
+      // lintOptions {
+      //     tasks.lint.enabled = false
+      // }
+  }
 }
 
 dependencies {
+    compile 'com.google.vr:sdk-audio:1.120.0'
+    compile 'com.google.vr:sdk-base:1.120.0'
+    compile "com.android.support:support-core-utils:27.0.2"
+
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
-        exclude group: 'com.android.support', module: 'support-annotations'
-    })
-    compile 'com.android.support:appcompat-v7:26.+'
-    compile 'com.android.support.constraint:constraint-layout:1.0.2'
-    testCompile 'junit:junit:4.12'
 }

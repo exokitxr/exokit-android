@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.4.1)
 
+add_compile_options(-std=c++11)
+add_definitions(-DANDROID_TOOLCHAIN=clang -DANDROID_STL=c++_shared -DANDROID_PLATFORM=android-25)
+
 file(GLOB app_src_files
        "src/main/cpp/*.cpp" )
 
