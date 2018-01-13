@@ -41,7 +41,7 @@ public class NodeService extends Service {
                     AssetManager am = getAssets();
                     copyAssets(am, "node_modules", corePath);
                     copyAssets(am, "node", jsPath);
-                    startNode("node", jsPath, "" + ipcPort);
+                    startNode(jsPath, ipcPort);
                 }
             });
             t.start();
@@ -56,7 +56,7 @@ public class NodeService extends Service {
         return null;
     }
 
-    private native void startNode(String... app);
+    private native void startNode(String jsPath, String port);
 
     private static void copyAssets (AssetManager am, String src, String dest) {
         try {
@@ -94,7 +94,8 @@ public class NodeService extends Service {
 
     static {
         System.loadLibrary("node");
-        System.loadLibrary("native-lib");
+        System.loadLibrary("nodebinding");
+        // System.loadLibrary("native-lib");
     }
 
 }

@@ -8,6 +8,7 @@ import android.content.IntentFilter;
 import android.support.v4.content.LocalBroadcastManager;
 import android.os.Bundle;
 import android.webkit.WebView;
+import android.webkit.JavascriptInterface;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -15,8 +16,38 @@ import java.net.InetAddress;
 // import java.net.ServerSocket;
 // import java.net.Socket;
 // import java.util.Arrays;
-
 import org.json.*;
+
+class MenuInterface {
+    Context mContext;
+
+    /** Instantiate the interface and set the context */
+    MenuInterface(Context c) {
+        mContext = c;
+    }
+
+    @JavascriptInterface
+    public void enterVr() {
+      System.out.println("enter vr interface");
+
+      Intent intent = new Intent(mContext, TreasureHuntActivity.class);
+      /* EditText editText = (EditText) findViewById(R.id.editText);
+      String message = editText.getText().toString();
+      intent.putExtra(EXTRA_MESSAGE, message); */
+      mContext.startActivity(intent);
+    }
+
+    @JavascriptInterface
+    public void enterAr() {
+      System.out.println("enter ar interface");
+
+      Intent intent = new Intent(mContext, HelloArActivity.class);
+      /* EditText editText = (EditText) findViewById(R.id.editText);
+      String message = editText.getText().toString();
+      intent.putExtra(EXTRA_MESSAGE, message); */
+      mContext.startActivity(intent);
+    }
+}
 
 public class MainActivity extends Activity {
     private WebView browser;
@@ -45,6 +76,8 @@ public class MainActivity extends Activity {
         browser.getSettings().setLoadWithOverviewMode(true);
         browser.getSettings().setUseWideViewPort(true);
         browser.getSettings().setJavaScriptEnabled(true);
+        browser.addJavascriptInterface(new MenuInterface(this), "nativeMenu");
+        browser.loadUrl("file:///android_asset/public/index.html");
 
         final Context me = this;
 

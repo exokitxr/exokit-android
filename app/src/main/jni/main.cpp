@@ -21,6 +21,7 @@
 
 
 #include <v8.h>
+#include <node.h>
 
 using namespace v8;
 
@@ -810,11 +811,11 @@ extern "C" {
 /* This does double duty as both the init and displaychanged function.
  * Signature: (II)V
  */
-JNIEXPORT void JNICALL Java_net_tmtg_glesjs_GlesJSLib_onSurfaceChanged
+JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_GlesJSLib_onSurfaceChanged
 (JNIEnv *env, jclass clas, jint width, jint height) {
 	LOGI("JNI onSurfaceChanged");
 	jnienv = env;
-	utilsClass = jnienv->FindClass("net/tmtg/glesjs/GlesJSUtils");
+	utilsClass = jnienv->FindClass("com/mafintosh/nodeonandroid/GlesJSUtils");
 	if (!app_was_inited) {
 		init_javascript();
 		for (int i=0; i<NR_PLAYERS*PLAYERDATASIZE; i++) gamepadvalues[i] = 0;
@@ -828,26 +829,26 @@ JNIEXPORT void JNICALL Java_net_tmtg_glesjs_GlesJSLib_onSurfaceChanged
 }
 
 /*
- * Class:     net_tmtg_glesjs_GlesJSLib
+ * Class:     com_mafintosh_nodeonandroid_GlesJSLib
  * Method:    onDrawFrame
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_net_tmtg_glesjs_GlesJSLib_onDrawFrame
+JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_GlesJSLib_onDrawFrame
 (JNIEnv *env, jclass clas) {
 	//LOGI("JNI onDrawFrame");
 	jnienv = env;
-	utilsClass = jnienv->FindClass("net/tmtg/glesjs/GlesJSUtils");
+	utilsClass = jnienv->FindClass("com/mafintosh/nodeonandroid/GlesJSUtils");
 	engine_draw_frame();
 }
 
 /*
- * Class:     net_tmtg_glesjs_GlesJSLib
+ * Class:     com_mafintosh_nodeonandroid_GlesJSLib
  * Method:    onTouchEvent
  * Signature: (DDZZZ)V
  */
 // NOTE: must be called from the render thread. Multiple threads accessing
 // isolate will cause crash.
-JNIEXPORT void JNICALL Java_net_tmtg_glesjs_GlesJSLib_onTouchEvent
+JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_GlesJSLib_onTouchEvent
 (JNIEnv *env, jclass clas, jint ptrid, jdouble x, jdouble y,
 jboolean press, jboolean release) {
 	//LOGI("JNI onTouchEvent");
@@ -881,11 +882,11 @@ jboolean press, jboolean release) {
 
 
 /*
- * Class:     net_tmtg_glesjs_GlesJSLib
+ * Class:     com_mafintosh_nodeonandroid_GlesJSLib
  * Method:    onMultitouchCoordinates
  * Signature: (IDD)V
  */
-JNIEXPORT void JNICALL Java_net_tmtg_glesjs_GlesJSLib_onMultitouchCoordinates
+JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_GlesJSLib_onMultitouchCoordinates
 (JNIEnv * env, jclass clas, jint ptrid, jdouble x, jdouble y) {
 	//LOGI("JNI MultitouchCoordinates");
 	Isolate::Scope isolate_scope(js->isolate);
@@ -904,11 +905,11 @@ JNIEXPORT void JNICALL Java_net_tmtg_glesjs_GlesJSLib_onMultitouchCoordinates
 
 
 /*
- * Class:     net_tmtg_glesjs_GlesJSLib
+ * Class:     com_mafintosh_nodeonandroid_GlesJSLib
  * Method:    onControllerEvent
  * Signature: (IZ[I[F)V
  */
-JNIEXPORT void JNICALL Java_net_tmtg_glesjs_GlesJSLib_onControllerEvent
+JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_GlesJSLib_onControllerEvent
 (JNIEnv *env, jclass clas, jint player, jboolean active,
 jbooleanArray buttons, jfloatArray axes) {
 	//LOGI("Controller event %d %d",player,active);
@@ -937,7 +938,16 @@ jbooleanArray buttons, jfloatArray axes) {
 	// if not active, values are null, keep old values
 }
 
-
+JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_startNode__Ljava_lang_String_2Ljava_lang_String_2
+(JNIEnv *env, jstring jsPath, jstring port) {
+  const char *jsPathString = env->GetStringUTFChars(jsPath, NULL);
+  const char *portString = env->GetStringUTFChars(port, NULL);
+  char *args[2] = {
+    (char *)jsPathString,
+    (char *)portString,
+  };
+  node::Start(2, args);
+}
 
 
 #ifdef __cplusplus

@@ -59,11 +59,11 @@ const server = http.createServer((req, res) => {
 server.listen(0, () => {
   console.log('node load 1');
 
-  javaApi.loadUrl('http://localhost:' + server.address().port)
+  /* javaApi.loadUrl('http://localhost:' + server.address().port)
     .then(() => {
       console.log('node load 2');
     })
     .catch(err => {
       console.warn(err);
-    });
+    }); */
 });

@@ -1,8 +1,0 @@
-{
-  "name": "node-on-android-example",
-  "version": "0.0.1",
-  "scripts": {
-    "build": "../cli/bin.js app -o ../build/app.apk -b /tmp/android-sdk-tools/build-tools/26.0.1",
-    "up": "adb uninstall com.mafintosh.nodeonandroid && adb install build/app.apk"
-  }
-}
