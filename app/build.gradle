@@ -1,6 +1,4 @@
-// apply plugin: 'com.android.application'
-apply plugin: 'com.android.model.application'
-// apply plugin: 'com.android.library'
+apply plugin: 'com.android.application'
 
 // def ndkDir = plugins.getPlugin('com.android.library').sdkHandler.getNdkFolder()
 // def ndkDir = project.plugins.findPlugin('com.android.application').getNdkFolder()
@@ -8,111 +6,85 @@ Properties properties = new Properties()
 properties.load(project.rootProject.file('local.properties').newDataInputStream())
 def ndkDir = properties.getProperty('ndk.dir')
 
-model {
-  android {
-      compileSdkVersion 27
-      buildToolsVersion "27.0.2"
+android {
+    compileSdkVersion 27
+    buildToolsVersion "27.0.2"
 
-      defaultConfig {
-          applicationId "com.mafintosh.nodeonandroid"
-          minSdkVersion.apiLevel 27
-          targetSdkVersion.apiLevel 27
-          versionCode 1
-          versionName "1.0"
-          testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
-          // ndk {
-          //     abiFilters 'arm64-v8a'
-          // }
-          /* externalNativeBuild {
-              cmake {
-                  arguments "-DANDROID_TOOLCHAIN=clang",
-                          "-DANDROID_STL=c++_shared"
-                          "-DANDROID_PLATFORM=android-19"
-                  cppFlags "-std=c++11"
-              }
-          } */
-      }
-      ndk {
-        moduleName = "nodeonandroid_jni"
-        cppFlags.addAll([
-          "-I" + file("src/main/jni").absolutePath,
-          "-I" + file("src/main/jni/include").absolutePath,
-          "-I" + ndkDir + "/sources/android/native_app_glue",
-        ])
+    defaultConfig {
+        applicationId "com.mafintosh.nodeonandroid"
+        minSdkVersion 27
+        targetSdkVersion 27
+        versionCode 1
+        versionName "1.0"
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        /* ndk {
+          moduleName = "nodeonandroid_jni"
+          cppFlags.addAll([
+            "-I" + file("src/main/jni").absolutePath,
+            "-I" + file("src/main/jni/include").absolutePath,
+            "-I" + ndkDir + "/sources/android/native_app_glue",
+          ])
 
-        stl = "gnustl_shared"
-        ldFlags.add("-L" + file("src/main/jniLibs/arm64-v8a").absolutePath)
-        ldFlags.add("-lnode")
-        // ldFlags.add("-L" + file("src/main/jni/lib").absolutePath)
-        // ldFlags.add("-lstlport_static")
+          stl = "gnustl_shared"
+          ldFlags.add("-L" + file("src/main/jniLibs/arm64-v8a").absolutePath)
+          ldFlags.add("-lnode")
+          // ldFlags.add("-L" + file("src/main/jni/lib").absolutePath)
+          // ldFlags.add("-lstlport_static")
 
-        /* ldFlags.add("-lv8_base")
-        ldFlags.add("-lv8_nosnapshot")
-        ldFlags.add("-lv8_libbase.arm") */
-
-        /* // Add the necessary GVR headers.
-        cppFlags.add("-I" + file("${project.rootDir}/libraries/headers").absolutePath)
-
-        stl = "gnustl_shared"
-        // Add the necessary GVR .so files for all architectures.
-        ldFlags.add("-L" + file("${project.rootDir}/libraries/jni/arm64-v8a").absolutePath)
-        ldFlags.add("-L" + file("${project.rootDir}/libraries/jni/armeabi-v7a").absolutePath)
-        ldFlags.add("-L" + file("${project.rootDir}/libraries/jni/x86").absolutePath) */
-
-        ldLibs.addAll(["log", "android", "EGL", "GLESv2"])
-
-        // Specific the particular .so files this sample links against.
-        /* ldLibs.add("gvr") */
+          ldLibs.addAll(["log", "android", "EGL", "GLESv2"])
+        } */
     }
-      buildTypes {
-          release {
-              minifyEnabled true
-              proguardFiles.add(file('../proguard.txt'))
-          }
-      }
-      productFlavors {
-
-          create("arm") {
-
-              ndk {
-
-                  // You can customize the NDK configurations for each
-
-                  // productFlavors and buildTypes.
-
-                  abiFilters.add("arm64-v8a")
-
-              }
-
-          }
-      }
-      /* externalNativeBuild {
-          cmake {
-              path "CMakeLists.txt"
-              // arguments "-DANDROID_TOOLCHAIN=clang", "-DANDROID_STL=c++_shared", "-DANDROID_PLATFORM=android-25"
-              // cppFlags "-std=c++11"
-          }
-      } */
-      // lintOptions {
-      //     tasks.lint.enabled = false
-      // }
-  }
+    externalNativeBuild {
+        cmake {
+            path "CMakeLists.txt"
+            // version "3.7.1"
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    buildTypes {
+        release {
+            minifyEnabled true
+            proguardFiles.add(file('../proguard.txt'))
+        }
+    }
+    flavorDimensions 'cpuArch'
+    productFlavors {
+        arm8 {
+            dimension 'cpuArch'
+            ndk {
+                abiFilters 'arm64-v8a'
+            }
+        }
+    }
+    /* externalNativeBuild {
+        cmake {
+            path "CMakeLists.txt"
+            // arguments "-DANDROID_TOOLCHAIN=clang", "-DANDROID_STL=c++_shared", "-DANDROID_PLATFORM=android-25"
+            // cppFlags "-std=c++11"
+        }
+    } */
+    // lintOptions {
+    //     tasks.lint.enabled = false
+    // }
 }
 
 dependencies {
     // VR
-    compile 'com.google.vr:sdk-audio:1.120.0'
-    compile 'com.google.vr:sdk-base:1.120.0'
+    implementation 'com.google.vr:sdk-audio:1.120.0'
+    implementation 'com.google.vr:sdk-base:1.120.0'
 
     // AR
-    compile 'com.google.ar:core:0.91.0'
+    // implementation 'com.google.ar:core:0.91.0'
     // Obj - a simple Wavefront OBJ file loader
     // https://github.com/javagl/Obj
-    compile 'de.javagl:obj:0.2.1'
-    compile 'com.android.support:design:27.0.2'
+    // implementation 'de.javagl:obj:0.2.1'
+    // implementation 'com.android.support:design:27.0.2'
 
     // NodeService
-    compile "com.android.support:support-core-utils:27.0.2"
+    implementation "com.android.support:support-core-utils:27.0.2"
 
-    compile fileTree(dir: 'libs', include: ['*.jar'])
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
 }
