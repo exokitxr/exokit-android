@@ -2,9 +2,9 @@ apply plugin: 'com.android.application'
 
 // def ndkDir = plugins.getPlugin('com.android.library').sdkHandler.getNdkFolder()
 // def ndkDir = project.plugins.findPlugin('com.android.application').getNdkFolder()
-Properties properties = new Properties()
-properties.load(project.rootProject.file('local.properties').newDataInputStream())
-def ndkDir = properties.getProperty('ndk.dir')
+// Properties properties = new Properties()
+// properties.load(project.rootProject.file('local.properties').newDataInputStream())
+// def ndkDir = properties.getProperty('ndk.dir')
 
 android {
     compileSdkVersion 27
@@ -17,6 +17,8 @@ android {
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+
+        // multiDexEnabled true
         /* ndk {
           moduleName = "nodeonandroid_jni"
           cppFlags.addAll([
@@ -71,6 +73,13 @@ android {
     // }
 }
 
+/* repositories {
+    // jcenter()
+    flatDir {
+      dirs 'libs'
+    }
+} */
+
 dependencies {
     // VR
     implementation 'com.google.vr:sdk-audio:1.120.0'
@@ -78,13 +87,14 @@ dependencies {
 
     // AR
     // implementation 'com.google.ar:core:0.91.0'
+    implementation(name:'core-0.91.0', ext:'aar')
     // Obj - a simple Wavefront OBJ file loader
     // https://github.com/javagl/Obj
-    // implementation 'de.javagl:obj:0.2.1'
-    // implementation 'com.android.support:design:27.0.2'
+    implementation 'de.javagl:obj:0.2.1'
+    implementation 'com.android.support:design:27.0.2'
 
     // NodeService
     implementation "com.android.support:support-core-utils:27.0.2"
 
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    // implementation fileTree(dir: 'libs', include: ['*.jar'])
 }
