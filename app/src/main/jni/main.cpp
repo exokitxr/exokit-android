@@ -1,6 +1,7 @@
 // (c) 2014 Boris van Schooten
 //BEGIN_INCLUDE(all)
 #include <string.h>
+#include <cstring>
 #include <jni.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -939,14 +940,27 @@ jbooleanArray buttons, jfloatArray axes) {
 }
 
 JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_startNode__Ljava_lang_String_2Ljava_lang_String_2
-(JNIEnv *env, jstring jsPath, jstring port) {
+(JNIEnv *env, jobject thiz, jstring jsPath, jstring port) {
+  const char *nodeString = "node";
   const char *jsPathString = env->GetStringUTFChars(jsPath, NULL);
   const char *portString = env->GetStringUTFChars(port, NULL);
-  char *args[2] = {
-    (char *)jsPathString,
-    (char *)portString,
-  };
-  node::Start(2, args);
+  char argsString[4096];
+  int i = 0;
+
+  char *nodeArg = argsString + i;
+  strncpy(nodeArg, nodeString, sizeof(argsString) - i);
+  i += strlen(nodeString) + 1;
+
+  char *jsPathArg = argsString + i;
+  strncpy(jsPathArg, jsPathString, sizeof(argsString) - i);
+  i += strlen(jsPathString) + 1;
+
+  char *portArg = argsString + i;
+  strncpy(portArg, portString, sizeof(argsString) - i);
+  i += strlen(portString) + 1;
+
+  char *args[3] = {nodeArg, jsPathArg, portArg};
+  node::Start(3, args);
 }
 
 
