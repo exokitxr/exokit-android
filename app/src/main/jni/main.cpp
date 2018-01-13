@@ -1,5 +1,6 @@
 // (c) 2014 Boris van Schooten
 //BEGIN_INCLUDE(all)
+#include <string.h>
 #include <jni.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -59,17 +60,17 @@ int32_t screenwidth;
 int32_t screenheight;
 
 
-class JS {
+class JsEnvironment {
   public:
 	v8::Persistent<Context> context;
 	v8::Handle<v8::ObjectTemplate> global;
 	v8::Isolate *isolate;
-	JS();
+	JsEnvironment();
 	char *run_javascript(char *sourcestr);
 	void callFunction(const char *funcname,const int argc,Local<Value> argv[]);
 };
 
-JS *js=NULL;
+JsEnvironment *js=NULL;
 
 JNIEnv *jnienv = NULL;
 
@@ -545,7 +546,7 @@ void __getWindowHeight(const v8::FunctionCallbackInfo<v8::Value>& args) {
 
 
 
-JS::JS() {
+JsEnvironment::JsEnvironment() {
 	isolate = Isolate::New(Isolate::CreateParams());
 	Isolate::Scope isolate_scope(isolate);
 	// start local scope
@@ -649,7 +650,7 @@ JS::JS() {
 
 
 	// create context
-	v8::Handle<Context> context_local = v8::Context::New(isolate, NULL, global);
+	v8::Local<Context> context_local = v8::Context::New(isolate, NULL, global, v8::MaybeLocal<Value>(), v8::DeserializeInternalFieldsCallback());
 	context.Reset(isolate, context_local);
 	//Persistent<Context> *pc = new Persistent<Context>(isolate,context_local);
 	//context = new Persistent<Context>(isolate, context_local);
@@ -657,7 +658,7 @@ JS::JS() {
 	//Context::Scope context_scope(context);
 
 }
-char *JS::run_javascript(char *sourcestr) {
+char *JsEnvironment::run_javascript(char *sourcestr) {
 	Isolate::Scope isolate_scope(isolate);
 	HandleScope handle_scope(isolate);
 	// we have to create a local handle from the persistent handle
@@ -685,7 +686,7 @@ char *JS::run_javascript(char *sourcestr) {
 		return strdup(ret);
 	}
 }
-void JS::callFunction(const char *funcname,const int argc,Local<Value> argv[]){
+void JsEnvironment::callFunction(const char *funcname,const int argc,Local<Value> argv[]){
 	// init
 	Isolate::Scope isolate_scope(isolate);
 	HandleScope handle_scope(isolate);
@@ -747,13 +748,13 @@ long readAsset(const char *filename, char **output) {
 }
 
 // init javascript engine
-static int init_javascript() {
-	js = new JS();
+static void init_javascript() {
+	js = new JsEnvironment();
 	// V8::SetArrayBufferAllocator(new MallocArrayBufferAllocator());
 }
 
 // boot JS and pass window dimensions
-static int boot_javascript(int w,int h) {
+static void boot_javascript(int w,int h) {
 	// execute init scripts on context
 	char *source1;
 	// html5 sets up the html5 API and loads the JS
