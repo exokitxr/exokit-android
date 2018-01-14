@@ -2,6 +2,7 @@
 //BEGIN_INCLUDE(all)
 #include <string.h>
 #include <cstring>
+
 #include <jni.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -21,6 +22,7 @@
 #include <android/asset_manager.h>
 
 
+#include <libplatform/libplatform.h>
 #include <v8.h>
 #include <node.h>
 
@@ -30,15 +32,24 @@ using namespace v8;
 class MallocArrayBufferAllocator : public v8::ArrayBuffer::Allocator {
   public:
 	virtual void* Allocate(size_t length) {
-		return calloc(length,1);
+		return calloc(length, 1);
 	}
 	virtual void* AllocateUninitialized(size_t length) {
 		return malloc(length);
 	}
+  virtual void* Reserve(size_t length) {
+		return malloc(length);
+  }
 	// XXX we assume length is not needed
 	virtual void Free(void*data, size_t length) {
 		free(data);
 	}
+  virtual void Free(void*data, size_t length, v8::ArrayBuffer::Allocator::AllocationMode allocationMode) {
+		free(data);
+	}
+  virtual void SetProtection(void *data, size_t length, v8::ArrayBuffer::Allocator::Protection protection) {
+    // nothing
+  }
 };
 
 //static void enableTypedArrays() {
@@ -78,8 +89,6 @@ JNIEnv *jnienv = NULL;
 
 jclass utilsClass;
 
-bool app_was_inited=false;
-
 #define NR_PLAYERS 4
 #define NR_BUTTONS 17
 #define NR_AXES 6
@@ -108,71 +117,6 @@ void __utils_execScript(const v8::FunctionCallbackInfo<v8::Value>& args) {
 	char *ret = js->run_javascript(source);
 	LOGI("Executed JS");
 }
-
-// payment
-
-void __paymentSystem_init(const v8::FunctionCallbackInfo<v8::Value>& args) {
-	LOGI("__paymentSystem_init");
-	String::Utf8Value _str_secrets(args[0]->ToString(args.GetIsolate()));
-	const char *secrets = *_str_secrets;
-
-	jmethodID mid = jnienv->GetStaticMethodID(utilsClass, "paymentInit",
-		"(Ljava/lang/String;)V");
-	jstring jnisecrets = jnienv->NewStringUTF(secrets);
-	jnienv->CallStaticVoidMethod(utilsClass,mid, jnisecrets);
-	jnienv->DeleteLocalRef(jnisecrets);
-}
-
-void __paymentSystem_getType(const v8::FunctionCallbackInfo<v8::Value>& args) {
-	LOGI("__paymentSystem_getType");
-	jmethodID mid = jnienv->GetStaticMethodID(utilsClass, "paymentGetType",
-		"()Ljava/lang/String;");
-	jstring jniret = (jstring)
-		jnienv->CallStaticObjectMethod(utilsClass,mid);
-	if (jniret==NULL) return; // undefined
-	const char *ret = jnienv->GetStringUTFChars(jniret, 0);
-	args.GetReturnValue().Set(v8::String::NewFromUtf8(args.GetIsolate(), ret));
-	jnienv->ReleaseStringUTFChars(jniret, ret);
-	// not sure if it's necessary
-	jnienv->DeleteLocalRef(jniret);
-}
-
-
-
-
-void __paymentSystem_exit(const v8::FunctionCallbackInfo<v8::Value>& args) {
-	jmethodID mid = jnienv->GetStaticMethodID(utilsClass, "paymentExit",
-		"()V");
-	jnienv->CallStaticVoidMethod(utilsClass,mid);
-}
-
-void __paymentSystem_requestPayment(const v8::FunctionCallbackInfo<v8::Value>& args) {
-	LOGI("__paymentSystem_requestPayment");
-	String::Utf8Value _str_product_id(args[0]->ToString(args.GetIsolate()));
-	const char *product_id = *_str_product_id;
-
-	jmethodID mid = jnienv->GetStaticMethodID(utilsClass,
-		"paymentRequestPayment", "(Ljava/lang/String;)Z");
-	jstring jniproduct_id = jnienv->NewStringUTF(product_id);
-	jboolean jniret = (jboolean)
-		jnienv->CallStaticBooleanMethod(utilsClass,mid, jniproduct_id);
-	jnienv->DeleteLocalRef(jniproduct_id);
-	args.GetReturnValue().Set(v8::Boolean::New(args.GetIsolate(), jniret));
-}
-
-void __paymentSystem_checkReceipt(const v8::FunctionCallbackInfo<v8::Value>& args) {
-	String::Utf8Value _str_product_id(args[0]->ToString(args.GetIsolate()));
-	const char *product_id = *_str_product_id;
-
-	jmethodID mid = jnienv->GetStaticMethodID(utilsClass, "paymentCheckReceipt",
-		"(Ljava/lang/String;)I");
-	jstring jniproduct_id = jnienv->NewStringUTF(product_id);
-	jint jniret = (jint)
-		jnienv->CallStaticIntMethod(utilsClass,mid, jniproduct_id);
-	jnienv->DeleteLocalRef(jniproduct_id);
-	args.GetReturnValue().Set(v8::Integer::New(args.GetIsolate(), jniret));
-}
-
 
 
 // localStorage
@@ -545,14 +489,22 @@ void __getWindowHeight(const v8::FunctionCallbackInfo<v8::Value>& args) {
 		screenheight));
 }
 
-
-
-
 JsEnvironment::JsEnvironment() {
-	isolate = Isolate::New(Isolate::CreateParams());
+  V8::InitializeICUDefaultLocation("nodeonandroid");
+  V8::InitializeExternalStartupData("nodeonandroid");
+  std::unique_ptr<v8::Platform> platform(v8::platform::CreateDefaultPlatform());
+  V8::InitializePlatform(platform.get());
+  V8::Initialize();
+  // Create a new Isolate and make it the current one.
+  Isolate::CreateParams create_params;
+  create_params.array_buffer_allocator = v8::ArrayBuffer::Allocator::NewDefaultAllocator();
+  // create_params.array_buffer_allocator = new MallocArrayBufferAllocator();
+  isolate = v8::Isolate::New(create_params);
+
 	Isolate::Scope isolate_scope(isolate);
 	// start local scope
 	HandleScope handlescope(isolate);
+
 	// set up global template
 	v8::Local<v8::ObjectTemplate> global = ObjectTemplate::New(isolate, v8::FunctionTemplate::New(isolate));
 	v8::Local<v8::ObjectTemplate> _gl = v8::ObjectTemplate::New(isolate, v8::FunctionTemplate::New(isolate));
@@ -567,22 +519,6 @@ JsEnvironment::JsEnvironment() {
 	global->Set(v8::String::NewFromUtf8(isolate, "_utils"), _utils);
 	global->Set(v8::String::NewFromUtf8(isolate, "console"), console);
 	global->Set(v8::String::NewFromUtf8(isolate, "localStorage"), storage);
-	global->Set(v8::String::NewFromUtf8(isolate, "_paymentSystem"), payment);
-
-	payment->Set(v8::String::NewFromUtf8(isolate, "init"),
-			v8::FunctionTemplate::New(isolate, __paymentSystem_init));
-
-	payment->Set(v8::String::NewFromUtf8(isolate, "getType"),
-			v8::FunctionTemplate::New(isolate, __paymentSystem_getType));
-
-	payment->Set(v8::String::NewFromUtf8(isolate, "exit"),
-			v8::FunctionTemplate::New(isolate, __paymentSystem_exit));
-
-	payment->Set(v8::String::NewFromUtf8(isolate, "requestPayment"),
-			v8::FunctionTemplate::New(isolate, __paymentSystem_requestPayment));
-
-	payment->Set(v8::String::NewFromUtf8(isolate, "checkReceipt"),
-			v8::FunctionTemplate::New(isolate, __paymentSystem_checkReceipt));
 
 
 	storage->Set(v8::String::NewFromUtf8(isolate, "getItem"),
@@ -647,9 +583,7 @@ JsEnvironment::JsEnvironment() {
 			v8::FunctionTemplate::New(isolate, __getWindowHeight));
 
 
-
 #include "gluegen/glbindinit.h"
-
 
 	// create context
 	v8::Local<Context> context_local = v8::Context::New(isolate, NULL, global, v8::MaybeLocal<Value>(), v8::DeserializeInternalFieldsCallback());
@@ -663,23 +597,31 @@ JsEnvironment::JsEnvironment() {
 char *JsEnvironment::run_javascript(char *sourcestr) {
 	Isolate::Scope isolate_scope(isolate);
 	HandleScope handle_scope(isolate);
+  LOGI("JNI run js 1.1");
 	// we have to create a local handle from the persistent handle
 	// every time, see process.cc example
-	v8::Handle<Context> context_local =
-		v8::Local<v8::Context>::New(isolate, context);
+	v8::Local<Context> context_local = v8::Local<v8::Context>::New(isolate, context);
 	Context::Scope context_scope(context_local);
+
+  LOGI("JNI run js 1.2");
 
 	// Compile and run the script
 	TryCatch try_catch;
 	Local<String> source = String::NewFromUtf8(isolate, sourcestr);
-	Handle<Script> script = Script::Compile(source);
-	Handle<Value> result = script->Run();
+  LOGI("JNI run js 1.3 %s", sourcestr);
+
+	Local<Script> script = Script::Compile(source);
+  LOGI("JNI run js 1.4");
+	Local<Value> result = script->Run();
+  LOGI("JNI run js 2");
 	if (result.IsEmpty()) {
+  LOGI("JNI run js 3.1");
 		String::Utf8Value error(try_catch.Exception());
 		String::Utf8Value stacktrace(try_catch.StackTrace());
 		LOGI("Error compiling script: %s:\n%s",*error, *stacktrace);
 		return strdup("(error)");
 	} else {
+  LOGI("JNI run js 3.2");
 		// Convert the result to an UTF8 string
 		String::Utf8Value utf8(result);
 		char *ret = *utf8;
@@ -694,8 +636,7 @@ void JsEnvironment::callFunction(const char *funcname,const int argc,Local<Value
 	HandleScope handle_scope(isolate);
 	// we have to create a local handle from the persistent handle
 	// every time, see process.cc example
-	v8::Handle<Context> context_local =
-		v8::Local<v8::Context>::New(isolate, context);
+	v8::Handle<Context> context_local = v8::Local<v8::Context>::New(isolate, context);
 	Context::Scope context_scope(context_local);
 
 	// get function
@@ -756,15 +697,17 @@ static void init_javascript() {
 }
 
 // boot JS and pass window dimensions
-static void boot_javascript(int w,int h) {
+static void boot_javascript() {
 	// execute init scripts on context
-	char *source1;
+  const char *assetname = "node/html5.js";
+	char *source;
+	long assetlen = readAsset(assetname, &source);
+	LOGI("Loaded html5.js (%ld)",assetlen);
 	// html5 sets up the html5 API and loads the JS
-	readAsset("html5.js",&source1);
-	char *ret1 = js->run_javascript(source1);
-	LOGI("HTML5 bootloader returned: %s",ret1);
+	char *ret = js->run_javascript(source);
+	LOGI("HTML5 bootloader returned: %s",ret);
 
-	// pass width/height to JS
+	/* // pass width/height to JS
 	Isolate::Scope isolate_scope(js->isolate);
 	HandleScope handle_scope(js->isolate);
 
@@ -772,22 +715,8 @@ static void boot_javascript(int w,int h) {
 	Handle<Value> js_height = v8::Integer::New(js->isolate, h);
 	const int argc1 = 2;
 	Local<Value> argv1[argc1] = { js_width, js_height };
-	js->callFunction("_documentLoaded",argc1,argv1);
-
-
+	js->callFunction("_documentLoaded",argc1,argv1); */
 }
-
-
-/**
- * Just the current frame in the display.
- */
-static void engine_draw_frame() {
-	// call drawFrame in JS
-	const int argc = 0;
-	Local<Value> argv[argc] = { };
-	js->callFunction("_GLDrawFrame",argc,argv);
-}
-
 
 
 // jni interface
@@ -809,24 +738,41 @@ jint JNI_OnLoad(JavaVM* vm, void* reserved) {
 #ifdef __cplusplus
 extern "C" {
 #endif
+JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_GlesJSLib_onSurfaceCreated
+(JNIEnv *env, jclass clas) {
+	jnienv = env;
+	utilsClass = jnienv->FindClass("com/mafintosh/nodeonandroid/GlesJSUtils");
+
+	init_javascript();
+	boot_javascript();
+
+  Isolate::Scope isolate_scope(js->isolate);
+	HandleScope handle_scope(js->isolate);
+
+  const int argc = 0;
+	Local<Value> argv[argc] = {};
+	js->callFunction("onSurfaceCreated", argc, argv);
+}
+
 /* This does double duty as both the init and displaychanged function.
  * Signature: (II)V
  */
 JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_GlesJSLib_onSurfaceChanged
 (JNIEnv *env, jclass clas, jint width, jint height) {
 	LOGI("JNI onSurfaceChanged");
-	jnienv = env;
-	utilsClass = jnienv->FindClass("com/mafintosh/nodeonandroid/GlesJSUtils");
-	if (!app_was_inited) {
-		init_javascript();
-		for (int i=0; i<NR_PLAYERS*PLAYERDATASIZE; i++) gamepadvalues[i] = 0;
-	}
+	// jnienv = env;
+	// utilsClass = jnienv->FindClass("com/mafintosh/nodeonandroid/GlesJSUtils");
 	screenwidth = width;
 	screenheight = height;
-	if (!app_was_inited) {
-		boot_javascript(width,height);
-		app_was_inited=true;
-	}
+
+  Isolate::Scope isolate_scope(js->isolate);
+	HandleScope handle_scope(js->isolate);
+
+  Handle<Value> js_width = v8::Integer::New(js->isolate, width);
+	Handle<Value> js_height = v8::Integer::New(js->isolate, height);
+	const int argc = 2;
+	Local<Value> argv[argc] = {js_width, js_height};
+	js->callFunction("onSurfaceChanged",argc,argv);
 }
 
 /*
@@ -837,9 +783,14 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_GlesJSLib_onSurfaceChang
 JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_GlesJSLib_onDrawFrame
 (JNIEnv *env, jclass clas) {
 	//LOGI("JNI onDrawFrame");
-	jnienv = env;
-	utilsClass = jnienv->FindClass("com/mafintosh/nodeonandroid/GlesJSUtils");
-	engine_draw_frame();
+	// jnienv = env;
+	// utilsClass = jnienv->FindClass("com/mafintosh/nodeonandroid/GlesJSUtils");
+  Isolate::Scope isolate_scope(js->isolate);
+	HandleScope handle_scope(js->isolate);
+
+  const int argc = 0;
+	Local<Value> argv[argc] = {};
+	js->callFunction("onDrawFrame", argc, argv);
 }
 
 /*
@@ -855,8 +806,7 @@ jboolean press, jboolean release) {
 	//LOGI("JNI onTouchEvent");
 	Isolate::Scope isolate_scope(js->isolate);
 	HandleScope handle_scope(js->isolate);
-	if (!app_was_inited) return;
-	jnienv = env;
+	// jnienv = env;
 	// pass new coords before passing up/down
 	// pass coords to JS
 	Handle<Value> js_ptrid = v8::Integer::New(js->isolate, ptrid);
@@ -892,8 +842,7 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_GlesJSLib_onMultitouchCo
 	//LOGI("JNI MultitouchCoordinates");
 	Isolate::Scope isolate_scope(js->isolate);
 	HandleScope handle_scope(js->isolate);
-	if (!app_was_inited) return;
-	jnienv = env;
+	// jnienv = env;
 	// pass coords to JS
 	Handle<Value> js_ptrid = v8::Integer::New(js->isolate, ptrid);
 	Handle<Value> js_x = v8::Integer::New(js->isolate, x);
@@ -914,8 +863,7 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_GlesJSLib_onControllerEv
 (JNIEnv *env, jclass clas, jint player, jboolean active,
 jbooleanArray buttons, jfloatArray axes) {
 	//LOGI("Controller event %d %d",player,active);
-	//if (!app_was_inited) return;
-	jnienv = env;
+	// jnienv = env;
 	// store active value
 	gamepadvalues[PLAYERDATASIZE*player] = active ? 1 : 0;
 	if (active) {

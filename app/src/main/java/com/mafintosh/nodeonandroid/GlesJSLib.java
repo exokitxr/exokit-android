@@ -4,11 +4,12 @@ package com.mafintosh.nodeonandroid;
 public class GlesJSLib {
 
 	static {
-		System.loadLibrary("glesjs");
+		System.loadLibrary("node");
+		System.loadLibrary("nodebinding");
 	}
 
+	public static native void onSurfaceCreated();
 	public static native void onSurfaceChanged(int width, int height);
-
 	public static native void onDrawFrame();
 
 	public static native void onTouchEvent(int id,double x,double y,

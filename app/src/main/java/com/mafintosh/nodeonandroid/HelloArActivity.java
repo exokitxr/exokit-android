@@ -84,6 +84,9 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        GlesJSUtils.init(this);
+
         // setContentView(R.layout.activity_main);
         // mSurfaceView = findViewById(R.id.surfaceview);
         mSurfaceView = new GLSurfaceView(this);
@@ -167,16 +170,20 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
         } else {
             CameraPermissionHelper.requestCameraPermission(this);
         }
+
+        GlesJSUtils.resumeAudio();
     }
 
     @Override
     public void onPause() {
         super.onPause();
+
         // Note that the order matters - GLSurfaceView is paused first so that it does not try
         // to query the session. If Session is paused before GLSurfaceView, GLSurfaceView may
         // still call mSession.update() and get a SessionPausedException.
         mDisplayRotationHelper.onPause();
         mSurfaceView.onPause();
+        GlesJSUtils.pauseAudio();
         if (mSession != null) {
             mSession.pause();
         }
@@ -244,11 +251,15 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
             Log.e(TAG, "Failed to read plane texture");
         }
         mPointCloud.createOnGlThread(/*context=*/this);
+
+        GlesJSLib.onSurfaceCreated();
     }
 
     @Override
     public void onSurfaceChanged(GL10 gl, int width, int height) {
         mDisplayRotationHelper.onSurfaceChanged(width, height);
+
+        // GlesJSLib.onSurfaceChanged(width, height);
         GLES20.glViewport(0, 0, width, height);
     }
 
@@ -361,6 +372,8 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
             // Avoid crashing the application due to unhandled exceptions.
             Log.e(TAG, "Exception on the OpenGL thread", t);
         }
+
+        // GlesJSLib.onDrawFrame();
     }
 
     private void showSnackbarMessage(String message, boolean finishOnDismiss) {

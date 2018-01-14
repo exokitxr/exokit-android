@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.6)
 
-add_compile_options(-std=c++11)
+add_compile_options(-std=c++14)
+# set(ANDROID_STL "c++_shared")
+# add_compile_options(-frtti)
 # add_definitions(-DANDROID_TOOLCHAIN=clang -DANDROID_STL=c++_shared -DANDROID_PLATFORM=android-25)
 
 file(GLOB app_src_files "src/main/jni/main.cpp" )
@@ -11,8 +13,10 @@ include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/include/node )
 include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/include/native_app_glue )
 
 add_library( nodelib SHARED IMPORTED )
-
 set_target_properties( nodelib PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/jniLibs/${ANDROID_ABI}/libnode.so )
+
+# add_library( glesjslib SHARED IMPORTED )
+# set_target_properties( glesjslib PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/jniLibs/armeabi/libglesjs.so )
 
 find_library( log-lib log )
 find_library( android-lib android )
