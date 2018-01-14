@@ -775,22 +775,84 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_GlesJSLib_onSurfaceChang
 	js->callFunction("onSurfaceChanged",argc,argv);
 }
 
+
+JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_GlesJSLib_onNewFrame
+(JNIEnv *env, jclass clas, jfloatArray headViewMatrix, jfloatArray headQuaternion) {
+  jfloat* headViewMatrixElements = env->GetFloatArrayElements(headViewMatrix, 0);
+  jfloat* headQuaternionElements = env->GetFloatArrayElements(headQuaternion, 0);
+
+  Isolate::Scope isolate_scope(js->isolate);
+	HandleScope handle_scope(js->isolate);
+
+  const int argc = 2;
+  Local<Float32Array> headMatrixFloat32Array = Float32Array::New(ArrayBuffer::New(js->isolate, 16 * 4), 0, 16);
+  for (int i = 0; i < 16; i++) {
+    headMatrixFloat32Array->Set(i, Number::New(js->isolate, headViewMatrixElements[i]));
+  }
+  Local<Float32Array> headQuaternionFloat32Array = Float32Array::New(ArrayBuffer::New(js->isolate, 4 * 4), 0, 4);
+  for (int i = 0; i < 16; i++) {
+    headQuaternionFloat32Array->Set(i, Number::New(js->isolate, headQuaternionElements[i]));
+  }
+	Local<Value> argv[argc] = {headMatrixFloat32Array, headQuaternionFloat32Array};
+	js->callFunction("onDrawFrame", argc, argv);
+
+  env->ReleaseFloatArrayElements(headViewMatrix, headViewMatrixElements, 0);
+  env->ReleaseFloatArrayElements(headQuaternion, headQuaternionElements, 0);
+}
+
+
+JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_GlesJSLib_onDrawEye
+(JNIEnv *env, jclass clasj, jfloatArray eyeViewMatrix, jfloatArray eyePerspectiveMatrix) {
+  jfloat* eyeViewMatrixElements = env->GetFloatArrayElements(eyeViewMatrix, 0);
+  jfloat* eyePerspectiveMatrixElements = env->GetFloatArrayElements(eyePerspectiveMatrix, 0);
+
+  Isolate::Scope isolate_scope(js->isolate);
+	HandleScope handle_scope(js->isolate);
+
+  const int argc = 2;
+  Local<Float32Array> eyeViewMatrixFloat32Array = Float32Array::New(ArrayBuffer::New(js->isolate, 16 * 4), 0, 16);
+  for (int i = 0; i < 16; i++) {
+    eyeViewMatrixFloat32Array->Set(i, Number::New(js->isolate, eyeViewMatrixElements[i]));
+  }
+  Local<Float32Array> eyePerspectiveMatrixFloat32Array = Float32Array::New(ArrayBuffer::New(js->isolate, 4 * 4), 0, 4);
+  for (int i = 0; i < 16; i++) {
+    eyePerspectiveMatrixFloat32Array->Set(i, Number::New(js->isolate, eyePerspectiveMatrixElements[i]));
+  }
+	Local<Value> argv[argc] = {eyeViewMatrixFloat32Array, eyePerspectiveMatrixFloat32Array};
+	js->callFunction("onDrawEye", argc, argv);
+
+  env->ReleaseFloatArrayElements(eyeViewMatrix, eyeViewMatrixElements, 0);
+  env->ReleaseFloatArrayElements(eyePerspectiveMatrix, eyePerspectiveMatrixElements, 0);
+}
+
+
 /*
  * Class:     com_mafintosh_nodeonandroid_GlesJSLib
  * Method:    onDrawFrame
  * Signature: ()V
  */
 JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_GlesJSLib_onDrawFrame
-(JNIEnv *env, jclass clas) {
-	//LOGI("JNI onDrawFrame");
-	// jnienv = env;
-	// utilsClass = jnienv->FindClass("com/mafintosh/nodeonandroid/GlesJSUtils");
+(JNIEnv *env, jclass clas, jfloatArray viewMatrix, jfloatArray projectionMatrix) {
+  jfloat* viewMatrixElements = env->GetFloatArrayElements(viewMatrix, 0);
+  jfloat* projectionMatrixElements = env->GetFloatArrayElements(projectionMatrix, 0);
+
   Isolate::Scope isolate_scope(js->isolate);
 	HandleScope handle_scope(js->isolate);
 
-  const int argc = 0;
-	Local<Value> argv[argc] = {};
+  const int argc = 2;
+  Local<Float32Array> viewFloat32Array = Float32Array::New(ArrayBuffer::New(js->isolate, 16 * 4), 0, 16);
+  for (int i = 0; i < 16; i++) {
+    viewFloat32Array->Set(i, Number::New(js->isolate, viewMatrixElements[i]));
+  }
+  Local<Float32Array> projectionFloat32Array = Float32Array::New(ArrayBuffer::New(js->isolate, 16 * 4), 0, 16);
+  for (int i = 0; i < 16; i++) {
+    projectionFloat32Array->Set(i, Number::New(js->isolate, projectionMatrixElements[i]));
+  }
+	Local<Value> argv[argc] = {viewFloat32Array, projectionFloat32Array};
 	js->callFunction("onDrawFrame", argc, argv);
+
+  env->ReleaseFloatArrayElements(viewMatrix, viewMatrixElements, 0);
+  env->ReleaseFloatArrayElements(projectionMatrix, projectionMatrixElements, 0);
 }
 
 /*

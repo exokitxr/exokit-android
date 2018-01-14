@@ -15,9 +15,6 @@ include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/include/native_app_glue
 add_library( nodelib SHARED IMPORTED )
 set_target_properties( nodelib PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/jniLibs/${ANDROID_ABI}/libnode.so )
 
-# add_library( glesjslib SHARED IMPORTED )
-# set_target_properties( glesjslib PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/jniLibs/armeabi/libglesjs.so )
-
 find_library( log-lib log )
 find_library( android-lib android )
 find_library( egl-lib EGL )

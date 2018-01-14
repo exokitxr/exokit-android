@@ -184,6 +184,8 @@ public class TreasureHuntActivity extends GvrActivity implements GvrView.StereoR
 
     System.out.println("start vr");
 
+    GlesJSUtils.init(this);
+
     initializeGvrView();
 
     modelCube = new float[16];
@@ -262,6 +264,8 @@ public class TreasureHuntActivity extends GvrActivity implements GvrView.StereoR
   @Override
   public void onSurfaceChanged(int width, int height) {
     Log.i(TAG, "onSurfaceChanged");
+
+    // GlesJSLib.onSurfaceChanged(width, height);
   }
 
   /**
@@ -387,6 +391,8 @@ public class TreasureHuntActivity extends GvrActivity implements GvrView.StereoR
 
     updateModelPosition();
 
+    GlesJSLib.onSurfaceCreated();
+
     checkGLError("onSurfaceCreated");
   }
 
@@ -449,6 +455,8 @@ public class TreasureHuntActivity extends GvrActivity implements GvrView.StereoR
     // Regular update call to GVR audio engine.
     gvrAudioEngine.update();
 
+    // GlesJSLib.onNewFrame(headView, headRotation);
+
     checkGLError("onReadyToDraw");
   }
 
@@ -469,7 +477,8 @@ public class TreasureHuntActivity extends GvrActivity implements GvrView.StereoR
     checkGLError("colorParam");
 
     // Apply the eye transformation to the camera.
-    Matrix.multiplyMM(view, 0, eye.getEyeView(), 0, camera, 0);
+    float[] eyeView = eye.getEyeView();
+    Matrix.multiplyMM(view, 0, eyeView, 0, camera, 0);
 
     // Set the position of the light
     Matrix.multiplyMV(lightPosInEyeSpace, 0, view, 0, LIGHT_POS_IN_WORLD_SPACE, 0);
@@ -485,6 +494,8 @@ public class TreasureHuntActivity extends GvrActivity implements GvrView.StereoR
     Matrix.multiplyMM(modelView, 0, view, 0, modelFloor, 0);
     Matrix.multiplyMM(modelViewProjection, 0, perspective, 0, modelView, 0);
     drawFloor();
+
+    // GlesJSLib.onDrawEye(eyeView, perspective);
   }
 
   @Override

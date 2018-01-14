@@ -171,7 +171,7 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
             CameraPermissionHelper.requestCameraPermission(this);
         }
 
-        GlesJSUtils.resumeAudio();
+        // GlesJSUtils.resumeAudio();
     }
 
     @Override
@@ -183,7 +183,7 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
         // still call mSession.update() and get a SessionPausedException.
         mDisplayRotationHelper.onPause();
         mSurfaceView.onPause();
-        GlesJSUtils.pauseAudio();
+        // GlesJSUtils.pauseAudio();
         if (mSession != null) {
             mSession.pause();
         }
@@ -259,8 +259,9 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
     public void onSurfaceChanged(GL10 gl, int width, int height) {
         mDisplayRotationHelper.onSurfaceChanged(width, height);
 
-        // GlesJSLib.onSurfaceChanged(width, height);
         GLES20.glViewport(0, 0, width, height);
+
+        // GlesJSLib.onSurfaceChanged(width, height);
     }
 
     @Override
@@ -368,12 +369,12 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
                 mVirtualObjectShadow.draw(viewmtx, projmtx, lightIntensity);
             }
 
+            // GlesJSLib.onDrawFrame(viewmtx, projmtx);
+
         } catch (Throwable t) {
             // Avoid crashing the application due to unhandled exceptions.
             Log.e(TAG, "Exception on the OpenGL thread", t);
         }
-
-        // GlesJSLib.onDrawFrame();
     }
 
     private void showSnackbarMessage(String message, boolean finishOnDismiss) {
