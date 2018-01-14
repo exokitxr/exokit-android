@@ -1,0 +1,21 @@
+{
+  "name": "node",
+  "version": "0.0.1",
+  "main": "index.js",
+  "dependencies": {
+    "cowsay": "^1.2.1",
+    "get-stdin": "^5.0.1",
+    "minimist": "^1.2.0",
+    "optimist": "^0.6.1",
+    "three-zeo": "0.0.15",
+    "wordwrap": "^1.0.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Avaer Kazmer <a@modules.io>",
+  "license": "ISC",
+  "description": "",
+  "private": true
+}
