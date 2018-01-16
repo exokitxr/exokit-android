@@ -104,6 +104,7 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
 
         mSurfaceView = new GLSurfaceView(this);
         setContentView(mSurfaceView);
+
         mDisplayRotationHelper = new DisplayRotationHelper(/*context=*/ this);
 
         // Set up tap listener.
@@ -443,31 +444,5 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
                 mMessageSnackbar = null;
             }
         });
-    }
-
-    private AttributeSet createAttributeSet() {
-        String attributes =
-          //"<android.opengl.GLSurfaceView" +
-            //"android:id=\"@+id/surfaceview\"" +
-          "<GLSurfaceView " +
-            "android:layout_width=\"fill_parent\" " +
-            "android:layout_height=\"fill_parent\" " +
-            "android:layout_gravity=\"top\" />";
-
-        XmlPullParserFactory factory = null;
-        try {
-            factory = XmlPullParserFactory.newInstance();
-            factory.setNamespaceAware(true);
-            XmlPullParser parser = factory.newPullParser();
-            parser.setInput(new StringReader(attributes));
-            parser.next();
-            AttributeSet attrs = Xml.asAttributeSet(parser);
-            return attrs;
-        } catch (XmlPullParserException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return null;
     }
 }
