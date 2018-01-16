@@ -525,7 +525,7 @@ void redirectStdioToLog() {
     }, pfd[0]).detach();
 }
 
-v8::Local<v8::Object> makeGl() {
+v8::Local<v8::Object> makeGl(node::NodeService *service) {
   Isolate *isolate = service->GetIsolate();
   v8::Local<v8::ObjectTemplate> _gl = v8::ObjectTemplate::New(isolate);
 
@@ -790,10 +790,8 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_start
   char *args[3] = {nodeArg, jsPathArg, portArg};
   // node::Start(3, args);
   // service = new node::NodeService(3, args);
-  service = new node::NodeService(3, args);
-
-  service->Scope([]() {
-    service->GetContext()->Global()->Set(v8::String::NewFromUtf8(service->GetIsolate(), "nativeGl"), makeGl());
+  service = new node::NodeService(3, args, [](node::NodeService *service) {
+    service->GetContext()->Global()->Set(v8::String::NewFromUtf8(service->GetIsolate(), "nativeGl"), makeGl(service));
   });
 }
 
