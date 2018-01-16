@@ -893,7 +893,7 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_start
   service = new node::NodeService(3, args);
 
   service->Scope([]() {
-    service->GetContext()->Global()->Set(v8::String::NewFromUtf8(service->GetIsolate(), "gl"), makeGl());
+    service->GetContext()->Global()->Set(v8::String::NewFromUtf8(service->GetIsolate(), "nativeGl"), makeGl());
   });
 }
 
