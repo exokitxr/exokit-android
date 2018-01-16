@@ -2,9 +2,11 @@
 //BEGIN_INCLUDE(all)
 #include <string.h>
 #include <cstring>
+#include <unistd.h>
+#include <stdlib.h>
+#include <thread>
 
 #include <jni.h>
-#include <stdlib.h>
 #include <errno.h>
 
 #include <EGL/egl.h>
@@ -71,6 +73,7 @@ long readAsset(const char *filename, char **output);
 
 int32_t screenwidth;
 int32_t screenheight;
+node::NodeService *service;
 
 
 class JsEnvironment {
@@ -169,9 +172,11 @@ void __localStorage_removeItem(const v8::FunctionCallbackInfo<v8::Value>& args){
 // console
 
 void __console_log(const v8::FunctionCallbackInfo<v8::Value>& args) {
+	HandleScope handle_scope(args.GetIsolate());
+
 	String::Utf8Value _str_msg(args[0]->ToString(args.GetIsolate()));
 	const GLchar *msg = *_str_msg;
-	LOGI("JS.console: %s",msg);
+	LOGI("JS.console: %s", msg);
 }
 
 // audio
@@ -489,22 +494,106 @@ void __getWindowHeight(const v8::FunctionCallbackInfo<v8::Value>& args) {
 		screenheight));
 }
 
+
+#include <unwind.h>
+#include <dlfcn.h>
+#include <cxxabi.h>
+
+struct android_backtrace_state
+{
+    void **current;
+    void **end;
+};
+
+_Unwind_Reason_Code android_unwind_callback(struct _Unwind_Context* context, 
+                                            void* arg)
+{
+    android_backtrace_state* state = (android_backtrace_state *)arg;
+    uintptr_t pc = _Unwind_GetIP(context);
+    if (pc) 
+    {
+        if (state->current == state->end) 
+        {
+            return _URC_END_OF_STACK;
+        } 
+        else 
+        {
+            *state->current++ = reinterpret_cast<void*>(pc);
+        }
+    }
+    return _URC_NO_REASON;
+}
+
+void dump_stack(void)
+{
+    LOGI("android stack dump");
+
+    const int max = 100;
+    void* buffer[max];
+
+    android_backtrace_state state;
+    state.current = buffer;
+    state.end = buffer + max;
+
+    _Unwind_Backtrace(android_unwind_callback, &state);
+
+    int count = (int)(state.current - buffer);
+
+    for (int idx = 0; idx < count; idx++) 
+    {
+        const void* addr = buffer[idx];
+        const char* symbol = "";
+
+        Dl_info info;
+        if (dladdr(addr, &info) && info.dli_sname) 
+        {
+            symbol = info.dli_sname;
+        }
+        int status = 0; 
+        char *demangled = __cxxabiv1::__cxa_demangle(symbol, 0, 0, &status); 
+
+        LOGI("%03d: 0x%p %s",
+                idx,
+                addr,
+                (NULL != demangled && 0 == status) ?
+                demangled : symbol);
+
+        if (NULL != demangled)
+            free(demangled);        
+    }
+
+    LOGI("android stack dump done");
+}
+
+static void handler( int sig, siginfo_t *info, void *arg ) {
+  dump_stack();
+
+  abort();
+}
+
 JsEnvironment::JsEnvironment() {
-  V8::InitializeICUDefaultLocation("nodeonandroid");
-  V8::InitializeExternalStartupData("nodeonandroid");
+  LOGI("JNI env 1");
+
+  // V8::InitializeICUDefaultLocation("nodeonandroid");
+  // V8::InitializeExternalStartupData("nodeonandroid");
   std::unique_ptr<v8::Platform> platform(v8::platform::CreateDefaultPlatform());
+  LOGI("JNI env 2");
   V8::InitializePlatform(platform.get());
+  LOGI("JNI env 3");
   V8::Initialize();
+  LOGI("JNI env 4");
   // Create a new Isolate and make it the current one.
   Isolate::CreateParams create_params;
   create_params.array_buffer_allocator = v8::ArrayBuffer::Allocator::NewDefaultAllocator();
   // create_params.array_buffer_allocator = new MallocArrayBufferAllocator();
   isolate = v8::Isolate::New(create_params);
 
+  LOGI("JNI env 5");
 	Isolate::Scope isolate_scope(isolate);
 	// start local scope
 	HandleScope handlescope(isolate);
 
+  LOGI("JNI env 6");
 	// set up global template
 	v8::Local<v8::ObjectTemplate> global = ObjectTemplate::New(isolate, v8::FunctionTemplate::New(isolate));
 	v8::Local<v8::ObjectTemplate> _gl = v8::ObjectTemplate::New(isolate, v8::FunctionTemplate::New(isolate));
@@ -512,13 +601,16 @@ JsEnvironment::JsEnvironment() {
 	v8::Local<v8::ObjectTemplate> _utils = v8::ObjectTemplate::New(isolate, v8::FunctionTemplate::New(isolate));
 	v8::Local<v8::ObjectTemplate> console = v8::ObjectTemplate::New(isolate, v8::FunctionTemplate::New(isolate));
 	v8::Local<v8::ObjectTemplate> storage = v8::ObjectTemplate::New(isolate, v8::FunctionTemplate::New(isolate));
-	v8::Local<v8::ObjectTemplate> payment = v8::ObjectTemplate::New(isolate, v8::FunctionTemplate::New(isolate));
+
+  LOGI("JNI env 7");
 
 	global->Set(v8::String::NewFromUtf8(isolate, "_gl"), _gl);
 	global->Set(v8::String::NewFromUtf8(isolate, "_audio"), _audio);
 	global->Set(v8::String::NewFromUtf8(isolate, "_utils"), _utils);
-	global->Set(v8::String::NewFromUtf8(isolate, "console"), console);
+	// global->Set(v8::String::NewFromUtf8(isolate, "console"), console);
 	global->Set(v8::String::NewFromUtf8(isolate, "localStorage"), storage);
+
+  LOGI("JNI env 8");
 
 
 	storage->Set(v8::String::NewFromUtf8(isolate, "getItem"),
@@ -583,36 +675,68 @@ JsEnvironment::JsEnvironment() {
 			v8::FunctionTemplate::New(isolate, __getWindowHeight));
 
 
+  LOGI("JNI env 9");
+
 #include "gluegen/glbindinit.h"
+
+  LOGI("JNI env 10.1");
 
 	// create context
 	v8::Local<Context> context_local = v8::Context::New(isolate, NULL, global, v8::MaybeLocal<Value>(), v8::DeserializeInternalFieldsCallback());
+  LOGI("JNI env 10.2");
 	context.Reset(isolate, context_local);
 	//Persistent<Context> *pc = new Persistent<Context>(isolate,context_local);
 	//context = new Persistent<Context>(isolate, context_local);
 	// make context current
 	//Context::Scope context_scope(context);
 
+  LOGI("JNI env 11");
+
 }
 char *JsEnvironment::run_javascript(char *sourcestr) {
+  LOGI("JNI run js 1.0");
+
 	Isolate::Scope isolate_scope(isolate);
 	HandleScope handle_scope(isolate);
   LOGI("JNI run js 1.1");
 	// we have to create a local handle from the persistent handle
 	// every time, see process.cc example
-	v8::Local<Context> context_local = v8::Local<v8::Context>::New(isolate, context);
-	Context::Scope context_scope(context_local);
+	// v8::Local<Context> context_local = v8::Local<v8::Context>::New(isolate, context);
+  v8::Local<v8::Context> context = v8::Context::New(isolate);
+	Context::Scope context_scope(context);
 
   LOGI("JNI run js 1.2");
 
 	// Compile and run the script
 	TryCatch try_catch;
-	Local<String> source = String::NewFromUtf8(isolate, sourcestr);
-  LOGI("JNI run js 1.3 %s", sourcestr);
+	// Local<String> source = String::NewFromUtf8(isolate, sourcestr);
+  // LOGI("JNI run js 1.3 %s %ld", sourcestr, strlen(sourcestr));
 
-	Local<Script> script = Script::Compile(source);
+  struct sigaction new_act, old_act; // XXX
+  memset( &new_act, 0, sizeof( new_act ));
+  memset( &old_act, 0, sizeof( old_act ));
+  sigemptyset( &( new_act.sa_mask ) );
+  new_act.sa_sigaction = handler;
+  new_act.sa_flags = SA_SIGINFO;
+  sigaction( SIGSEGV, &new_act, &old_act );
+
+  memset( &new_act, 0, sizeof( new_act ));
+  memset( &old_act, 0, sizeof( old_act ));
+  sigemptyset( &( new_act.sa_mask ) );
+  new_act.sa_sigaction = handler;
+  new_act.sa_flags = SA_SIGINFO;
+  sigaction( SIGTRAP, &new_act, &old_act );
+
   LOGI("JNI run js 1.4");
-	Local<Value> result = script->Run();
+  v8::Local<v8::String> source =
+        v8::String::NewFromUtf8(isolate, "'Hello' + ', World!'",
+                                v8::NewStringType::kNormal)
+            .ToLocalChecked();
+  LOGI("JNI run js 1.5");
+  v8::Local<v8::Script> script =
+      v8::Script::Compile(context, source).ToLocalChecked();
+  LOGI("JNI run js 1.6");
+	Local<Value> result = script->Run(context).ToLocalChecked();
   LOGI("JNI run js 2");
 	if (result.IsEmpty()) {
   LOGI("JNI run js 3.1");
@@ -657,8 +781,34 @@ void JsEnvironment::callFunction(const char *funcname,const int argc,Local<Value
 	}
 }
 
+void callFunction(const char *funcname, const int argc, Local<Value> argv[]) {
+	// init
+  Isolate *isolate = service->GetIsolate();
+	Isolate::Scope isolate_scope(isolate);
+	HandleScope handle_scope(isolate);
+	// we have to create a local handle from the persistent handle
+	// every time, see process.cc example
+	Local<Context> context_local(service->GetContext());
+	Context::Scope context_scope(context_local);
 
+	// get function
+	Local<String> jsfunc_name = String::NewFromUtf8(isolate,funcname);
+	Local<Value> jsfunc_val = context_local->Global()->Get(jsfunc_name);
+	if (!jsfunc_val->IsFunction()) return;
+	Local<Function> jsfunc = Local<Function>::Cast(jsfunc_val);
 
+	// call function, 'this' points to global object
+	TryCatch try_catch;
+	Local<Value> result = jsfunc->Call(context_local->Global(), argc, argv);
+
+	if (result.IsEmpty()) {
+		String::Utf8Value error(try_catch.Exception());
+		String::Utf8Value stacktrace(try_catch.StackTrace());
+		LOGI("Error calling %s: %s:\n%s",funcname,*error,*stacktrace);
+	} else {
+		//LOGI("%s called",funcname);
+	}
+}
 
 
 // -----------------------------------------------
@@ -692,20 +842,24 @@ long readAsset(const char *filename, char **output) {
 
 // init javascript engine
 static void init_javascript() {
+	LOGI("JNI init_javascript");
+
 	js = new JsEnvironment();
 	// V8::SetArrayBufferAllocator(new MallocArrayBufferAllocator());
 }
 
 // boot JS and pass window dimensions
 static void boot_javascript() {
+	LOGI("JNI boot_javascript");
+
 	// execute init scripts on context
   const char *assetname = "node/html5.js";
 	char *source;
 	long assetlen = readAsset(assetname, &source);
-	LOGI("Loaded html5.js (%ld)",assetlen);
+	LOGI("JNI html5.js (%ld)",assetlen);
 	// html5 sets up the html5 API and loads the JS
 	char *ret = js->run_javascript(source);
-	LOGI("HTML5 bootloader returned: %s",ret);
+	LOGI("JNI bootloader returned: %s",ret);
 
 	/* // pass width/height to JS
 	Isolate::Scope isolate_scope(js->isolate);
@@ -715,7 +869,7 @@ static void boot_javascript() {
 	Handle<Value> js_height = v8::Integer::New(js->isolate, h);
 	const int argc1 = 2;
 	Local<Value> argv1[argc1] = { js_width, js_height };
-	js->callFunction("_documentLoaded",argc1,argv1); */
+	callFunction("_documentLoaded",argc1,argv1); */
 }
 
 
@@ -732,6 +886,27 @@ jint JNI_OnLoad(JavaVM* vm, void* reserved) {
 	// Register methods with env->RegisterNatives.
 
 	return JNI_VERSION_1_6;
+}
+
+void redirectStdioToLog() {
+    setvbuf(stdout, 0, _IOLBF, 0);
+    setvbuf(stderr, 0, _IONBF, 0);
+
+    int pfd[2];
+    pipe(pfd);
+    dup2(pfd[1], 1);
+    dup2(pfd[1], 2);
+
+    std::thread logger = std::thread([](int pfd0) {
+        char buf[1024];
+        std::size_t nBytes = 0;
+        while ((nBytes = read(pfd0, buf, sizeof buf - 1)) > 0) {
+            if (buf[nBytes - 1] == '\n') --nBytes;
+            buf[nBytes] = 0;
+            LOGI("%s", buf);
+        }
+    }, pfd[0]);
+    logger.detach();
 }
 
 
@@ -751,7 +926,7 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_GlesJSLib_onSurfaceCreat
 
   const int argc = 0;
 	Local<Value> argv[argc] = {};
-	js->callFunction("onSurfaceCreated", argc, argv);
+	callFunction("onSurfaceCreated", argc, argv);
 }
 
 /* This does double duty as both the init and displaychanged function.
@@ -772,7 +947,7 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_GlesJSLib_onSurfaceChang
 	Handle<Value> js_height = v8::Integer::New(js->isolate, height);
 	const int argc = 2;
 	Local<Value> argv[argc] = {js_width, js_height};
-	js->callFunction("onSurfaceChanged",argc,argv);
+	callFunction("onSurfaceChanged",argc,argv);
 }
 
 
@@ -794,7 +969,7 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_GlesJSLib_onNewFrame
     headQuaternionFloat32Array->Set(i, Number::New(js->isolate, headQuaternionElements[i]));
   }
 	Local<Value> argv[argc] = {headMatrixFloat32Array, headQuaternionFloat32Array};
-	js->callFunction("onDrawFrame", argc, argv);
+	callFunction("onDrawFrame", argc, argv);
 
   env->ReleaseFloatArrayElements(headViewMatrix, headViewMatrixElements, 0);
   env->ReleaseFloatArrayElements(headQuaternion, headQuaternionElements, 0);
@@ -819,7 +994,7 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_GlesJSLib_onDrawEye
     eyePerspectiveMatrixFloat32Array->Set(i, Number::New(js->isolate, eyePerspectiveMatrixElements[i]));
   }
 	Local<Value> argv[argc] = {eyeViewMatrixFloat32Array, eyePerspectiveMatrixFloat32Array};
-	js->callFunction("onDrawEye", argc, argv);
+	callFunction("onDrawEye", argc, argv);
 
   env->ReleaseFloatArrayElements(eyeViewMatrix, eyeViewMatrixElements, 0);
   env->ReleaseFloatArrayElements(eyePerspectiveMatrix, eyePerspectiveMatrixElements, 0);
@@ -849,7 +1024,7 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_GlesJSLib_onDrawFrame
     projectionFloat32Array->Set(i, Number::New(js->isolate, projectionMatrixElements[i]));
   }
 	Local<Value> argv[argc] = {viewFloat32Array, projectionFloat32Array};
-	js->callFunction("onDrawFrame", argc, argv);
+	callFunction("onDrawFrame", argc, argv);
 
   env->ReleaseFloatArrayElements(viewMatrix, viewMatrixElements, 0);
   env->ReleaseFloatArrayElements(projectionMatrix, projectionMatrixElements, 0);
@@ -876,20 +1051,20 @@ jboolean press, jboolean release) {
 	Handle<Value> js_y = v8::Integer::New(js->isolate, y);
 	const int argc3 = 3;
 	Local<Value> argv3[argc3] = { js_ptrid, js_x, js_y };
-	js->callFunction("_mouseMoveCallback",argc3,argv3);
+	callFunction("_mouseMoveCallback",argc3,argv3);
 	if (press) {
 		// start touch
 		// pass event to JS
 		const int argc1 = 1;
 		Local<Value> argv1[argc1] = { js_ptrid };
-		js->callFunction("_mouseDownCallback",argc1,argv1);
+		callFunction("_mouseDownCallback",argc1,argv1);
 	}
 	if (release) {
 		// end touch
 		// pass event to JS
 		const int argc2 = 1;
 		Local<Value> argv2[argc2] = { js_ptrid };
-		js->callFunction("_mouseUpCallback",argc2,argv2);
+		callFunction("_mouseUpCallback",argc2,argv2);
 	}
 }
 
@@ -911,9 +1086,8 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_GlesJSLib_onMultitouchCo
 	Handle<Value> js_y = v8::Integer::New(js->isolate, y);
 	const int argc = 3;
 	Local<Value> argv[argc] = { js_ptrid, js_x, js_y };
-	js->callFunction("_touchCoordinatesCallback",argc,argv);
+	callFunction("_touchCoordinatesCallback",argc,argv);
 }
-
 
 
 /*
@@ -949,8 +1123,11 @@ jbooleanArray buttons, jfloatArray axes) {
 	// if not active, values are null, keep old values
 }
 
+
 JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_startNode__Ljava_lang_String_2Ljava_lang_String_2
 (JNIEnv *env, jobject thiz, jstring jsPath, jstring port) {
+	LOGI("JNI start node 1");
+
   const char *nodeString = "node";
   const char *jsPathString = env->GetStringUTFChars(jsPath, NULL);
   const char *portString = env->GetStringUTFChars(port, NULL);
@@ -971,6 +1148,82 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_startNode__L
 
   char *args[3] = {nodeArg, jsPathArg, portArg};
   node::Start(3, args);
+
+	LOGI("JNI start node 2");
+}
+
+
+JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_start
+(JNIEnv *env, jobject thiz, jstring jsPath, jstring port) {
+  // redirectStdioToLog();
+
+	LOGI("JNI start service 1");
+
+  const char *nodeString = "node";
+  const char *jsPathString = env->GetStringUTFChars(jsPath, NULL);
+	LOGI("JNI start service 2 %s", jsPathString);
+  const char *portString = env->GetStringUTFChars(port, NULL);
+  char argsString[4096];
+  int i = 0;
+
+  char *nodeArg = argsString + i;
+  strncpy(nodeArg, nodeString, sizeof(argsString) - i);
+  i += strlen(nodeString) + 1;
+
+  char *jsPathArg = argsString + i;
+  strncpy(jsPathArg, jsPathString, sizeof(argsString) - i);
+  i += strlen(jsPathString) + 1;
+
+  char *portArg = argsString + i;
+  strncpy(portArg, portString, sizeof(argsString) - i);
+  i += strlen(portString) + 1;
+
+	LOGI("JNI start service 3");
+
+  char *args[3] = {nodeArg, jsPathArg, portArg};
+  // service = new node::NodeService(3, args);
+  node::Start(3, args);
+
+	LOGI("JNI start service 4");
+}
+
+JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_prestart
+(JNIEnv *env, jobject thiz, jstring jsPath, jstring port) {
+  // redirectStdioToLog();
+
+	LOGI("JNI prestart 1");
+
+  const char *nodeString = "node";
+  const char *jsPathString = env->GetStringUTFChars(jsPath, NULL);
+	LOGI("JNI prestart 2 %s", jsPathString);
+  const char *portString = env->GetStringUTFChars(port, NULL);
+  char argsString[4096];
+  int i = 0;
+
+  char *nodeArg = argsString + i;
+  strncpy(nodeArg, nodeString, sizeof(argsString) - i);
+  i += strlen(nodeString) + 1;
+
+  char *jsPathArg = argsString + i;
+  strncpy(jsPathArg, jsPathString, sizeof(argsString) - i);
+  i += strlen(jsPathString) + 1;
+
+  char *portArg = argsString + i;
+  strncpy(portArg, portString, sizeof(argsString) - i);
+  i += strlen(portString) + 1;
+
+	LOGI("JNI prestart 3");
+
+  char *args[3] = {nodeArg, jsPathArg, portArg};
+  // service = new node::NodeService(3, args);
+  node::Prestart(3, args);
+
+	LOGI("JNI prestart 4");
+}
+
+JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_tick
+(JNIEnv *env, jobject thiz, jstring jsPath, jstring port) {
+  service->Tick();
 }
 
 

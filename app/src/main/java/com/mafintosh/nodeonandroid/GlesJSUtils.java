@@ -28,6 +28,8 @@ import java.io.InputStream;
 */
 public class GlesJSUtils {
 
+  private static final String TAG = GlesJSUtils.class.getSimpleName();
+
 	public final static int LOAD=0;
 	public final static int PLAY=1;
 	public final static int PAUSE=2;
@@ -39,8 +41,13 @@ public class GlesJSUtils {
 	static AssetManager assets=null;
 
 	public static void init(Activity activity) {
+    Log.i(TAG, "JNI glesjs utils init");
+
 		act = activity;
 		assets = act.getAssets();
+
+    System.loadLibrary("node");
+		System.loadLibrary("nodebinding");
 	}
 
 

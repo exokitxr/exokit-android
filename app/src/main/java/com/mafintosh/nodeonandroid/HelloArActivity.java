@@ -85,7 +85,9 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        GlesJSUtils.init(this);
+        Log.i(TAG, "JNI on create");
+
+        // GlesJSUtils.init(this);
 
         // setContentView(R.layout.activity_main);
         // mSurfaceView = findViewById(R.id.surfaceview);
@@ -252,7 +254,13 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
         }
         mPointCloud.createOnGlThread(/*context=*/this);
 
-        GlesJSLib.onSurfaceCreated();
+        Log.i(TAG, "JNI start node 1");
+
+        NodeService.init(this);
+
+        Log.i(TAG, "JNI start node 2");
+
+        // GlesJSLib.onSurfaceCreated();
     }
 
     @Override
@@ -368,6 +376,8 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
                 mVirtualObject.draw(viewmtx, projmtx, lightIntensity);
                 mVirtualObjectShadow.draw(viewmtx, projmtx, lightIntensity);
             }
+
+            // NodeService.tick();
 
             // GlesJSLib.onDrawFrame(viewmtx, projmtx);
 

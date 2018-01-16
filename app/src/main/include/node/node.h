@@ -205,6 +205,7 @@ NODE_EXTERN extern bool force_fips_crypto;
 #endif
 
 NODE_EXTERN int Start(int argc, char *argv[]);
+NODE_EXTERN int Prestart(int argc, char *argv[]);
 NODE_EXTERN void Init(int* argc,
                       const char** argv,
                       int* exec_argc,
@@ -212,6 +213,22 @@ NODE_EXTERN void Init(int* argc,
 
 class IsolateData;
 class Environment;
+
+class NodeService {
+  public:
+
+  v8::Isolate *isolate;
+  Environment *env;
+  v8::Eternal<v8::Context> context;
+
+  NODE_EXTERN NodeService(int argc, char** argv);
+  NODE_EXTERN ~NodeService();
+  NODE_EXTERN bool Tick();
+
+  NODE_EXTERN v8::Isolate *GetIsolate();
+  NODE_EXTERN Environment *GetEnvironment();
+  NODE_EXTERN v8::Local<v8::Context> GetContext();
+};
 
 NODE_EXTERN IsolateData* CreateIsolateData(v8::Isolate* isolate,
                                            struct uv_loop_s* loop);

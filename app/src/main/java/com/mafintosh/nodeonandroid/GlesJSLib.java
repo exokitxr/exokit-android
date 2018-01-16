@@ -3,11 +3,6 @@ package com.mafintosh.nodeonandroid;
 
 public class GlesJSLib {
 
-	static {
-		System.loadLibrary("node");
-		System.loadLibrary("nodebinding");
-	}
-
   // GL
 	public static native void onSurfaceCreated();
 	public static native void onSurfaceChanged(int width, int height);
