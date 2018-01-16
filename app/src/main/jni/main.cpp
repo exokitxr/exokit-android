@@ -125,7 +125,7 @@ void __utils_execScript(const v8::FunctionCallbackInfo<v8::Value>& args) {
 
 // localStorage
 
-void __localStorage_getItem(const v8::FunctionCallbackInfo<v8::Value>& args) {
+/* void __localStorage_getItem(const v8::FunctionCallbackInfo<v8::Value>& args) {
 	String::Utf8Value _str_key(args[0]->ToString(args.GetIsolate()));
 	const char *key = *_str_key;
 
@@ -167,31 +167,7 @@ void __localStorage_removeItem(const v8::FunctionCallbackInfo<v8::Value>& args){
 	jstring jnikey = jnienv->NewStringUTF(key);
 	jnienv->CallStaticVoidMethod(utilsClass,mid, jnikey);
 	jnienv->DeleteLocalRef(jnikey);
-}
-
-// audio
-
-// op - LOAD,PLAY,PAUSE (int)
-// assetname - String
-// loop - boolean
-// id - int
-void __audio_handle(const v8::FunctionCallbackInfo<v8::Value>& args) {
-	int op = (int)args[0]->IntegerValue();
-	String::Utf8Value _str_assetname(args[1]->ToString(args.GetIsolate()));
-	const char *assetname = *_str_assetname;
-	int loop = (int)args[2]->IntegerValue();
-	int id = (int)args[3]->IntegerValue();
-	//LOGI("audio handle %d %s %d %d",op,assetname,loop,id);
-	// call method:
-  	//static void handleAudio(int, java.lang.String, boolean, int);
-    //Signature: (ILjava/lang/String;ZI)V
-	jmethodID mid = jnienv->GetStaticMethodID(utilsClass, "handleAudio",
-		"(ILjava/lang/String;ZI)V");
-	jstring jniassetname = jnienv->NewStringUTF(assetname);
-	jnienv->CallStaticVoidMethod(utilsClass,mid, (jint)op,jniassetname,
-		(jboolean)loop, (jint)id);
-	jnienv->DeleteLocalRef(jniassetname);
-}
+} */
 
 // gl
 
