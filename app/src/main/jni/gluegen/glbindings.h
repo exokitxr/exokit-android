@@ -56,7 +56,7 @@ void __blendFuncSeparate(const v8::FunctionCallbackInfo<v8::Value>& args) {
 	glBlendFuncSeparate(srcRGB,dstRGB,srcAlpha,dstAlpha);
 }
 void __bufferData(const v8::FunctionCallbackInfo<v8::Value>& args) {
-	HandleScope handle_scope(js->isolate);
+	HandleScope handle_scope(service->GetIsolate());
 	unsigned int target = (unsigned int)args[0]->IntegerValue();
 	v8::Handle<v8::ArrayBufferView> bufview_data = Handle<ArrayBufferView>::Cast(args[1]);
 	v8::Handle<v8::ArrayBuffer> buf_data = bufview_data->Buffer();
@@ -67,7 +67,7 @@ void __bufferData(const v8::FunctionCallbackInfo<v8::Value>& args) {
 	glBufferData(target,size,data,usage);
 }
 void __bufferSubData(const v8::FunctionCallbackInfo<v8::Value>& args) {
-	HandleScope handle_scope(js->isolate);
+	HandleScope handle_scope(service->GetIsolate());
 	unsigned int target = (unsigned int)args[0]->IntegerValue();
 	khronos_intptr_t offset = (khronos_intptr_t)args[1]->IntegerValue();
 	v8::Handle<v8::ArrayBufferView> bufview_data = Handle<ArrayBufferView>::Cast(args[2]);
@@ -232,9 +232,9 @@ void __generateMipmap(const v8::FunctionCallbackInfo<v8::Value>& args) {
 	glGenerateMipmap(target);
 }
 void __getAttribLocation(const v8::FunctionCallbackInfo<v8::Value>& args) {
-	HandleScope handle_scope(js->isolate);
+	HandleScope handle_scope(service->GetIsolate());
 	unsigned int program = (unsigned int)args[0]->IntegerValue();
-	String::Utf8Value _str_name(args[1]->ToString(args.GetIsolate()));
+	String::Utf8Value _str_name(args[1]->ToString());
 	const GLchar *name = *_str_name;
 	GLint _ret = glGetAttribLocation(program,name);
 	args.GetReturnValue().Set(v8::Integer::New(args.GetIsolate(), _ret));
@@ -244,9 +244,9 @@ void __getError(const v8::FunctionCallbackInfo<v8::Value>& args) {
 	args.GetReturnValue().Set(v8::Integer::New(args.GetIsolate(), _ret));
 }
 void __getUniformLocation(const v8::FunctionCallbackInfo<v8::Value>& args) {
-	HandleScope handle_scope(js->isolate);
+	HandleScope handle_scope(service->GetIsolate());
 	unsigned int program = (unsigned int)args[0]->IntegerValue();
-	String::Utf8Value _str_name(args[1]->ToString(args.GetIsolate()));
+	String::Utf8Value _str_name(args[1]->ToString());
 	const GLchar *name = *_str_name;
 	GLint _ret = glGetUniformLocation(program,name);
 	args.GetReturnValue().Set(v8::Integer::New(args.GetIsolate(), _ret));
@@ -332,9 +332,9 @@ void __scissor(const v8::FunctionCallbackInfo<v8::Value>& args) {
 	glScissor(x,y,width,height);
 }
 void __shaderSource(const v8::FunctionCallbackInfo<v8::Value>& args) {
-	HandleScope handle_scope(js->isolate);
+	HandleScope handle_scope(service->GetIsolate());
 	unsigned int shader = (unsigned int)args[0]->IntegerValue();
-	String::Utf8Value _str_string(args[1]->ToString(args.GetIsolate()));
+	String::Utf8Value _str_string(args[1]->ToString());
 	const GLchar *string[] = {*_str_string};
 	GLsizei count = 1;
 	GLint length[] = {-1};
