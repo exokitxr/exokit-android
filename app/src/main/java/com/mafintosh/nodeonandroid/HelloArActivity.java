@@ -93,9 +93,16 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
 
         // GlesJSUtils.init(this);
 
-        // setContentView(R.layout.activity_main);
-        // mSurfaceView = findViewById(R.id.surfaceview);
-        mSurfaceView = new GLSurfaceView(this, createAttributeSet());
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        getWindow().getDecorView().setSystemUiVisibility(
+                View.SYSTEM_UI_FLAG_LAYOUT_STABLE |
+                View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION |
+                View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
+                View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
+                View.SYSTEM_UI_FLAG_FULLSCREEN |
+                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+
+        mSurfaceView = new GLSurfaceView(this);
         setContentView(mSurfaceView);
         mDisplayRotationHelper = new DisplayRotationHelper(/*context=*/ this);
 
