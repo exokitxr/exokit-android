@@ -474,16 +474,6 @@ void __getImageDimensions(const v8::FunctionCallbackInfo<v8::Value>& args) {
 	args.GetReturnValue().Set(jsretval);
 }
 
-void __getWindowWidth(const v8::FunctionCallbackInfo<v8::Value>& args) {
-	args.GetReturnValue().Set(v8::Integer::New(args.GetIsolate(),
-		screenwidth));
-}
-
-void __getWindowHeight(const v8::FunctionCallbackInfo<v8::Value>& args) {
-	args.GetReturnValue().Set(v8::Integer::New(args.GetIsolate(),
-		screenheight));
-}
-
 std::function<void ()> scopeFn;
 
 void scope(std::function<void ()> fn) {
@@ -620,12 +610,6 @@ v8::Local<v8::Object> makeGl() {
 
 	_gl->Set(v8::String::NewFromUtf8(isolate, "_getImageDimensions"),
 			v8::FunctionTemplate::New(isolate, __getImageDimensions));
-
-	_gl->Set(v8::String::NewFromUtf8(isolate, "_getWindowWidth"),
-			v8::FunctionTemplate::New(isolate, __getWindowWidth));
-
-	_gl->Set(v8::String::NewFromUtf8(isolate, "_getWindowHeight"),
-			v8::FunctionTemplate::New(isolate, __getWindowHeight));
 
 #include "gluegen/glbindinit.h"
 
