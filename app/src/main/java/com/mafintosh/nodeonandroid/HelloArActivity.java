@@ -260,16 +260,16 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
 
         Log.i(TAG, "JNI start node 2");
 
-        // GlesJSLib.onSurfaceCreated();
+        GlesJSLib.onSurfaceCreated();
     }
 
     @Override
     public void onSurfaceChanged(GL10 gl, int width, int height) {
         mDisplayRotationHelper.onSurfaceChanged(width, height);
 
-        GLES20.glViewport(0, 0, width, height);
+        // GLES20.glViewport(0, 0, width, height);
 
-        // GlesJSLib.onSurfaceChanged(width, height);
+        GlesJSLib.onSurfaceChanged(width, height);
     }
 
     @Override
