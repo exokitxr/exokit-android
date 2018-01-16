@@ -1,4 +1,5 @@
 apply plugin: 'com.android.application'
+apply plugin: 'com.moowork.node'
 
 // def ndkDir = plugins.getPlugin('com.android.library').sdkHandler.getNdkFolder()
 // def ndkDir = project.plugins.findPlugin('com.android.application').getNdkFolder()
@@ -72,6 +73,13 @@ android {
     //     tasks.lint.enabled = false
     // }
 }
+
+task assetsNpmInstall(type: NpmTask) {
+    workingDir = file('./src/main/assets/node/')
+    args = ['install', '--production', '--no-package-lock', '--loglevel', 'warn']
+}
+
+build.dependsOn assetsNpmInstall
 
 /* repositories {
     // jcenter()
