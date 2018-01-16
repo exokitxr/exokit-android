@@ -3,13 +3,8 @@
   "version": "0.0.1",
   "main": "index.js",
   "dependencies": {
-    "cowsay": "^1.2.1",
-    "get-stdin": "^5.0.1",
     "jsdom": "^11.5.1",
-    "minimist": "^1.2.0",
-    "optimist": "^0.6.1",
-    "three-zeo": "0.0.15",
-    "wordwrap": "^1.0.0"
+    "three-zeo": "0.0.15"
   },
   "devDependencies": {},
   "scripts": {
