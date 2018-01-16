@@ -2,22 +2,57 @@
 <html>
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    .button {
+      display: flex;
+      position: absolute;
+      width: 100%;
+      border: 0;
+      color: #FFF;
+      font-size: 50px;
+      flex: 1;
+      justify-content: center;
+      align-items: center;
+      transition: all 2s cubic-bezier(0, 1, 0, 1);
+    }
+    .button.top {
+      top: 0;
+      bottom: 50%;
+    }
+    .button.bottom {
+      top: 50%;
+      bottom: 0;
+    }
+    .button.selected {
+      top: 0;
+      bottom: 0;
+      z-index: 1;
+    }
+  </style>
 </head>
-<body style="margin: 0;">
-  <div style="display: flex; width: 100vw; height: 100vh; flex-direction: column;">
-    <button id=vr-button style="display: flex; background-color: #2196f3; border: 0; color: #FFF; font-size: 50px; flex: 1; justify-content: center; align-items: center;">VR</button>
-    <button id=ar-button style="display: flex; background-color: #8bc34a; border: 0; color: #FFF; font-size: 50px; flex: 1; justify-content: center; align-items: center;">AR</button>
+<body style="margin: 0; background-color: red;">
+  <div style="position: relative; width: 100vw; height: 100vh;">
+    <button id=vr-button class="button top" style="background-color: #2196f3;">VR1</button>
+    <button id=ar-button class="button bottom" style="background-color: #8bc34a;">AR1</button>
   </div>
   <script>
     console.log('native menu typeof ' + typeof window.nativeMenu + ' ' + typeof window.enterVr + ' ' + JSON.stringify(Object.keys(window.nativeMenu)));
-    document.getElementById('vr-button').addEventListener('click', e => {
+    const vrButtonEl = document.getElementById('vr-button');
+    vrButtonEl.addEventListener('click', e => {
       console.log('enter vr button 1');
-      window.nativeMenu.enterVr();
+      vrButtonEl.classList.add('selected');
+      setTimeout(() => {
+        window.nativeMenu.enterVr();
+      }, 2000);
       console.log('enter vr button 2');
     });
-    document.getElementById('ar-button').addEventListener('click', e => {
+    const arButtonEl = document.getElementById('ar-button');
+    arButtonEl.addEventListener('click', e => {
       console.log('enter ar button 1');
-      window.nativeMenu.enterAr();
+      arButtonEl.classList.add('selected');
+      setTimeout(() => {
+        window.nativeMenu.enterAr();
+      }, 2000);
       console.log('enter ar button 2');
     });
   </script>
