@@ -23,6 +23,8 @@ import android.support.design.widget.BaseTransientBottomBar;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.util.Xml;
+import android.util.AttributeSet;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
@@ -47,10 +49,12 @@ import com.google.ar.core.exceptions.UnavailableApkTooOldException;
 import com.google.ar.core.exceptions.UnavailableArcoreNotInstalledException;
 import com.google.ar.core.exceptions.UnavailableSdkTooOldException;
 import java.io.IOException;
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.concurrent.ArrayBlockingQueue;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
+import org.xmlpull.v1.*;
 
 /**
  * This is a simple example that shows how to create an augmented reality (AR) application using the
@@ -91,7 +95,7 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
 
         // setContentView(R.layout.activity_main);
         // mSurfaceView = findViewById(R.id.surfaceview);
-        mSurfaceView = new GLSurfaceView(this);
+        mSurfaceView = new GLSurfaceView(this, createAttributeSet());
         setContentView(mSurfaceView);
         mDisplayRotationHelper = new DisplayRotationHelper(/*context=*/ this);
 
@@ -432,5 +436,31 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
                 mMessageSnackbar = null;
             }
         });
+    }
+
+    private AttributeSet createAttributeSet() {
+        String attributes =
+          //"<android.opengl.GLSurfaceView" +
+            //"android:id=\"@+id/surfaceview\"" +
+          "<GLSurfaceView " +
+            "android:layout_width=\"fill_parent\" " +
+            "android:layout_height=\"fill_parent\" " +
+            "android:layout_gravity=\"top\" />";
+
+        XmlPullParserFactory factory = null;
+        try {
+            factory = XmlPullParserFactory.newInstance();
+            factory.setNamespaceAware(true);
+            XmlPullParser parser = factory.newPullParser();
+            parser.setInput(new StringReader(attributes));
+            parser.next();
+            AttributeSet attrs = Xml.asAttributeSet(parser);
+            return attrs;
+        } catch (XmlPullParserException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 }
