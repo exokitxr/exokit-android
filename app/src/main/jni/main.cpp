@@ -766,40 +766,6 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_GlesJSLib_onMultitouchCo
 }
 
 
-/*
- * Class:     com_mafintosh_nodeonandroid_GlesJSLib
- * Method:    onControllerEvent
- * Signature: (IZ[I[F)V
- */
-JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_GlesJSLib_onControllerEvent
-(JNIEnv *env, jclass clas, jint player, jboolean active,
-jbooleanArray buttons, jfloatArray axes) {
-	//LOGI("Controller event %d %d",player,active);
-	// jnienv = env;
-	// store active value
-	gamepadvalues[PLAYERDATASIZE*player] = active ? 1 : 0;
-	if (active) {
-		// if active, store button and axes values
-		jboolean* buttonsval = jnienv->GetBooleanArrayElements(buttons, 0);
-		long buttonslen = jnienv->GetArrayLength(buttons);
-		jfloat* axesval = jnienv->GetFloatArrayElements(axes, 0);
-		long axeslen = jnienv->GetArrayLength(axes);
-		//LOGI("######## %ld %ld",buttonslen,axeslen);
-		for (int i=0; i<buttonslen; i++)
-			gamepadvalues[PLAYERDATASIZE*player + 1 + i] = buttonsval[i];
-		for (int i=0; i<axeslen; i++)
-			gamepadvalues[PLAYERDATASIZE*player + 1+NR_BUTTONS+i] = axesval[i];
-
-		jnienv->ReleaseBooleanArrayElements(buttons, buttonsval, JNI_ABORT);
-		jnienv->ReleaseFloatArrayElements(axes, axesval, JNI_ABORT);
-		//jnienv->DeleteLocalRef(buttons);
-		//jnienv->DeleteLocalRef(axes);
-
-	}
-	// if not active, values are null, keep old values
-}
-
-
 /* JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_startNode__Ljava_lang_String_2Ljava_lang_String_2
 (JNIEnv *env, jobject thiz, jstring jsPath, jstring port) {
   const char *nodeString = "node";
