@@ -69,37 +69,11 @@ class MallocArrayBufferAllocator : public v8::ArrayBuffer::Allocator {
 // globals
 // -----------------------------------------------
 
-long readAsset(const char *filename, char **output);
-
-
-int32_t screenwidth;
-int32_t screenheight;
 node::NodeService *service;
-
-
-class JsEnvironment {
-  public:
-	v8::Persistent<Context> context;
-	v8::Handle<v8::ObjectTemplate> global;
-	v8::Isolate *isolate;
-	JsEnvironment();
-	char *run_javascript(char *sourcestr);
-	void callFunction(const char *funcname,const int argc,Local<Value> argv[]);
-};
-
-JsEnvironment *js=NULL;
-
 JNIEnv *jnienv = NULL;
-
 jclass utilsClass;
 
-#define NR_PLAYERS 4
-#define NR_BUTTONS 17
-#define NR_AXES 6
-#define PLAYERDATASIZE  (1+NR_BUTTONS+NR_AXES)
-
-// static array with all gamepad data
-float gamepadvalues[NR_PLAYERS*PLAYERDATASIZE];
+long readAsset(const char *filename, char **output);
 
 // utils
 
@@ -189,7 +163,7 @@ void __localStorage_removeItem(const v8::FunctionCallbackInfo<v8::Value>& args){
 // args[2]: data array (floats)
 void __uniformv(const v8::FunctionCallbackInfo<v8::Value>& args,int vecsize,
 int type) {
-	HandleScope handle_scope(js->isolate);
+	HandleScope handle_scope(service->GetIsolate());
 	GLint location = (unsigned int)args[0]->IntegerValue();
 	GLboolean transpose=false;
 	int dataidx = 1;
@@ -632,17 +606,17 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_GlesJSLib_onNewFrame
   jfloat* headViewMatrixElements = env->GetFloatArrayElements(headViewMatrix, 0);
   jfloat* headQuaternionElements = env->GetFloatArrayElements(headQuaternion, 0);
 
-  Isolate::Scope isolate_scope(js->isolate);
-	HandleScope handle_scope(js->isolate);
+  Isolate::Scope isolate_scope(service->GetIsolate());
+	HandleScope handle_scope(service->GetIsolate());
 
   const int argc = 2;
-  Local<Float32Array> headMatrixFloat32Array = Float32Array::New(ArrayBuffer::New(js->isolate, 16 * 4), 0, 16);
+  Local<Float32Array> headMatrixFloat32Array = Float32Array::New(ArrayBuffer::New(service->GetIsolate(), 16 * 4), 0, 16);
   for (int i = 0; i < 16; i++) {
-    headMatrixFloat32Array->Set(i, Number::New(js->isolate, headViewMatrixElements[i]));
+    headMatrixFloat32Array->Set(i, Number::New(service->GetIsolate(), headViewMatrixElements[i]));
   }
-  Local<Float32Array> headQuaternionFloat32Array = Float32Array::New(ArrayBuffer::New(js->isolate, 4 * 4), 0, 4);
+  Local<Float32Array> headQuaternionFloat32Array = Float32Array::New(ArrayBuffer::New(service->GetIsolate(), 4 * 4), 0, 4);
   for (int i = 0; i < 16; i++) {
-    headQuaternionFloat32Array->Set(i, Number::New(js->isolate, headQuaternionElements[i]));
+    headQuaternionFloat32Array->Set(i, Number::New(service->GetIsolate(), headQuaternionElements[i]));
   }
 	Local<Value> argv[argc] = {headMatrixFloat32Array, headQuaternionFloat32Array};
 	callFunction("onDrawFrame", argc, argv);
@@ -657,17 +631,17 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_GlesJSLib_onDrawEye
   jfloat* eyeViewMatrixElements = env->GetFloatArrayElements(eyeViewMatrix, 0);
   jfloat* eyePerspectiveMatrixElements = env->GetFloatArrayElements(eyePerspectiveMatrix, 0);
 
-  Isolate::Scope isolate_scope(js->isolate);
-	HandleScope handle_scope(js->isolate);
+  Isolate::Scope isolate_scope(service->GetIsolate());
+	HandleScope handle_scope(service->GetIsolate());
 
   const int argc = 2;
-  Local<Float32Array> eyeViewMatrixFloat32Array = Float32Array::New(ArrayBuffer::New(js->isolate, 16 * 4), 0, 16);
+  Local<Float32Array> eyeViewMatrixFloat32Array = Float32Array::New(ArrayBuffer::New(service->GetIsolate(), 16 * 4), 0, 16);
   for (int i = 0; i < 16; i++) {
-    eyeViewMatrixFloat32Array->Set(i, Number::New(js->isolate, eyeViewMatrixElements[i]));
+    eyeViewMatrixFloat32Array->Set(i, Number::New(service->GetIsolate(), eyeViewMatrixElements[i]));
   }
-  Local<Float32Array> eyePerspectiveMatrixFloat32Array = Float32Array::New(ArrayBuffer::New(js->isolate, 4 * 4), 0, 4);
+  Local<Float32Array> eyePerspectiveMatrixFloat32Array = Float32Array::New(ArrayBuffer::New(service->GetIsolate(), 4 * 4), 0, 4);
   for (int i = 0; i < 16; i++) {
-    eyePerspectiveMatrixFloat32Array->Set(i, Number::New(js->isolate, eyePerspectiveMatrixElements[i]));
+    eyePerspectiveMatrixFloat32Array->Set(i, Number::New(service->GetIsolate(), eyePerspectiveMatrixElements[i]));
   }
 	Local<Value> argv[argc] = {eyeViewMatrixFloat32Array, eyePerspectiveMatrixFloat32Array};
 	callFunction("onDrawEye", argc, argv);
@@ -687,17 +661,17 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_GlesJSLib_onDrawFrame
   jfloat* viewMatrixElements = env->GetFloatArrayElements(viewMatrix, 0);
   jfloat* projectionMatrixElements = env->GetFloatArrayElements(projectionMatrix, 0);
 
-  Isolate::Scope isolate_scope(js->isolate);
-	HandleScope handle_scope(js->isolate);
+  Isolate::Scope isolate_scope(service->GetIsolate());
+	HandleScope handle_scope(service->GetIsolate());
 
   const int argc = 2;
-  Local<Float32Array> viewFloat32Array = Float32Array::New(ArrayBuffer::New(js->isolate, 16 * 4), 0, 16);
+  Local<Float32Array> viewFloat32Array = Float32Array::New(ArrayBuffer::New(service->GetIsolate(), 16 * 4), 0, 16);
   for (int i = 0; i < 16; i++) {
-    viewFloat32Array->Set(i, Number::New(js->isolate, viewMatrixElements[i]));
+    viewFloat32Array->Set(i, Number::New(service->GetIsolate(), viewMatrixElements[i]));
   }
-  Local<Float32Array> projectionFloat32Array = Float32Array::New(ArrayBuffer::New(js->isolate, 16 * 4), 0, 16);
+  Local<Float32Array> projectionFloat32Array = Float32Array::New(ArrayBuffer::New(service->GetIsolate(), 16 * 4), 0, 16);
   for (int i = 0; i < 16; i++) {
-    projectionFloat32Array->Set(i, Number::New(js->isolate, projectionMatrixElements[i]));
+    projectionFloat32Array->Set(i, Number::New(service->GetIsolate(), projectionMatrixElements[i]));
   }
 	Local<Value> argv[argc] = {viewFloat32Array, projectionFloat32Array};
 	callFunction("onDrawFrame", argc, argv);
@@ -717,14 +691,14 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_GlesJSLib_onTouchEvent
 (JNIEnv *env, jclass clas, jint ptrid, jdouble x, jdouble y,
 jboolean press, jboolean release) {
 	//LOGI("JNI onTouchEvent");
-	Isolate::Scope isolate_scope(js->isolate);
-	HandleScope handle_scope(js->isolate);
+	Isolate::Scope isolate_scope(service->GetIsolate());
+	HandleScope handle_scope(service->GetIsolate());
 	// jnienv = env;
 	// pass new coords before passing up/down
 	// pass coords to JS
-	Handle<Value> js_ptrid = v8::Integer::New(js->isolate, ptrid);
-	Handle<Value> js_x = v8::Integer::New(js->isolate, x);
-	Handle<Value> js_y = v8::Integer::New(js->isolate, y);
+	Handle<Value> js_ptrid = v8::Integer::New(service->GetIsolate(), ptrid);
+	Handle<Value> js_x = v8::Integer::New(service->GetIsolate(), x);
+	Handle<Value> js_y = v8::Integer::New(service->GetIsolate(), y);
 	const int argc3 = 3;
 	Local<Value> argv3[argc3] = { js_ptrid, js_x, js_y };
 	callFunction("_mouseMoveCallback",argc3,argv3);
@@ -753,13 +727,13 @@ jboolean press, jboolean release) {
 JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_GlesJSLib_onMultitouchCoordinates
 (JNIEnv * env, jclass clas, jint ptrid, jdouble x, jdouble y) {
 	//LOGI("JNI MultitouchCoordinates");
-	Isolate::Scope isolate_scope(js->isolate);
-	HandleScope handle_scope(js->isolate);
+	Isolate::Scope isolate_scope(service->GetIsolate());
+	HandleScope handle_scope(service->GetIsolate());
 	// jnienv = env;
 	// pass coords to JS
-	Handle<Value> js_ptrid = v8::Integer::New(js->isolate, ptrid);
-	Handle<Value> js_x = v8::Integer::New(js->isolate, x);
-	Handle<Value> js_y = v8::Integer::New(js->isolate, y);
+	Handle<Value> js_ptrid = v8::Integer::New(service->GetIsolate(), ptrid);
+	Handle<Value> js_x = v8::Integer::New(service->GetIsolate(), x);
+	Handle<Value> js_y = v8::Integer::New(service->GetIsolate(), y);
 	const int argc = 3;
 	Local<Value> argv[argc] = { js_ptrid, js_x, js_y };
 	callFunction("_touchCoordinatesCallback",argc,argv);
