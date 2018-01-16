@@ -79,7 +79,11 @@ task assetsNpmInstall(type: NpmTask) {
     args = ['install', '--production', '--no-package-lock', '--loglevel', 'warn']
 }
 
-assemble.dependsOn assetsNpmInstall
+tasks.whenTaskAdded { task ->
+    if (task.name == 'generateArm8DebugSources' || task.name == 'generateArm8ReleaseSources') {
+        generateArm8DebugSources.dependsOn assetsNpmInstall
+    }
+}
 
 /* repositories {
     // jcenter()
