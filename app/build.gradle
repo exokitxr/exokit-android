@@ -79,7 +79,7 @@ task assetsNpmInstall(type: NpmTask) {
     args = ['install', '--production', '--no-package-lock', '--loglevel', 'warn']
 }
 
-build.dependsOn assetsNpmInstall
+assemble.dependsOn assetsNpmInstall
 
 /* repositories {
     // jcenter()
