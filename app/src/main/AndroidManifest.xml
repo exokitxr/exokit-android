@@ -29,7 +29,8 @@
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/VrActivityTheme">
+        android:theme="@style/Theme.AppCompat.Light.NoActionBar.FullScreen"
+    >
 
         <activity
             android:name=".TreasureHuntActivity"
@@ -62,8 +63,8 @@
             android:label="@string/app_name"
             android:configChanges="orientation|screenSize"
             android:exported="true"
-            android:theme="@style/Theme.AppCompat.NoActionBar"
-            android:screenOrientation="locked">
+            android:screenOrientation="locked"
+            android:resizeableActivity="false">
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
             </intent-filter>
