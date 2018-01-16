@@ -26,13 +26,12 @@ public class NodeService {
       copyAssets(am, "node", nodePath);
       // startNode("node", jsPath, "" + ipcPort);
       // startNode(nodePath + "/html5.js", "" + 8000);
-      prestart(nodePath + "/html5.js", "" + 8000);
+      start(nodePath + "/html5.js", "" + 8000);
     }
     public static native void tick();
 
-    private static native void startNode(String scriptString, String portString);
+    // private static native void startNode(String scriptString, String portString);
     private static native void start(String scriptString, String portString);
-    private static native void prestart(String scriptString, String portString);
 
     private static void copyAssets (AssetManager am, String src, String dest) {
         try {
