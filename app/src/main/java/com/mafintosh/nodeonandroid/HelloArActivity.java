@@ -286,6 +286,8 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
 
     @Override
     public void onDrawFrame(GL10 gl) {
+        NodeService.tick();
+
         // Clear screen to notify driver it should not load any pixels from previous frame.
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
 
@@ -332,10 +334,10 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
             // Draw background.
             mBackgroundRenderer.draw(frame);
 
-            // If not tracking, don't draw 3d objects.
+            /* // If not tracking, don't draw 3d objects.
             if (camera.getTrackingState() == TrackingState.PAUSED) {
                 return;
-            }
+            } */
 
             // Get projection matrix.
             float[] projmtx = new float[16];
@@ -345,7 +347,9 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
             float[] viewmtx = new float[16];
             camera.getViewMatrix(viewmtx, 0);
 
-            // Compute lighting from average intensity of the image.
+            GlesJSLib.onDrawFrame(viewmtx, projmtx);
+
+            /* // Compute lighting from average intensity of the image.
             final float lightIntensity = frame.getLightEstimate().getPixelIntensity();
 
             // Visualize tracked points.
@@ -387,11 +391,7 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
                 mVirtualObjectShadow.updateModelMatrix(mAnchorMatrix, scaleFactor);
                 mVirtualObject.draw(viewmtx, projmtx, lightIntensity);
                 mVirtualObjectShadow.draw(viewmtx, projmtx, lightIntensity);
-            }
-
-            // NodeService.tick();
-
-            // GlesJSLib.onDrawFrame(viewmtx, projmtx);
+            } */
 
         } catch (Throwable t) {
             // Avoid crashing the application due to unhandled exceptions.
