@@ -36,80 +36,13 @@ let animating = false;
 const _startAnimation = () => {
   console.log('node html start animation');
 
-  // gl.getParameter = () => 1;
-  /* gl.createTexture = () => ({});
-  gl.bindTexture = () => {};
-  gl.texParameteri = () => {}; */
-  // gl.texImage2D = () => {};
-  gl.clearColor = function() {
-    // console.log('clear color', arguments);
-  };
-  gl.clearDepth = function() {
-    // console.log('clear depth', arguments);
-  };
-  gl.clearStencil = function() {
-    // console.log('clear stencil', arguments);
-  };
-  gl.enable = () => {
-  };
-  gl.disable = () => {
-  };
+  gl.enable = () => {};
+  gl.disable = () => {};
   gl.clear = () => {};
-  /* const _enable = gl.enable;
-  gl.enable = function(n) {
-    if (n === 2929 || n === 2884 || n === 3042) {
-      console.log('do not enable', n);
-    } else {
-      _enable.call(gl, n);
-    }
-  }; */
-  /* gl.depthFunc = () => {};
-  gl.frontFace = () => {};
-  gl.cullFace = () => {};
-  gl.blendEquation = () => {};
-  gl.blendFunc = () => {};
-  gl.blendEquationSeparate = () => {};
-  gl.blendFuncSeparate = () => {};
-  gl.depthMask = () => {};
-  gl.colorMask = () => {}; */
-  /* gl.scissor = () => {};
-  gl.viewport = () => {}; */
 
   renderer = new THREE.WebGLRenderer({
     canvas,
     context: gl,
-    /* context: {
-      VERSION: gl.VERSION,
-      getParameter: gl.getParameter,
-      getExtension: gl.getExtension,
-      createTexture: () => ({}),
-      bindTexture: () => {},
-      texParameteri: () => {},
-      texImage2D: () => {},
-      clearColor: clear => {
-        // console.log('clear depth', clear);
-      },
-      clearDepth: clear => {
-        // console.log('clear depth', clear);
-      },
-      clearStencil: clear => {
-        // console.log('clear stencil', clear);
-      },
-      enable: () => {},
-      disable: () => {},
-      clear: () => {},
-      depthFunc: () => {},
-      frontFace: () => {},
-      cullFace: () => {},
-      blendEquation: () => {},
-      blendFunc: () => {},
-      blendEquationSeparate: () => {},
-      blendFuncSeparate: () => {},
-      depthMask: () => {},
-      colorMask: () => {},
-      scissor: () => {},
-      viewport: () => {},
-    }, */
     antialias: true,
     alpha: true,
     preserveDrawingBuffer: true,
