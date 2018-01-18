@@ -1,7 +1,6 @@
 #include "image.h"
-#include <cstdlib>
+// #include <cstdlib>
 #include <vector>
-#include <iostream>
 
 using namespace v8;
 using namespace node;

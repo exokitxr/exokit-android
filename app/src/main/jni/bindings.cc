@@ -5,11 +5,9 @@
  *      Author: ngk437
  */
 
-
 #include "bindings.h"
 #include "webgl.h"
-// #include "image.h"
-// #include <cstdlib>
+#include "image.h"
 
 // Used to be a macro, hence the uppercase name.
 #define JS_GL_SET_CONSTANT(name, constant) target->Set(JS_STR( name ), JS_INT(constant))
@@ -23,11 +21,11 @@ Local<Object> makeGl(node::NodeService *service) {
   Local<Object> target = Object::New(isolate);
 
   /* atexit(webgl::AtExit);
-  atexit(Image::AtExit);
+  atexit(Image::AtExit); */
 
   Image::Initialize(target);
 
-  Nan::SetMethod(target,"Init",webgl::Init); */
+  // Nan::SetMethod(target,"Init",webgl::Init);
  
   Nan::SetMethod(target, "uniform1f", webgl::Uniform1f);
   Nan::SetMethod(target, "uniform2f", webgl::Uniform2f);

@@ -8,7 +8,7 @@
 #ifndef WEBGL_H_
 #define WEBGL_H_
 
-// #include "common.h"
+#include "image.h"
 #include <nan/nan.h>
 #include <GLES3/gl3.h>
 #include <GLES3/gl3ext.h>
@@ -16,12 +16,6 @@
 #include <GLES/glext.h>
 #include <GLES2/gl2ext.h>
 #include <GLES2/gl2.h>
-
-#define BYTE char
-#define JS_STR(...) Nan::New<v8::String>(__VA_ARGS__).ToLocalChecked()
-#define JS_INT(val) Nan::New<v8::Integer>(val)
-#define JS_FLOAT(val) Nan::New<v8::Number>(val)
-#define JS_BOOL(val) Nan::New<v8::Boolean>(val)
 
 using namespace node;
 using namespace v8;

@@ -1,12 +1,17 @@
 #ifndef IMAGE_H_
 #define IMAGE_H_
 
-#include "common.h"
-
+#include <v8.h>
+#include <nan/nan.h>
 #include <FreeImage.h>
 
 using namespace v8;
 using namespace node;
+
+#define JS_STR(...) Nan::New<v8::String>(__VA_ARGS__).ToLocalChecked()
+#define JS_INT(val) Nan::New<v8::Integer>(val)
+#define JS_FLOAT(val) Nan::New<v8::Number>(val)
+#define JS_BOOL(val) Nan::New<v8::Boolean>(val)
 
 class Image : public ObjectWrap {
 public:
