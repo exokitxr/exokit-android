@@ -15,7 +15,7 @@
 package com.mafintosh.nodeonandroid.rendering;
 
 import android.content.Context;
-import android.opengl.GLES20;
+import android.opengl.GLES30;
 import android.opengl.GLSurfaceView;
 import android.opengl.Matrix;
 import com.google.ar.core.PointCloud;
@@ -63,34 +63,34 @@ public class PointCloudRenderer {
         ShaderUtil.checkGLError(TAG, "before create");
 
         int[] buffers = new int[1];
-        GLES20.glGenBuffers(1, buffers, 0);
+        GLES30.glGenBuffers(1, buffers, 0);
         mVbo = buffers[0];
-        GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, mVbo);
+        GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, mVbo);
 
         mVboSize = INITIAL_BUFFER_POINTS * BYTES_PER_POINT;
-        GLES20.glBufferData(GLES20.GL_ARRAY_BUFFER, mVboSize, null, GLES20.GL_DYNAMIC_DRAW);
-        GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, 0);
+        GLES30.glBufferData(GLES30.GL_ARRAY_BUFFER, mVboSize, null, GLES30.GL_DYNAMIC_DRAW);
+        GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, 0);
 
         ShaderUtil.checkGLError(TAG, "buffer alloc");
 
         int vertexShader = ShaderUtil.loadGLShader(TAG, context,
-            GLES20.GL_VERTEX_SHADER, R.raw.point_cloud_vertex);
+            GLES30.GL_VERTEX_SHADER, R.raw.point_cloud_vertex);
         int passthroughShader = ShaderUtil.loadGLShader(TAG, context,
-            GLES20.GL_FRAGMENT_SHADER, R.raw.passthrough_fragment);
+            GLES30.GL_FRAGMENT_SHADER, R.raw.passthrough_fragment);
 
-        mProgramName = GLES20.glCreateProgram();
-        GLES20.glAttachShader(mProgramName, vertexShader);
-        GLES20.glAttachShader(mProgramName, passthroughShader);
-        GLES20.glLinkProgram(mProgramName);
-        GLES20.glUseProgram(mProgramName);
+        mProgramName = GLES30.glCreateProgram();
+        GLES30.glAttachShader(mProgramName, vertexShader);
+        GLES30.glAttachShader(mProgramName, passthroughShader);
+        GLES30.glLinkProgram(mProgramName);
+        GLES30.glUseProgram(mProgramName);
 
         ShaderUtil.checkGLError(TAG, "program");
 
-        mPositionAttribute = GLES20.glGetAttribLocation(mProgramName, "a_Position");
-        mColorUniform = GLES20.glGetUniformLocation(mProgramName, "u_Color");
-        mModelViewProjectionUniform = GLES20.glGetUniformLocation(
+        mPositionAttribute = GLES30.glGetAttribLocation(mProgramName, "a_Position");
+        mColorUniform = GLES30.glGetUniformLocation(mProgramName, "u_Color");
+        mModelViewProjectionUniform = GLES30.glGetUniformLocation(
             mProgramName, "u_ModelViewProjection");
-        mPointSizeUniform = GLES20.glGetUniformLocation(mProgramName, "u_PointSize");
+        mPointSizeUniform = GLES30.glGetUniformLocation(mProgramName, "u_PointSize");
 
         ShaderUtil.checkGLError(TAG, "program  params");
     }
@@ -107,7 +107,7 @@ public class PointCloudRenderer {
 
         ShaderUtil.checkGLError(TAG, "before update");
 
-        GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, mVbo);
+        GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, mVbo);
         mLastPointCloud = cloud;
 
         // If the VBO is not large enough to fit the new point cloud, resize it.
@@ -116,11 +116,11 @@ public class PointCloudRenderer {
             while (mNumPoints * BYTES_PER_POINT > mVboSize) {
                 mVboSize *= 2;
             }
-            GLES20.glBufferData(GLES20.GL_ARRAY_BUFFER, mVboSize, null, GLES20.GL_DYNAMIC_DRAW);
+            GLES30.glBufferData(GLES30.GL_ARRAY_BUFFER, mVboSize, null, GLES30.GL_DYNAMIC_DRAW);
         }
-        GLES20.glBufferSubData(GLES20.GL_ARRAY_BUFFER, 0, mNumPoints * BYTES_PER_POINT,
+        GLES30.glBufferSubData(GLES30.GL_ARRAY_BUFFER, 0, mNumPoints * BYTES_PER_POINT,
             mLastPointCloud.getPoints());
-        GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, 0);
+        GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, 0);
 
         ShaderUtil.checkGLError(TAG, "after update");
     }
@@ -139,18 +139,18 @@ public class PointCloudRenderer {
 
         ShaderUtil.checkGLError(TAG, "Before draw");
 
-        GLES20.glUseProgram(mProgramName);
-        GLES20.glEnableVertexAttribArray(mPositionAttribute);
-        GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, mVbo);
-        GLES20.glVertexAttribPointer(
-            mPositionAttribute, 4, GLES20.GL_FLOAT, false, BYTES_PER_POINT, 0);
-        GLES20.glUniform4f(mColorUniform, 31.0f / 255.0f, 188.0f / 255.0f, 210.0f / 255.0f, 1.0f);
-        GLES20.glUniformMatrix4fv(mModelViewProjectionUniform, 1, false, modelViewProjection, 0);
-        GLES20.glUniform1f(mPointSizeUniform, 5.0f);
+        GLES30.glUseProgram(mProgramName);
+        GLES30.glEnableVertexAttribArray(mPositionAttribute);
+        GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, mVbo);
+        GLES30.glVertexAttribPointer(
+            mPositionAttribute, 4, GLES30.GL_FLOAT, false, BYTES_PER_POINT, 0);
+        GLES30.glUniform4f(mColorUniform, 31.0f / 255.0f, 188.0f / 255.0f, 210.0f / 255.0f, 1.0f);
+        GLES30.glUniformMatrix4fv(mModelViewProjectionUniform, 1, false, modelViewProjection, 0);
+        GLES30.glUniform1f(mPointSizeUniform, 5.0f);
 
-        GLES20.glDrawArrays(GLES20.GL_POINTS, 0, mNumPoints);
-        GLES20.glDisableVertexAttribArray(mPositionAttribute);
-        GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, 0);
+        GLES30.glDrawArrays(GLES30.GL_POINTS, 0, mNumPoints);
+        GLES30.glDisableVertexAttribArray(mPositionAttribute);
+        GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, 0);
 
         ShaderUtil.checkGLError(TAG, "Draw");
     }

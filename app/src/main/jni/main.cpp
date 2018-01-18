@@ -10,10 +10,10 @@
 #include <jni.h>
 #include <errno.h>
 
-#include <EGL/egl.h>
+// #include <EGL/egl.h>
 // at least some defs from gl1 are needed
-#include <GLES/gl.h>
-#include <GLES2/gl2.h>
+// #include <GLES/gl.h>
+// #include <GLES2/gl2.h>
 
 #include <android/sensor.h>
 #include <android/log.h>
@@ -28,6 +28,8 @@
 #include <libplatform/libplatform.h>
 #include <v8.h>
 #include <node.h>
+#include "webgl.h"
+#include "bindings.h"
 
 using namespace v8;
 
@@ -525,7 +527,7 @@ void redirectStdioToLog() {
     }, pfd[0]).detach();
 }
 
-v8::Local<v8::Object> makeGl(node::NodeService *service) {
+/* v8::Local<v8::Object> makeGl(node::NodeService *service) {
   Isolate *isolate = service->GetIsolate();
   v8::Local<v8::ObjectTemplate> _gl = v8::ObjectTemplate::New(isolate);
 
@@ -564,7 +566,7 @@ v8::Local<v8::Object> makeGl(node::NodeService *service) {
 #include "gluegen/glbindinit.h"
 
   return _gl->NewInstance();
-}
+} */
 
 
 #ifdef __cplusplus

@@ -16,7 +16,7 @@
 
 package com.mafintosh.nodeonandroid;
 
-import android.opengl.GLES20;
+import android.opengl.GLES30;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
 import android.support.design.widget.BaseTransientBottomBar;
@@ -130,7 +130,7 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
 
         // Set up renderer.
         mSurfaceView.setPreserveEGLContextOnPause(true);
-        mSurfaceView.setEGLContextClientVersion(2);
+        mSurfaceView.setEGLContextClientVersion(3);
         mSurfaceView.setEGLConfigChooser(8, 8, 8, 8, 16, 0); // Alpha used for plane blending.
         mSurfaceView.setRenderer(this);
         mSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_CONTINUOUSLY);
@@ -239,7 +239,7 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
 
     @Override
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
-        GLES20.glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+        GLES30.glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 
         // Create the texture and pass it to ARCore session to be filled during update().
         mBackgroundRenderer.createOnGlThread(/*context=*/ this);
@@ -279,7 +279,7 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
     public void onSurfaceChanged(GL10 gl, int width, int height) {
         mDisplayRotationHelper.onSurfaceChanged(width, height);
 
-        // GLES20.glViewport(0, 0, width, height);
+        // GLES30.glViewport(0, 0, width, height);
 
         GlesJSLib.onSurfaceChanged(width, height);
     }
@@ -289,7 +289,7 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
         NodeService.tick();
 
         // Clear screen to notify driver it should not load any pixels from previous frame.
-        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
+        GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT | GLES30.GL_DEPTH_BUFFER_BIT);
 
         if (mSession == null) {
             return;
@@ -348,6 +348,13 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
             camera.getViewMatrix(viewmtx, 0);
 
             GlesJSLib.onDrawFrame(viewmtx, projmtx);
+
+            /* GLES30.glDisable(GLES30.GL_DEPTH_TEST);
+            GLES30.glDisable(GLES30.GL_CULL_FACE);
+            GLES30.glDisable(GLES30.GL_BLEND); */
+
+            GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, 0);
+            GLES30.glBindBuffer(GLES30.GL_ELEMENT_ARRAY_BUFFER, 0);
 
             /* // Compute lighting from average intensity of the image.
             final float lightIntensity = frame.getLightEstimate().getPixelIntensity();

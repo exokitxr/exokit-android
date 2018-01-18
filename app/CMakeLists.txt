@@ -1,11 +1,8 @@
 cmake_minimum_required(VERSION 3.6)
 
 add_compile_options(-std=c++14)
-# set(ANDROID_STL "c++_shared")
-# add_compile_options(-frtti)
-# add_definitions(-DANDROID_TOOLCHAIN=clang -DANDROID_STL=c++_shared -DANDROID_PLATFORM=android-25)
 
-file(GLOB app_src_files "src/main/jni/main.cpp" )
+file(GLOB app_src_files "src/main/jni/main.cpp" "src/main/jni/webgl.cc" "src/main/jni/bindings.cc" )
 
 add_library( nodebinding SHARED ${app_src_files} )
 
@@ -18,5 +15,5 @@ set_target_properties( nodelib PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/
 find_library( log-lib log )
 find_library( android-lib android )
 find_library( egl-lib EGL )
-find_library( glesv2-lib GLESv2 )
-target_link_libraries( nodebinding ${log-lib} ${android-lib} ${egl-lib} ${glesv2-lib} nodelib )
+find_library( glesv3-lib GLESv3 )
+target_link_libraries( nodebinding ${log-lib} ${android-lib} ${egl-lib} ${glesv3-lib} nodelib )

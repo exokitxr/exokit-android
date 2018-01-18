@@ -17,7 +17,7 @@
 package com.mafintosh.nodeonandroid;
 
 import android.content.Context;
-import android.opengl.GLES20;
+import android.opengl.GLES30;
 import android.opengl.Matrix;
 import android.os.Bundle;
 import android.os.Vibrator;
@@ -139,18 +139,18 @@ public class TreasureHuntActivity extends GvrActivity implements GvrView.StereoR
    */
   private int loadGLShader(int type, int resId) {
     String code = readRawTextFile(resId);
-    int shader = GLES20.glCreateShader(type);
-    GLES20.glShaderSource(shader, code);
-    GLES20.glCompileShader(shader);
+    int shader = GLES30.glCreateShader(type);
+    GLES30.glShaderSource(shader, code);
+    GLES30.glCompileShader(shader);
 
     // Get the compilation status.
     final int[] compileStatus = new int[1];
-    GLES20.glGetShaderiv(shader, GLES20.GL_COMPILE_STATUS, compileStatus, 0);
+    GLES30.glGetShaderiv(shader, GLES30.GL_COMPILE_STATUS, compileStatus, 0);
 
     // If the compilation failed, delete the shader.
     if (compileStatus[0] == 0) {
-      Log.e(TAG, "Error compiling shader: " + GLES20.glGetShaderInfoLog(shader));
-      GLES20.glDeleteShader(shader);
+      Log.e(TAG, "Error compiling shader: " + GLES30.glGetShaderInfoLog(shader));
+      GLES30.glDeleteShader(shader);
       shader = 0;
     }
 
@@ -168,7 +168,7 @@ public class TreasureHuntActivity extends GvrActivity implements GvrView.StereoR
    */
   private static void checkGLError(String label) {
     int error;
-    while ((error = GLES20.glGetError()) != GLES20.GL_NO_ERROR) {
+    while ((error = GLES30.glGetError()) != GLES30.GL_NO_ERROR) {
       Log.e(TAG, label + ": glError " + error);
       throw new RuntimeException(label + ": glError " + error);
     }
@@ -225,6 +225,7 @@ public class TreasureHuntActivity extends GvrActivity implements GvrView.StereoR
     // GvrView gvrView = (GvrView) findViewById(R.id.gvr_view);
     GvrView gvrView = new GvrView(this);
     setContentView(gvrView);
+    gvrView.setEGLContextClientVersion(3);
     gvrView.setEGLConfigChooser(8, 8, 8, 8, 16, 8);
 
     gvrView.setRenderer(this);
@@ -279,7 +280,7 @@ public class TreasureHuntActivity extends GvrActivity implements GvrView.StereoR
   @Override
   public void onSurfaceCreated(EGLConfig config) {
     Log.i(TAG, "onSurfaceCreated");
-    GLES20.glClearColor(0.1f, 0.1f, 0.1f, 0.5f); // Dark background so text shows up well.
+    GLES30.glClearColor(0.1f, 0.1f, 0.1f, 0.5f); // Dark background so text shows up well.
 
     ByteBuffer bbVertices = ByteBuffer.allocateDirect(WorldLayoutData.CUBE_COORDS.length * 4);
     bbVertices.order(ByteOrder.nativeOrder());
@@ -325,45 +326,45 @@ public class TreasureHuntActivity extends GvrActivity implements GvrView.StereoR
     floorColors.put(WorldLayoutData.FLOOR_COLORS);
     floorColors.position(0);
 
-    int vertexShader = loadGLShader(GLES20.GL_VERTEX_SHADER, R.raw.light_vertex);
-    int gridShader = loadGLShader(GLES20.GL_FRAGMENT_SHADER, R.raw.grid_fragment);
-    int passthroughShader = loadGLShader(GLES20.GL_FRAGMENT_SHADER, R.raw.passthrough_fragment);
+    int vertexShader = loadGLShader(GLES30.GL_VERTEX_SHADER, R.raw.light_vertex);
+    int gridShader = loadGLShader(GLES30.GL_FRAGMENT_SHADER, R.raw.grid_fragment);
+    int passthroughShader = loadGLShader(GLES30.GL_FRAGMENT_SHADER, R.raw.passthrough_fragment);
 
-    cubeProgram = GLES20.glCreateProgram();
-    GLES20.glAttachShader(cubeProgram, vertexShader);
-    GLES20.glAttachShader(cubeProgram, passthroughShader);
-    GLES20.glLinkProgram(cubeProgram);
-    GLES20.glUseProgram(cubeProgram);
+    cubeProgram = GLES30.glCreateProgram();
+    GLES30.glAttachShader(cubeProgram, vertexShader);
+    GLES30.glAttachShader(cubeProgram, passthroughShader);
+    GLES30.glLinkProgram(cubeProgram);
+    GLES30.glUseProgram(cubeProgram);
 
     checkGLError("Cube program");
 
-    cubePositionParam = GLES20.glGetAttribLocation(cubeProgram, "a_Position");
-    cubeNormalParam = GLES20.glGetAttribLocation(cubeProgram, "a_Normal");
-    cubeColorParam = GLES20.glGetAttribLocation(cubeProgram, "a_Color");
+    cubePositionParam = GLES30.glGetAttribLocation(cubeProgram, "a_Position");
+    cubeNormalParam = GLES30.glGetAttribLocation(cubeProgram, "a_Normal");
+    cubeColorParam = GLES30.glGetAttribLocation(cubeProgram, "a_Color");
 
-    cubeModelParam = GLES20.glGetUniformLocation(cubeProgram, "u_Model");
-    cubeModelViewParam = GLES20.glGetUniformLocation(cubeProgram, "u_MVMatrix");
-    cubeModelViewProjectionParam = GLES20.glGetUniformLocation(cubeProgram, "u_MVP");
-    cubeLightPosParam = GLES20.glGetUniformLocation(cubeProgram, "u_LightPos");
+    cubeModelParam = GLES30.glGetUniformLocation(cubeProgram, "u_Model");
+    cubeModelViewParam = GLES30.glGetUniformLocation(cubeProgram, "u_MVMatrix");
+    cubeModelViewProjectionParam = GLES30.glGetUniformLocation(cubeProgram, "u_MVP");
+    cubeLightPosParam = GLES30.glGetUniformLocation(cubeProgram, "u_LightPos");
 
     checkGLError("Cube program params");
 
-    floorProgram = GLES20.glCreateProgram();
-    GLES20.glAttachShader(floorProgram, vertexShader);
-    GLES20.glAttachShader(floorProgram, gridShader);
-    GLES20.glLinkProgram(floorProgram);
-    GLES20.glUseProgram(floorProgram);
+    floorProgram = GLES30.glCreateProgram();
+    GLES30.glAttachShader(floorProgram, vertexShader);
+    GLES30.glAttachShader(floorProgram, gridShader);
+    GLES30.glLinkProgram(floorProgram);
+    GLES30.glUseProgram(floorProgram);
 
     checkGLError("Floor program");
 
-    floorModelParam = GLES20.glGetUniformLocation(floorProgram, "u_Model");
-    floorModelViewParam = GLES20.glGetUniformLocation(floorProgram, "u_MVMatrix");
-    floorModelViewProjectionParam = GLES20.glGetUniformLocation(floorProgram, "u_MVP");
-    floorLightPosParam = GLES20.glGetUniformLocation(floorProgram, "u_LightPos");
+    floorModelParam = GLES30.glGetUniformLocation(floorProgram, "u_Model");
+    floorModelViewParam = GLES30.glGetUniformLocation(floorProgram, "u_MVMatrix");
+    floorModelViewProjectionParam = GLES30.glGetUniformLocation(floorProgram, "u_MVP");
+    floorLightPosParam = GLES30.glGetUniformLocation(floorProgram, "u_LightPos");
 
-    floorPositionParam = GLES20.glGetAttribLocation(floorProgram, "a_Position");
-    floorNormalParam = GLES20.glGetAttribLocation(floorProgram, "a_Normal");
-    floorColorParam = GLES20.glGetAttribLocation(floorProgram, "a_Color");
+    floorPositionParam = GLES30.glGetAttribLocation(floorProgram, "a_Position");
+    floorNormalParam = GLES30.glGetAttribLocation(floorProgram, "a_Normal");
+    floorColorParam = GLES30.glGetAttribLocation(floorProgram, "a_Color");
 
     checkGLError("Floor program params");
 
@@ -471,8 +472,8 @@ public class TreasureHuntActivity extends GvrActivity implements GvrView.StereoR
    */
   @Override
   public void onDrawEye(Eye eye) {
-    GLES20.glEnable(GLES20.GL_DEPTH_TEST);
-    GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
+    GLES30.glEnable(GLES30.GL_DEPTH_TEST);
+    GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT | GLES30.GL_DEPTH_BUFFER_BIT);
 
     checkGLError("colorParam");
 
@@ -507,39 +508,39 @@ public class TreasureHuntActivity extends GvrActivity implements GvrView.StereoR
    * <p>We've set all of our transformation matrices. Now we simply pass them into the shader.
    */
   public void drawCube() {
-    GLES20.glUseProgram(cubeProgram);
+    GLES30.glUseProgram(cubeProgram);
 
-    GLES20.glUniform3fv(cubeLightPosParam, 1, lightPosInEyeSpace, 0);
+    GLES30.glUniform3fv(cubeLightPosParam, 1, lightPosInEyeSpace, 0);
 
     // Set the Model in the shader, used to calculate lighting
-    GLES20.glUniformMatrix4fv(cubeModelParam, 1, false, modelCube, 0);
+    GLES30.glUniformMatrix4fv(cubeModelParam, 1, false, modelCube, 0);
 
     // Set the ModelView in the shader, used to calculate lighting
-    GLES20.glUniformMatrix4fv(cubeModelViewParam, 1, false, modelView, 0);
+    GLES30.glUniformMatrix4fv(cubeModelViewParam, 1, false, modelView, 0);
 
     // Set the position of the cube
-    GLES20.glVertexAttribPointer(
-        cubePositionParam, COORDS_PER_VERTEX, GLES20.GL_FLOAT, false, 0, cubeVertices);
+    GLES30.glVertexAttribPointer(
+        cubePositionParam, COORDS_PER_VERTEX, GLES30.GL_FLOAT, false, 0, cubeVertices);
 
     // Set the ModelViewProjection matrix in the shader.
-    GLES20.glUniformMatrix4fv(cubeModelViewProjectionParam, 1, false, modelViewProjection, 0);
+    GLES30.glUniformMatrix4fv(cubeModelViewProjectionParam, 1, false, modelViewProjection, 0);
 
     // Set the normal positions of the cube, again for shading
-    GLES20.glVertexAttribPointer(cubeNormalParam, 3, GLES20.GL_FLOAT, false, 0, cubeNormals);
-    GLES20.glVertexAttribPointer(cubeColorParam, 4, GLES20.GL_FLOAT, false, 0,
+    GLES30.glVertexAttribPointer(cubeNormalParam, 3, GLES30.GL_FLOAT, false, 0, cubeNormals);
+    GLES30.glVertexAttribPointer(cubeColorParam, 4, GLES30.GL_FLOAT, false, 0,
         isLookingAtObject() ? cubeFoundColors : cubeColors);
 
     // Enable vertex arrays
-    GLES20.glEnableVertexAttribArray(cubePositionParam);
-    GLES20.glEnableVertexAttribArray(cubeNormalParam);
-    GLES20.glEnableVertexAttribArray(cubeColorParam);
+    GLES30.glEnableVertexAttribArray(cubePositionParam);
+    GLES30.glEnableVertexAttribArray(cubeNormalParam);
+    GLES30.glEnableVertexAttribArray(cubeColorParam);
 
-    GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 36);
+    GLES30.glDrawArrays(GLES30.GL_TRIANGLES, 0, 36);
 
     // Disable vertex arrays
-    GLES20.glDisableVertexAttribArray(cubePositionParam);
-    GLES20.glDisableVertexAttribArray(cubeNormalParam);
-    GLES20.glDisableVertexAttribArray(cubeColorParam);
+    GLES30.glDisableVertexAttribArray(cubePositionParam);
+    GLES30.glDisableVertexAttribArray(cubeNormalParam);
+    GLES30.glDisableVertexAttribArray(cubeColorParam);
     
     checkGLError("Drawing cube");
   }
@@ -552,27 +553,27 @@ public class TreasureHuntActivity extends GvrActivity implements GvrView.StereoR
    * look strange.
    */
   public void drawFloor() {
-    GLES20.glUseProgram(floorProgram);
+    GLES30.glUseProgram(floorProgram);
 
     // Set ModelView, MVP, position, normals, and color.
-    GLES20.glUniform3fv(floorLightPosParam, 1, lightPosInEyeSpace, 0);
-    GLES20.glUniformMatrix4fv(floorModelParam, 1, false, modelFloor, 0);
-    GLES20.glUniformMatrix4fv(floorModelViewParam, 1, false, modelView, 0);
-    GLES20.glUniformMatrix4fv(floorModelViewProjectionParam, 1, false, modelViewProjection, 0);
-    GLES20.glVertexAttribPointer(
-        floorPositionParam, COORDS_PER_VERTEX, GLES20.GL_FLOAT, false, 0, floorVertices);
-    GLES20.glVertexAttribPointer(floorNormalParam, 3, GLES20.GL_FLOAT, false, 0, floorNormals);
-    GLES20.glVertexAttribPointer(floorColorParam, 4, GLES20.GL_FLOAT, false, 0, floorColors);
+    GLES30.glUniform3fv(floorLightPosParam, 1, lightPosInEyeSpace, 0);
+    GLES30.glUniformMatrix4fv(floorModelParam, 1, false, modelFloor, 0);
+    GLES30.glUniformMatrix4fv(floorModelViewParam, 1, false, modelView, 0);
+    GLES30.glUniformMatrix4fv(floorModelViewProjectionParam, 1, false, modelViewProjection, 0);
+    GLES30.glVertexAttribPointer(
+        floorPositionParam, COORDS_PER_VERTEX, GLES30.GL_FLOAT, false, 0, floorVertices);
+    GLES30.glVertexAttribPointer(floorNormalParam, 3, GLES30.GL_FLOAT, false, 0, floorNormals);
+    GLES30.glVertexAttribPointer(floorColorParam, 4, GLES30.GL_FLOAT, false, 0, floorColors);
 
-    GLES20.glEnableVertexAttribArray(floorPositionParam);
-    GLES20.glEnableVertexAttribArray(floorNormalParam);
-    GLES20.glEnableVertexAttribArray(floorColorParam);
+    GLES30.glEnableVertexAttribArray(floorPositionParam);
+    GLES30.glEnableVertexAttribArray(floorNormalParam);
+    GLES30.glEnableVertexAttribArray(floorColorParam);
 
-    GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 24);
+    GLES30.glDrawArrays(GLES30.GL_TRIANGLES, 0, 24);
 
-    GLES20.glDisableVertexAttribArray(floorPositionParam);
-    GLES20.glDisableVertexAttribArray(floorNormalParam);
-    GLES20.glDisableVertexAttribArray(floorColorParam);
+    GLES30.glDisableVertexAttribArray(floorPositionParam);
+    GLES30.glDisableVertexAttribArray(floorNormalParam);
+    GLES30.glDisableVertexAttribArray(floorColorParam);
 
     checkGLError("drawing floor");
   }

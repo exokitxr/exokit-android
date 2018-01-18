@@ -17,7 +17,7 @@ package com.mafintosh.nodeonandroid.rendering;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.opengl.GLES20;
+import android.opengl.GLES30;
 import android.opengl.GLUtils;
 import android.opengl.Matrix;
 import com.mafintosh.nodeonandroid.R;
@@ -115,17 +115,17 @@ public class ObjectRenderer {
         Bitmap textureBitmap = BitmapFactory.decodeStream(
             context.getAssets().open(diffuseTextureAssetName));
 
-        GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-        GLES20.glGenTextures(mTextures.length, mTextures, 0);
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTextures[0]);
+        GLES30.glActiveTexture(GLES30.GL_TEXTURE0);
+        GLES30.glGenTextures(mTextures.length, mTextures, 0);
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, mTextures[0]);
 
-        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,
-            GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR_MIPMAP_LINEAR);
-        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,
-            GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
-        GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, textureBitmap, 0);
-        GLES20.glGenerateMipmap(GLES20.GL_TEXTURE_2D);
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0);
+        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D,
+            GLES30.GL_TEXTURE_MIN_FILTER, GLES30.GL_LINEAR_MIPMAP_LINEAR);
+        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D,
+            GLES30.GL_TEXTURE_MAG_FILTER, GLES30.GL_LINEAR);
+        GLUtils.texImage2D(GLES30.GL_TEXTURE_2D, 0, textureBitmap, 0);
+        GLES30.glGenerateMipmap(GLES30.GL_TEXTURE_2D);
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, 0);
 
         textureBitmap.recycle();
 
@@ -161,7 +161,7 @@ public class ObjectRenderer {
         indices.rewind();
 
         int[] buffers = new int[2];
-        GLES20.glGenBuffers(2, buffers, 0);
+        GLES30.glGenBuffers(2, buffers, 0);
         mVertexBufferId = buffers[0];
         mIndexBufferId = buffers[1];
 
@@ -171,50 +171,50 @@ public class ObjectRenderer {
         mNormalsBaseAddress = mTexCoordsBaseAddress + 4 * texCoords.limit();
         final int totalBytes = mNormalsBaseAddress + 4 * normals.limit();
 
-        GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, mVertexBufferId);
-        GLES20.glBufferData(GLES20.GL_ARRAY_BUFFER, totalBytes, null, GLES20.GL_STATIC_DRAW);
-        GLES20.glBufferSubData(
-            GLES20.GL_ARRAY_BUFFER, mVerticesBaseAddress, 4 * vertices.limit(), vertices);
-        GLES20.glBufferSubData(
-            GLES20.GL_ARRAY_BUFFER, mTexCoordsBaseAddress, 4 * texCoords.limit(), texCoords);
-        GLES20.glBufferSubData(
-            GLES20.GL_ARRAY_BUFFER, mNormalsBaseAddress, 4 * normals.limit(), normals);
-        GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, 0);
+        GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, mVertexBufferId);
+        GLES30.glBufferData(GLES30.GL_ARRAY_BUFFER, totalBytes, null, GLES30.GL_STATIC_DRAW);
+        GLES30.glBufferSubData(
+            GLES30.GL_ARRAY_BUFFER, mVerticesBaseAddress, 4 * vertices.limit(), vertices);
+        GLES30.glBufferSubData(
+            GLES30.GL_ARRAY_BUFFER, mTexCoordsBaseAddress, 4 * texCoords.limit(), texCoords);
+        GLES30.glBufferSubData(
+            GLES30.GL_ARRAY_BUFFER, mNormalsBaseAddress, 4 * normals.limit(), normals);
+        GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, 0);
 
         // Load index buffer
-        GLES20.glBindBuffer(GLES20.GL_ELEMENT_ARRAY_BUFFER, mIndexBufferId);
+        GLES30.glBindBuffer(GLES30.GL_ELEMENT_ARRAY_BUFFER, mIndexBufferId);
         mIndexCount = indices.limit();
-        GLES20.glBufferData(
-            GLES20.GL_ELEMENT_ARRAY_BUFFER, 2 * mIndexCount, indices, GLES20.GL_STATIC_DRAW);
-        GLES20.glBindBuffer(GLES20.GL_ELEMENT_ARRAY_BUFFER, 0);
+        GLES30.glBufferData(
+            GLES30.GL_ELEMENT_ARRAY_BUFFER, 2 * mIndexCount, indices, GLES30.GL_STATIC_DRAW);
+        GLES30.glBindBuffer(GLES30.GL_ELEMENT_ARRAY_BUFFER, 0);
 
         ShaderUtil.checkGLError(TAG, "OBJ buffer load");
 
         final int vertexShader = ShaderUtil.loadGLShader(TAG, context,
-                GLES20.GL_VERTEX_SHADER, R.raw.object_vertex);
+                GLES30.GL_VERTEX_SHADER, R.raw.object_vertex);
         final int fragmentShader = ShaderUtil.loadGLShader(TAG, context,
-                GLES20.GL_FRAGMENT_SHADER, R.raw.object_fragment);
+                GLES30.GL_FRAGMENT_SHADER, R.raw.object_fragment);
 
-        mProgram = GLES20.glCreateProgram();
-        GLES20.glAttachShader(mProgram, vertexShader);
-        GLES20.glAttachShader(mProgram, fragmentShader);
-        GLES20.glLinkProgram(mProgram);
-        GLES20.glUseProgram(mProgram);
+        mProgram = GLES30.glCreateProgram();
+        GLES30.glAttachShader(mProgram, vertexShader);
+        GLES30.glAttachShader(mProgram, fragmentShader);
+        GLES30.glLinkProgram(mProgram);
+        GLES30.glUseProgram(mProgram);
 
         ShaderUtil.checkGLError(TAG, "Program creation");
 
-        mModelViewUniform = GLES20.glGetUniformLocation(mProgram, "u_ModelView");
+        mModelViewUniform = GLES30.glGetUniformLocation(mProgram, "u_ModelView");
         mModelViewProjectionUniform =
-            GLES20.glGetUniformLocation(mProgram, "u_ModelViewProjection");
+            GLES30.glGetUniformLocation(mProgram, "u_ModelViewProjection");
 
-        mPositionAttribute = GLES20.glGetAttribLocation(mProgram, "a_Position");
-        mNormalAttribute = GLES20.glGetAttribLocation(mProgram, "a_Normal");
-        mTexCoordAttribute = GLES20.glGetAttribLocation(mProgram, "a_TexCoord");
+        mPositionAttribute = GLES30.glGetAttribLocation(mProgram, "a_Position");
+        mNormalAttribute = GLES30.glGetAttribLocation(mProgram, "a_Normal");
+        mTexCoordAttribute = GLES30.glGetAttribLocation(mProgram, "a_TexCoord");
 
-        mTextureUniform = GLES20.glGetUniformLocation(mProgram, "u_Texture");
+        mTextureUniform = GLES30.glGetUniformLocation(mProgram, "u_Texture");
 
-        mLightingParametersUniform = GLES20.glGetUniformLocation(mProgram, "u_LightingParameters");
-        mMaterialParametersUniform = GLES20.glGetUniformLocation(mProgram, "u_MaterialParameters");
+        mLightingParametersUniform = GLES30.glGetUniformLocation(mProgram, "u_LightingParameters");
+        mMaterialParametersUniform = GLES30.glGetUniformLocation(mProgram, "u_MaterialParameters");
 
         ShaderUtil.checkGLError(TAG, "Program parameters");
 
@@ -284,76 +284,76 @@ public class ObjectRenderer {
         Matrix.multiplyMM(mModelViewMatrix, 0, cameraView, 0, mModelMatrix, 0);
         Matrix.multiplyMM(mModelViewProjectionMatrix, 0, cameraPerspective, 0, mModelViewMatrix, 0);
 
-        GLES20.glUseProgram(mProgram);
+        GLES30.glUseProgram(mProgram);
 
         // Set the lighting environment properties.
         Matrix.multiplyMV(mViewLightDirection, 0, mModelViewMatrix, 0, LIGHT_DIRECTION, 0);
         normalizeVec3(mViewLightDirection);
-        GLES20.glUniform4f(mLightingParametersUniform,
+        GLES30.glUniform4f(mLightingParametersUniform,
             mViewLightDirection[0], mViewLightDirection[1], mViewLightDirection[2], lightIntensity);
 
         // Set the object material properties.
-        GLES20.glUniform4f(mMaterialParametersUniform, mAmbient, mDiffuse, mSpecular,
+        GLES30.glUniform4f(mMaterialParametersUniform, mAmbient, mDiffuse, mSpecular,
             mSpecularPower);
 
         // Attach the object texture.
-        GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTextures[0]);
-        GLES20.glUniform1i(mTextureUniform, 0);
+        GLES30.glActiveTexture(GLES30.GL_TEXTURE0);
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, mTextures[0]);
+        GLES30.glUniform1i(mTextureUniform, 0);
 
         // Set the vertex attributes.
-        GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, mVertexBufferId);
+        GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, mVertexBufferId);
 
-        GLES20.glVertexAttribPointer(
-            mPositionAttribute, COORDS_PER_VERTEX, GLES20.GL_FLOAT, false, 0, mVerticesBaseAddress);
-        GLES20.glVertexAttribPointer(
-            mNormalAttribute, 3, GLES20.GL_FLOAT, false, 0, mNormalsBaseAddress);
-        GLES20.glVertexAttribPointer(
-            mTexCoordAttribute, 2, GLES20.GL_FLOAT, false, 0, mTexCoordsBaseAddress);
+        GLES30.glVertexAttribPointer(
+            mPositionAttribute, COORDS_PER_VERTEX, GLES30.GL_FLOAT, false, 0, mVerticesBaseAddress);
+        GLES30.glVertexAttribPointer(
+            mNormalAttribute, 3, GLES30.GL_FLOAT, false, 0, mNormalsBaseAddress);
+        GLES30.glVertexAttribPointer(
+            mTexCoordAttribute, 2, GLES30.GL_FLOAT, false, 0, mTexCoordsBaseAddress);
 
-        GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, 0);
+        GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, 0);
 
         // Set the ModelViewProjection matrix in the shader.
-        GLES20.glUniformMatrix4fv(
+        GLES30.glUniformMatrix4fv(
             mModelViewUniform, 1, false, mModelViewMatrix, 0);
-        GLES20.glUniformMatrix4fv(
+        GLES30.glUniformMatrix4fv(
             mModelViewProjectionUniform, 1, false, mModelViewProjectionMatrix, 0);
 
         // Enable vertex arrays
-        GLES20.glEnableVertexAttribArray(mPositionAttribute);
-        GLES20.glEnableVertexAttribArray(mNormalAttribute);
-        GLES20.glEnableVertexAttribArray(mTexCoordAttribute);
+        GLES30.glEnableVertexAttribArray(mPositionAttribute);
+        GLES30.glEnableVertexAttribArray(mNormalAttribute);
+        GLES30.glEnableVertexAttribArray(mTexCoordAttribute);
 
         if (mBlendMode != null) {
-            GLES20.glDepthMask(false);
-            GLES20.glEnable(GLES20.GL_BLEND);
+            GLES30.glDepthMask(false);
+            GLES30.glEnable(GLES30.GL_BLEND);
             switch (mBlendMode) {
                 case Shadow:
                     // Multiplicative blending function for Shadow.
-                    GLES20.glBlendFunc(GLES20.GL_ZERO, GLES20.GL_ONE_MINUS_SRC_ALPHA);
+                    GLES30.glBlendFunc(GLES30.GL_ZERO, GLES30.GL_ONE_MINUS_SRC_ALPHA);
                     break;
                 case Grid:
                     // Grid, additive blending function.
-                    GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
+                    GLES30.glBlendFunc(GLES30.GL_SRC_ALPHA, GLES30.GL_ONE_MINUS_SRC_ALPHA);
                     break;
             }
         }
 
-        GLES20.glBindBuffer(GLES20.GL_ELEMENT_ARRAY_BUFFER, mIndexBufferId);
-        GLES20.glDrawElements(GLES20.GL_TRIANGLES, mIndexCount, GLES20.GL_UNSIGNED_SHORT, 0);
-        GLES20.glBindBuffer(GLES20.GL_ELEMENT_ARRAY_BUFFER, 0);
+        GLES30.glBindBuffer(GLES30.GL_ELEMENT_ARRAY_BUFFER, mIndexBufferId);
+        GLES30.glDrawElements(GLES30.GL_TRIANGLES, mIndexCount, GLES30.GL_UNSIGNED_SHORT, 0);
+        GLES30.glBindBuffer(GLES30.GL_ELEMENT_ARRAY_BUFFER, 0);
 
         if (mBlendMode != null) {
-            GLES20.glDisable(GLES20.GL_BLEND);
-            GLES20.glDepthMask(true);
+            GLES30.glDisable(GLES30.GL_BLEND);
+            GLES30.glDepthMask(true);
         }
 
         // Disable vertex arrays
-        GLES20.glDisableVertexAttribArray(mPositionAttribute);
-        GLES20.glDisableVertexAttribArray(mNormalAttribute);
-        GLES20.glDisableVertexAttribArray(mTexCoordAttribute);
+        GLES30.glDisableVertexAttribArray(mPositionAttribute);
+        GLES30.glDisableVertexAttribArray(mNormalAttribute);
+        GLES30.glDisableVertexAttribArray(mTexCoordAttribute);
 
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0);
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, 0);
 
         ShaderUtil.checkGLError(TAG, "After draw");
     }

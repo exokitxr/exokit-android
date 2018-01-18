@@ -290,7 +290,7 @@ public class GlesJSUtils {
 	// Bitmap can be destroyed after loading into GL.
 	// Use bitmap.recycle() to free bitmap resources early
 
-	// target is something like GLES20.GL_TEXTURE_2D
+	// target is something like GLES30.GL_TEXTURE_2D
 	// level is mipmap level (0=top level)
 	// border: 0 = no border, 1 = border (used for GL_CLAMP)
 	// formats and type are currently not supported
