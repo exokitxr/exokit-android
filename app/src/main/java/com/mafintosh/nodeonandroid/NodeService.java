@@ -14,6 +14,7 @@ import java.io.InputStream;
 public class NodeService {
     static {
       System.loadLibrary("node");
+      System.loadLibrary("freeimage");
       System.loadLibrary("nodebinding");
     }
 
