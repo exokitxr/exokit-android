@@ -6,13 +6,6 @@ using namespace v8;
 using namespace node;
 using namespace std;
 
-#include <android/sensor.h>
-#include <android/log.h>
-#include <android_native_app_glue.h>
-
-#define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "glesjs", __VA_ARGS__))
-#define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "glesjs", __VA_ARGS__))
-
 static vector<Image*> images;
 
 static void registerImage(Image *obj) {
@@ -96,8 +89,6 @@ void Image::Load (const char *filename) {
   }
 
   FREE_IMAGE_FORMAT format = FreeImage_GetFileType(filename, 0);
-
-	LOGI("image format '%s' %d", filename, format);
 
   FIBITMAP *tmp = FreeImage_Load(format, filename, 0);
   image_bmp = FreeImage_ConvertTo32Bits(tmp);

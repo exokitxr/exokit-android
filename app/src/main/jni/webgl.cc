@@ -15,13 +15,6 @@
 #include <GLES/gl.h>
 #include <GLES2/gl2.h>
 
-#include <android/sensor.h>
-#include <android/log.h>
-#include <android_native_app_glue.h>
-
-#define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "glesjs", __VA_ARGS__))
-#define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "glesjs", __VA_ARGS__))
-
 #define CHECK_ARRAY_BUFFER(val) if(!val->IsArrayBufferView()) \
         {Nan::ThrowTypeError("Only support array buffer"); return;}
 
@@ -876,14 +869,6 @@ NAN_METHOD(TexImage2D) {
   int typeV = type->Int32Value();
   int num;
   char *pixelsV = (char *)getImageData(pixels, &num);
-
-  String::Utf8Value name(info[8]);
-  char *sname = *name;
-  if (pixelsV != nullptr && num >= 8) {
-    LOGI("texImage2D yes '%s' %d %d %d %d %d %d %d %d %d", sname, pixelsV[0], pixelsV[1], pixelsV[2], pixelsV[3], pixelsV[4], pixelsV[5], pixelsV[6], pixelsV[7], num);
-  } else {
-    LOGI("texImage2D no '%s' %d", sname, num);
-  }
 
   glTexImage2D(targetV, levelV, internalformatV, widthV, heightV, borderV, formatV, typeV, pixelsV);
 
