@@ -2,6 +2,7 @@ console.log('node boot html start');
 
 // ENVIRONMENT
 
+const path = require('path');
 const jsdom = require('jsdom');
 const HTMLCanvasElement = require('jsdom/lib/jsdom/living/nodes/HTMLCanvasElement-impl');
 const canvasImplementation = {
@@ -9,6 +10,9 @@ const canvasImplementation = {
 };
 HTMLCanvasElement.implementation.prototype._getCanvas = () => canvasImplementation;
 const THREE = require('three-zeo');
+const skinJs = require('skin-js');
+const skinJsPath = path.dirname(require.resolve('skin-vr'));
+const skin = skinJs(THREE);
 
 const {window} = new jsdom.JSDOM();
 global.window = window;
@@ -74,7 +78,7 @@ const _startAnimation = () => {
   directionalLight.updateMatrixWorld();
   scene.add(directionalLight);
 
-  const boxMesh = (() => {
+  /* const boxMesh = (() => {
     const geometry = new THREE.BoxBufferGeometry(0.1, 0.1, 0.1);
     const material = new THREE.MeshPhongMaterial({
       color: 0xff8000,
@@ -83,7 +87,35 @@ const _startAnimation = () => {
     return new THREE.Mesh(geometry, material);
   })();
   boxMesh.updateMatrixWorld();
-  scene.add(boxMesh);
+  scene.add(boxMesh); */
+
+  const _requestImage = src => new Promise((accept, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      console.log('image onload', img.data.length);
+
+      accept(img);
+    };
+    img.onerror = err => {
+      console.log('image onerror', err);
+
+      reject(err);
+    };
+    img.src = src;
+  });
+
+  const skinMesh = (() => {
+    const object = new THREE.Object3D();
+
+    _requestImage(path.join(skinJsPath, 'lib', 'img', 'female.png'))
+      .then(skinImg => {
+        const mesh = skin(skinImg);
+        object.add(mesh);
+      });
+
+    return object;
+  })();
+  scene.add(skinMesh);
 
   // const startTime = Date.now();
 
