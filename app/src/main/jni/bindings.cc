@@ -18,12 +18,13 @@
 
 Local<Object> makeGl(node::NodeService *service) {
   Isolate *isolate = service->GetIsolate();
+
+  v8::EscapableHandleScope scope(isolate);
+
   Local<Object> target = Object::New(isolate);
 
   /* atexit(webgl::AtExit);
   atexit(Image::AtExit); */
-
-  Image::Initialize(target);
 
   // Nan::SetMethod(target,"Init",webgl::Init);
  
@@ -638,5 +639,13 @@ Local<Object> makeGl(node::NodeService *service) {
   JS_GL_SET_CONSTANT("PIXEL_PACK_BUFFER_BINDING" , 0x88ED);
   JS_GL_SET_CONSTANT("PIXEL_UNPACK_BUFFER_BINDING", 0x88EF);
 
-  return target;
+  return scope.Escape(target);
+}
+
+Local<Object> makeImage(node::NodeService *service) {
+  Isolate *isolate = service->GetIsolate();
+
+  v8::EscapableHandleScope scope(isolate);
+
+  return scope.Escape(Image::Initialize(isolate));
 }

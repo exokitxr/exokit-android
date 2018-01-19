@@ -6,6 +6,13 @@ using namespace v8;
 using namespace node;
 using namespace std;
 
+#include <android/sensor.h>
+#include <android/log.h>
+#include <android_native_app_glue.h>
+
+#define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "glesjs", __VA_ARGS__))
+#define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "glesjs", __VA_ARGS__))
+
 static vector<Image*> images;
 
 static void registerImage(Image *obj) {
@@ -25,10 +32,12 @@ static void unregisterImage(Image* obj) {
 }
 
 
-Persistent<Function> Image::constructor_template;
+// Persistent<Function> Image::constructor_template;
 
-void Image::Initialize (Handle<Object> target) {
-    Nan::HandleScope scope;
+Handle<Object> Image::Initialize(Isolate *isolate) {
+  FreeImage_Initialise(true);
+
+  v8::EscapableHandleScope scope(isolate);
 
   // constructor
   Local<FunctionTemplate> ctor = Nan::New<FunctionTemplate>(New);
@@ -41,13 +50,13 @@ void Image::Initialize (Handle<Object> target) {
 
   Nan::SetAccessor(proto,JS_STR("width"), WidthGetter);
   Nan::SetAccessor(proto,JS_STR("height"), HeightGetter);
-  Nan::SetAccessor(proto,JS_STR("pitch"), PitchGetter);
+  // Nan::SetAccessor(proto,JS_STR("pitch"), PitchGetter);
   Nan::SetAccessor(proto,JS_STR("src"), SrcGetter, SrcSetter);
-  Nan::Set(target, JS_STR("Image"), ctor->GetFunction());
+  // Nan::Set(target, JS_STR("Image"), ctor->GetFunction());
 
-  constructor_template.Reset(Isolate::GetCurrent(), ctor->GetFunction());
+  // constructor_template.Reset(Isolate::GetCurrent(), ctor->GetFunction());
 
-  FreeImage_Initialise(true);
+  return scope.Escape(ctor->GetFunction());
 }
 
 int Image::GetWidth () {
@@ -87,6 +96,9 @@ void Image::Load (const char *filename) {
   }
 
   FREE_IMAGE_FORMAT format = FreeImage_GetFileType(filename, 0);
+
+	LOGI("image format '%s' %d", filename, format);
+
   FIBITMAP *tmp = FreeImage_Load(format, filename, 0);
   image_bmp = FreeImage_ConvertTo32Bits(tmp);
   FreeImage_Unload(tmp);
@@ -156,14 +168,32 @@ NAN_SETTER(Image::SrcSetter) {
     pixels[i4 + 2] = temp;
   }
 
-  buffer= Nan::NewBuffer((int)num_bytes);
+  buffer = Nan::NewBuffer((int)num_bytes);
 
   std::memcpy(node::Buffer::Data(buffer.ToLocalChecked()),pixels, (int)num_bytes);
 
   Nan::Set(info.This(), JS_STR("data"), buffer.ToLocalChecked());
 
+  Nan::MaybeLocal<Value> onload = Nan::Get(info.This(), JS_STR("onload"));//info.This()->Get(Nan::New<String>("emit"));
+  if (!onload.IsEmpty()) {
+    Local<Value> onloadLocal = onload.ToLocalChecked();
+
+    if (onloadLocal->IsFunction()) {
+      Local<Function> onloadLocalFn = onloadLocal.As<Function>();
+
+      TryCatch tc;
+
+      Handle<Value> argv[] = {};
+      onloadLocalFn->Call(info.This(), 0, argv);
+
+      if (tc.HasCaught()) {
+        FatalException(info.GetIsolate(),tc);
+      }
+    }
+  }
+
   // emit event
-  Nan::MaybeLocal<Value> emit_v = Nan::Get(info.This(), JS_STR("emit"));//info.This()->Get(Nan::New<String>("emit"));
+  /* Nan::MaybeLocal<Value> emit_v = Nan::Get(info.This(), JS_STR("emit"));//info.This()->Get(Nan::New<String>("emit"));
   assert(emit_v.ToLocalChecked()->IsFunction());
   Local<Function> emit_f = emit_v.ToLocalChecked().As<Function>();
 
@@ -177,7 +207,7 @@ NAN_SETTER(Image::SrcSetter) {
   emit_f->Call(info.This(), 2, argv);
 
   if (tc.HasCaught())
-    FatalException(info.GetIsolate(),tc);
+    FatalException(info.GetIsolate(),tc); */
 }
 
 NAN_METHOD(Image::save) {

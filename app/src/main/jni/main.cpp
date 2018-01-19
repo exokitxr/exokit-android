@@ -784,6 +784,7 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_start
     Isolate *isolate = service->GetIsolate();
     Local<Object> global = service->GetContext()->Global();
     global->Set(v8::String::NewFromUtf8(isolate, "nativeGl"), makeGl(service));
+    global->Set(v8::String::NewFromUtf8(isolate, "Image"), makeImage(service));
   });
 }
 

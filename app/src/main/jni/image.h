@@ -15,7 +15,7 @@ using namespace node;
 
 class Image : public ObjectWrap {
 public:
-  static void Initialize (Handle<Object> target);
+  static Handle<Object> Initialize(Isolate *isolate);
   static void AtExit();
   int GetWidth ();
   int GetHeight ();

@@ -5,5 +5,6 @@
 #include <node.h>
 
 v8::Local<v8::Object> makeGl(node::NodeService *service);
+v8::Local<v8::Object> makeImage(node::NodeService *service);
 
 #endif

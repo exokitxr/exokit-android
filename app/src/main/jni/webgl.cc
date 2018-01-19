@@ -15,6 +15,13 @@
 #include <GLES/gl.h>
 #include <GLES2/gl2.h>
 
+#include <android/sensor.h>
+#include <android/log.h>
+#include <android_native_app_glue.h>
+
+#define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "glesjs", __VA_ARGS__))
+#define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "glesjs", __VA_ARGS__))
+
 #define CHECK_ARRAY_BUFFER(val) if(!val->IsArrayBufferView()) \
         {Nan::ThrowTypeError("Only support array buffer"); return;}
 
@@ -62,17 +69,27 @@ inline Type* getArrayData(Local<Value> arg, int* num = NULL) {
   return data;
 }
 
-inline void *getImageData(Local<Value> arg, int* num = NULL) {
+inline void *getImageData(Local<Value> arg, int *num = NULL) {
+  Isolate *isolate = Isolate::GetCurrent();
+
   void *pixels = NULL;
   if (!arg->IsNull()) {
     Local<Object> obj = Local<Object>::Cast(arg);
-    if (!obj->IsObject()){
-      Nan::ThrowError("Bad texture argument");
-    } else if (obj->IsArrayBufferView()){
-      pixels = getArrayData<BYTE>(obj, num);
+    if (obj->IsObject()) {
+      if (obj->IsArrayBufferView()) {
+        pixels = getArrayData<BYTE>(obj, num);
+      } else {
+        Local<String> dataString = String::NewFromUtf8(isolate, "data", NewStringType::kInternalized).ToLocalChecked();
+        Local<Value> data = obj->Get(dataString);
+        if (data->BooleanValue()) {
+          pixels = getArrayData<BYTE>(data, num);
+        } else {
+          Nan::ThrowError("Bad texture argument");
+          // pixels = node::Buffer::Data(Nan::Get(obj, JS_STR("data")).ToLocalChecked());
+        }
+      }
     } else {
       Nan::ThrowError("Bad texture argument");
-      // pixels = node::Buffer::Data(Nan::Get(obj, JS_STR("data")).ToLocalChecked());
     }
   }
   return pixels;
@@ -786,20 +803,89 @@ NAN_METHOD(FlipTextureData) {
 }
 
 NAN_METHOD(TexImage2D) {
+  Isolate *isolate = Isolate::GetCurrent();
+
   Nan::HandleScope scope;
 
-  int target = info[0]->Int32Value();
-  int level = info[1]->Int32Value();
-  int internalformat = info[2]->Int32Value();
-  int width = info[3]->Int32Value();
-  int height = info[4]->Int32Value();
-  int border = info[5]->Int32Value();
-  int format = info[6]->Int32Value();
-  int type = info[7]->Int32Value();
-  int num;
-  char *pixels=(char*)getImageData(info[8], &num);
+  Local<Value> target = info[0];
+  Local<Value> level = info[1];
+  Local<Value> internalformat = info[2];
+  Local<Value> width = info[3];
+  Local<Value> height = info[4];
+  Local<Value> border = info[5];
+  Local<Value> format = info[6];
+  Local<Value> type = info[7];
+  Local<Value> pixels = info[8];
 
-  glTexImage2D(target, level, internalformat, width, height, border, format, type, pixels);
+  Local<String> numberString = String::NewFromUtf8(isolate, "number", NewStringType::kInternalized).ToLocalChecked();
+  Local<String> objectString = String::NewFromUtf8(isolate, "object", NewStringType::kInternalized).ToLocalChecked();
+  Local<String> widthString = String::NewFromUtf8(isolate, "width", NewStringType::kInternalized).ToLocalChecked();
+  Local<String> heightString = String::NewFromUtf8(isolate, "height", NewStringType::kInternalized).ToLocalChecked();
+
+  if (info.Length() == 6) {
+    // width is now format, height is now type, and border is now pixels
+    if (
+      target->TypeOf(isolate)->StrictEquals(numberString) &&
+      level->TypeOf(isolate)->StrictEquals(numberString) && internalformat->TypeOf(isolate)->StrictEquals(numberString) &&
+      width->TypeOf(isolate)->StrictEquals(numberString) && height->TypeOf(isolate)->StrictEquals(numberString) &&
+      (border->IsNull() || (
+        border->TypeOf(isolate)->StrictEquals(objectString) && border->ToObject()->Get(widthString)->TypeOf(isolate)->StrictEquals(numberString) && border->ToObject()->Get(heightString)->TypeOf(isolate)->StrictEquals(numberString)
+      ))
+    ) {
+      pixels=border;
+      /* if (pixels) {
+        pixels = _getImageData(pixels);
+      } */
+      type=height;
+      format=width;
+      width = border->BooleanValue() ? border->ToObject()->Get(widthString) : Number::New(isolate, 1).As<Value>();
+      height = border->BooleanValue() ? border->ToObject()->Get(heightString) : Number::New(isolate, 1).As<Value>();
+      // return _texImage2D(target, level, internalformat, width, height, 0, format, type, pixels);
+    } else {
+      Nan::ThrowError("Expected texImage2D(number target, number level, number internalformat, number format, number type, Image pixels)");
+      return;
+    }
+  } else if (info.Length() == 9) {
+    if (
+      target->TypeOf(isolate)->StrictEquals(numberString) &&
+      level->TypeOf(isolate)->StrictEquals(numberString) && internalformat->TypeOf(isolate)->StrictEquals(numberString) &&
+      width->TypeOf(isolate)->StrictEquals(numberString) && height->TypeOf(isolate)->StrictEquals(numberString) &&
+      format->TypeOf(isolate)->StrictEquals(numberString) && type->TypeOf(isolate)->StrictEquals(numberString) &&
+      (pixels->IsNull() || pixels->TypeOf(isolate)->StrictEquals(objectString))
+    ) {
+      /* if (pixels) {
+        pixels = _getImageData(pixels);
+      } */
+      // return _texImage2D(target, level, internalformat, width, height, border, format, type, pixels);
+    } else {
+      Nan::ThrowError("Expected texImage2D(number target, number level, number internalformat, number width, number height, number border, number format, number type, ArrayBufferView pixels)");
+      return;
+    }
+  } else {
+    Nan::ThrowError("Bad texture argument");
+    return;
+  }
+
+  int targetV = target->Int32Value();
+  int levelV = level->Int32Value();
+  int internalformatV = internalformat->Int32Value();
+  int widthV = width->Int32Value();
+  int heightV = height->Int32Value();
+  int borderV = border->Int32Value();
+  int formatV = format->Int32Value();
+  int typeV = type->Int32Value();
+  int num;
+  char *pixelsV = (char *)getImageData(pixels, &num);
+
+  String::Utf8Value name(info[8]);
+  char *sname = *name;
+  if (pixelsV != nullptr && num >= 8) {
+    LOGI("texImage2D yes '%s' %d %d %d %d %d %d %d %d %d", sname, pixelsV[0], pixelsV[1], pixelsV[2], pixelsV[3], pixelsV[4], pixelsV[5], pixelsV[6], pixelsV[7], num);
+  } else {
+    LOGI("texImage2D no '%s' %d", sname, num);
+  }
+
+  glTexImage2D(targetV, levelV, internalformatV, widthV, heightV, borderV, formatV, typeV, pixelsV);
 
   info.GetReturnValue().Set(Nan::Undefined());
 }
