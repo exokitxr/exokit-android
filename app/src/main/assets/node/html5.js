@@ -3,31 +3,73 @@ console.log('node boot html start');
 // ENVIRONMENT
 
 const path = require('path');
-const jsdom = require('jsdom');
-const HTMLCanvasElement = require('jsdom/lib/jsdom/living/nodes/HTMLCanvasElement-impl');
-const canvasImplementation = {
-  getContext: () => nativeGl,
+const browserPoly = require('browser-poly');
+
+const {window} = browserPoly();
+const {document, fetch} = window;
+
+// CALLBACKS
+
+global.onSurfaceCreated = () => {
+  console.log('js onSurfaceCreated');
+
+  if (!animating) {
+    animating = true;
+
+    _startAnimation();
+  }
 };
-HTMLCanvasElement.implementation.prototype._getCanvas = () => canvasImplementation;
+global.onSurfaceChanged = (width, height) => {
+  console.log('js onSurfaceChanged', {width, height});
+
+  // gl.viewport(0, 0, width, height);
+
+  window.innerWidth = width;
+  window.innerHeight = height;
+
+  renderer.setSize(width, height);
+  /* camera.aspect = width / height;
+  camera.updateProjectionMatrix(); */
+};
+
+// VR
+global.onNewFrame = (headViewMatrixFloat32Array, headQuaternionFloat32Array) => {
+  // console.log('js onNewFrame', headViewMatrixFloat32Array, headQuaternionFloat32Array);
+};
+global.onDrawEye = (eyeViewMatrixFloat32Array, eyePerspectiveMatrixFloat32Array) => {
+  // console.log('js onDrawEye', eyeViewMatrixFloat32Array, eyePerspectiveMatrixFloat32Array);
+};
+
+// AR
+global.onDrawFrame = (viewMatrixFloat32Array, projectionMatrixFloat32Array) => {
+  camera.matrixWorldInverse.fromArray(viewMatrixFloat32Array);
+  camera.matrixWorld.getInverse(camera.matrixWorldInverse);
+  camera.projectionMatrix.fromArray(projectionMatrixFloat32Array);
+
+  window.tickAnimationFrame();
+};
+
+// MAIN
+
 const THREE = require('three-zeo');
 const skinJs = require('skin-js');
 const skinJsPath = path.dirname(require.resolve('skin-vr'));
 const skin = skinJs(THREE);
 
-const {window} = new jsdom.JSDOM();
-global.window = window;
-const {document} = window;
-
-const rafCbs = [];
-window.requestAnimationFrame = fn => {
-  rafCbs.push(fn);
-};
-window.clearAnimationFrame = fn => {
-  const index = rafCbs.indexOf(fn);
-  if (index !== -1) {
-    rafCbs.splice(index, 1);
-  }
-};
+const appUrl = 'http://192.168.0.13:8000/';
+fetch(appUrl)
+  .then(res => res.text())
+  .then(htmlString => {
+    const htmlWindow = browserPoly(htmlString, {
+      url: appUrl,
+      // referrer: "https://example.com/",
+      contentType: 'text/html',
+      runScripts: 'dangerously',
+    }).window;
+    htmlWindow.addEventListener('error', err => {
+      console.warn('got error', err.error.stack);
+    });
+  });
 
 const canvas = document.createElement('canvas');
 canvas.width = window.innerWidth;
@@ -134,60 +176,6 @@ const _startAnimation = () => {
     window.requestAnimationFrame(_recurse);
   };
   _recurse();
-};
-
-
-
-// CALLBACKS
-
-global.onSurfaceCreated = () => {
-  console.log('js onSurfaceCreated');
-
-  if (!animating) {
-    animating = true;
-
-    _startAnimation();
-  }
-};
-global.onSurfaceChanged = (width, height) => {
-  console.log('js onSurfaceChanged', {width, height});
-
-  // gl.viewport(0, 0, width, height);
-
-  window.innerWidth = width;
-  window.innerHeight = height;
-
-  renderer.setSize(width, height);
-  /* camera.aspect = width / height;
-  camera.updateProjectionMatrix(); */
-};
-
-// VR
-global.onNewFrame = (headViewMatrixFloat32Array, headQuaternionFloat32Array) => {
-  // console.log('js onNewFrame', headViewMatrixFloat32Array, headQuaternionFloat32Array);
-};
-global.onDrawEye = (eyeViewMatrixFloat32Array, eyePerspectiveMatrixFloat32Array) => {
-  // console.log('js onDrawEye', eyeViewMatrixFloat32Array, eyePerspectiveMatrixFloat32Array);
-};
-
-// AR
-const arState = {
-  viewMatrix: new Float32Array(16),
-  projectionMatrix: new Float32Array(16),
-};
-global.onDrawFrame = (viewMatrixFloat32Array, projectionMatrixFloat32Array) => {
-  // arState.viewMatrix.set(viewMatrixFloat32Array);
-  // arState.projectionMatrix.set(projectionMatrixFloat32Array);
-
-  camera.matrixWorldInverse.fromArray(viewMatrixFloat32Array);
-  camera.matrixWorld.getInverse(camera.matrixWorldInverse);
-  camera.projectionMatrix.fromArray(projectionMatrixFloat32Array);
-
-  const localRafCbs = rafCbs.slice();
-  rafCbs.length = 0;
-  for (let i = 0; i < localRafCbs.length; i++) {
-    localRafCbs[i]();
-  }
 };
 
 console.log('node boot html end');
