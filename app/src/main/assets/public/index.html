@@ -7,6 +7,7 @@
       display: flex;
       position: absolute;
       width: 100%;
+      background-color: #222;
       border: 0;
       color: #FFF;
       font-size: 50px;
@@ -17,10 +18,10 @@
     }
     .button.top {
       top: 0;
-      bottom: 50%;
+      bottom: 49%;
     }
     .button.bottom {
-      top: 50%;
+      top: 49%;
       bottom: 0;
     }
     .button.selected {
@@ -31,12 +32,17 @@
   </style>
 </head>
 <body style="margin: 0; background-color: red;">
-  <div style="position: relative; width: 100vw; height: 100vh;">
-    <button id=vr-button class="button top" style="background-color: #2196f3;">VR1</button>
-    <button id=ar-button class="button bottom" style="background-color: #8bc34a;">AR1</button>
+  <div style="position: relative; width: 100vw; height: 100vh; background-color: #111;">
+    <button id=vr-button class="button top rippleJS">
+      <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="50" height="50" viewBox="0 0 24 24" fill="#FFF"><path d="M20.74,6H3.2C2.55,6 2,6.57 2,7.27V17.73C2,18.43 2.55,19 3.23,19H8C8.54,19 9,18.68 9.16,18.21L10.55,14.74C10.79,14.16 11.35,13.75 12,13.75C12.65,13.75 13.21,14.16 13.45,14.74L14.84,18.21C15.03,18.68 15.46,19 15.95,19H20.74C21.45,19 22,18.43 22,17.73V7.27C22,6.57 21.45,6 20.74,6M7.22,14.58C6,14.58 5,13.55 5,12.29C5,11 6,10 7.22,10C8.44,10 9.43,11 9.43,12.29C9.43,13.55 8.44,14.58 7.22,14.58M16.78,14.58C15.56,14.58 14.57,13.55 14.57,12.29C14.57,11.03 15.56,10 16.78,10C18,10 19,11.03 19,12.29C19,13.55 18,14.58 16.78,14.58Z" /></svg>
+    </button>
+    <button id=ar-button class="button bottom rippleJS" style="background-color: #8bc34a;">
+      <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="50" height="50" viewBox="0 0 24 24" fill="#FFF"><path d="M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,12.5A1.5,1.5 0 0,1 10.5,11A1.5,1.5 0 0,1 12,9.5A1.5,1.5 0 0,1 13.5,11A1.5,1.5 0 0,1 12,12.5M12,7.2C9.9,7.2 8.2,8.9 8.2,11C8.2,14 12,17.5 12,17.5C12,17.5 15.8,14 15.8,11C15.8,8.9 14.1,7.2 12,7.2Z" /></svg>resumeAudo
+    </button>
   </div>
+  <script src="js/lib/ripple.js"></script>
   <script>
-    console.log('native menu typeof ' + typeof window.nativeMenu + ' ' + typeof window.enterVr + ' ' + JSON.stringify(Object.keys(window.nativeMenu)));
+    // main
     const vrButtonEl = document.getElementById('vr-button');
     vrButtonEl.addEventListener('click', e => {
       console.log('enter vr button 1');
