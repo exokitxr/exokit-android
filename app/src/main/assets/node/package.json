@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "main": "index.js",
   "dependencies": {
-    "browser-poly": "0.0.2",
+    "browser-poly": "0.0.3",
     "skin-js": "0.0.16",
     "skin-vr": "0.0.2",
     "three-zeo": "0.0.15"
