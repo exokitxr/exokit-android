@@ -760,23 +760,23 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_GlesJSLib_onMultitouchCo
 
 
 JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_start
-(JNIEnv *env, jobject thiz, jstring jsPath) {
+(JNIEnv *env, jobject thiz, jstring binPath, jstring jsPath) {
   redirectStdioToLog();
 
-  const char *nodeString = "node";
+  const char *binPathString = env->GetStringUTFChars(binPath, NULL);
   const char *jsPathString = env->GetStringUTFChars(jsPath, NULL);
   char argsString[4096];
   int i = 0;
 
-  char *nodeArg = argsString + i;
-  strncpy(nodeArg, nodeString, sizeof(argsString) - i);
-  i += strlen(nodeString) + 1;
+  char *binPathArg = argsString + i;
+  strncpy(binPathArg, binPathString, sizeof(argsString) - i);
+  i += strlen(binPathString) + 1;
 
   char *jsPathArg = argsString + i;
   strncpy(jsPathArg, jsPathString, sizeof(argsString) - i);
   i += strlen(jsPathString) + 1;
 
-  char *args[] = {nodeArg, jsPathArg};
+  char *args[] = {binPathArg, jsPathArg};
   // node::Start(3, args);
   // service = new node::NodeService(3, args);
 
@@ -789,8 +789,8 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_start
 }
 
 JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_tick
-(JNIEnv *env, jobject thiz) {
-  service->Tick();
+(JNIEnv *env, jobject thiz, jint timeout) {
+  service->Tick(timeout);
 }
 
 

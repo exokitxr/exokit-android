@@ -63,6 +63,8 @@ import org.xmlpull.v1.*;
  */
 public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.Renderer {
     private static final String TAG = HelloArActivity.class.getSimpleName();
+    private static int FRAME_TIME_MAX = 1000 / 60;
+    private static int FRAME_TIME_MIN = FRAME_TIME_MAX / 5;
 
     // Rendering. The Renderers are created here, and initialized when the GL surface is created.
     private GLSurfaceView mSurfaceView;
@@ -71,6 +73,7 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
     private GestureDetector mGestureDetector;
     private Snackbar mMessageSnackbar;
     private DisplayRotationHelper mDisplayRotationHelper;
+    private long lastFrameTime;
 
     private final BackgroundRenderer mBackgroundRenderer = new BackgroundRenderer();
     private final ObjectRenderer mVirtualObject = new ObjectRenderer();
@@ -133,7 +136,8 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
         mSurfaceView.setEGLContextClientVersion(3);
         mSurfaceView.setEGLConfigChooser(8, 8, 8, 8, 16, 0); // Alpha used for plane blending.
         mSurfaceView.setRenderer(this);
-        mSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_CONTINUOUSLY);
+        // mSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_CONTINUOUSLY);
+        mSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
 
         Exception exception = null;
         String message = null;
@@ -165,6 +169,8 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
             showSnackbarMessage("This device does not support AR", true);
         }
         mSession.configure(config);
+
+        lastFrameTime = 0;
     }
 
     @Override
@@ -286,8 +292,6 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
 
     @Override
     public void onDrawFrame(GL10 gl) {
-        NodeService.tick();
-
         // Clear screen to notify driver it should not load any pixels from previous frame.
         GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT | GLES30.GL_DEPTH_BUFFER_BIT);
 
@@ -355,6 +359,13 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
 
             GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, 0);
             GLES30.glBindBuffer(GLES30.GL_ELEMENT_ARRAY_BUFFER, 0);
+
+            long now = System.currentTimeMillis();
+            int frameTime = Math.min(Math.max((int)(FRAME_TIME_MAX - (now - lastFrameTime)), FRAME_TIME_MIN), FRAME_TIME_MAX);
+            NodeService.tick(frameTime);
+            lastFrameTime = now;
+
+            mSurfaceView.requestRender();
 
             /* // Compute lighting from average intensity of the image.
             final float lightIntensity = frame.getLightEstimate().getPixelIntensity();
