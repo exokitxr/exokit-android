@@ -56,7 +56,7 @@ const skinJs = require('skin-js');
 const skinJsPath = path.dirname(require.resolve('skin-vr'));
 const skin = skinJs(THREE);
 
-const appUrl = 'http://192.168.0.13:8000/';
+/* const appUrl = 'http://192.168.0.13:8000/';
 fetch(appUrl)
   .then(res => res.text())
   .then(htmlString => {
@@ -69,7 +69,7 @@ fetch(appUrl)
     htmlWindow.addEventListener('error', err => {
       console.warn('got error', err.error.stack);
     });
-  });
+  }); */
 
 const canvas = document.createElement('canvas');
 canvas.width = window.innerWidth;
