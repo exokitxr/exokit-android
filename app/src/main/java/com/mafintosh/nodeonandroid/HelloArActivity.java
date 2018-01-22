@@ -35,6 +35,7 @@ import com.google.ar.core.Camera;
 import com.google.ar.core.Config;
 import com.google.ar.core.Frame;
 import com.google.ar.core.HitResult;
+import com.google.ar.core.Pose;
 import com.google.ar.core.Plane;
 import com.google.ar.core.PointCloud;
 import com.google.ar.core.Session;
@@ -51,6 +52,7 @@ import com.google.ar.core.exceptions.UnavailableSdkTooOldException;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.concurrent.ArrayBlockingQueue;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
@@ -87,7 +89,8 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
 
     // Tap handling and UI.
     private final ArrayBlockingQueue<MotionEvent> mQueuedSingleTaps = new ArrayBlockingQueue<>(16);
-    private final ArrayList<Anchor> mAnchors = new ArrayList<>();
+    // private final ArrayList<Anchor> mAnchors = new ArrayList<>();
+    private Anchor mAnchor = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -327,16 +330,10 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
                     Trackable trackable = hit.getTrackable();
                     if (trackable instanceof Plane
                             && ((Plane) trackable).isPoseInPolygon(hit.getHitPose())) {
-                        // Cap the number of objects created. This avoids overloading both the
-                        // rendering system and ARCore.
-                        if (mAnchors.size() >= 20) {
-                            mAnchors.get(0).detach();
-                            mAnchors.remove(0);
+                        if (mAnchor != null) {
+                          mAnchor.detach();
                         }
-                        // Adding an Anchor tells ARCore that it should track this position in
-                        // space. This anchor is created on the Plane to place the 3d model
-                        // in the correct position relative both to the world and to the plane.
-                        mAnchors.add(hit.createAnchor());
+                        mAnchor = hit.createAnchor();
 
                         // Hits are sorted by depth. Consider only closest hit on a plane.
                         break;
@@ -366,7 +363,23 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
               float[] viewmtx = new float[16];
               camera.getViewMatrix(viewmtx, 0);
 
-              service.onDrawFrame(viewmtx, projmtx);
+              float[] centerArray = new float[3];
+              if (mAnchor == null) {
+                Collection<Plane> allPlanes = mSession.getAllTrackables(Plane.class);
+                if (allPlanes.size() > 0) {
+                  Plane plane = allPlanes.iterator().next();
+                  mAnchor = plane.createAnchor(plane.getCenterPose());
+                }
+              }
+              if (mAnchor != null) {
+                Pose center = mAnchor.getPose();
+                centerArray[0] = center.tx();
+                centerArray[1] = center.ty();
+                centerArray[2] = center.tz();
+              }
+              // Log.i(TAG, "compute plane center " + numPlanes + " : " + centerArray[0] + " : " + centerArray[1] + " : " + centerArray[2]);
+
+              service.onDrawFrame(viewmtx, projmtx, centerArray);
 
               GLES30.glFlush();
 

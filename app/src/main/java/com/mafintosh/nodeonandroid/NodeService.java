@@ -80,7 +80,7 @@ public class NodeService implements Runnable {
     public native void onDrawEye(float[] eyeViewMatrix, float[] eyePerspectiveMatrix);
 
     // AR
-    public native void onDrawFrame(float[] viewMatrix, float[] projectionMatrix);
+    public native void onDrawFrame(float[] viewMatrix, float[] projectionMatrix, float[] centerArray);
 
     // helpers
     private static void copyAssets(AssetManager am, String src, String dest) {

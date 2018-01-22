@@ -570,9 +570,10 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_onSurfaceCha
 
 
 JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_onNewFrame
-(JNIEnv *env, jclass clas, jfloatArray headViewMatrix, jfloatArray headQuaternion) {
+(JNIEnv *env, jclass clas, jfloatArray headViewMatrix, jfloatArray headQuaternion, jfloatArray centerArray) {
   jfloat* headViewMatrixElements = env->GetFloatArrayElements(headViewMatrix, 0);
   jfloat* headQuaternionElements = env->GetFloatArrayElements(headQuaternion, 0);
+  jfloat* centerArrayElements = env->GetFloatArrayElements(centerArray, 0);
 
   interruptScope([&]() {
     Local<Float32Array> headMatrixFloat32Array = Float32Array::New(ArrayBuffer::New(service->GetIsolate(), 16 * 4), 0, 16);
@@ -580,15 +581,20 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_onNewFrame
       headMatrixFloat32Array->Set(i, Number::New(service->GetIsolate(), headViewMatrixElements[i]));
     }
     Local<Float32Array> headQuaternionFloat32Array = Float32Array::New(ArrayBuffer::New(service->GetIsolate(), 4 * 4), 0, 4);
-    for (int i = 0; i < 16; i++) {
+    for (int i = 0; i < 4; i++) {
       headQuaternionFloat32Array->Set(i, Number::New(service->GetIsolate(), headQuaternionElements[i]));
     }
-    Local<Value> argv[] = {headMatrixFloat32Array, headQuaternionFloat32Array};
+    Local<Float32Array> centerFloat32Array = Float32Array::New(ArrayBuffer::New(service->GetIsolate(), 3 * 4), 0, 3);
+    for (int i = 0; i < 3; i++) {
+      centerFloat32Array->Set(i, Number::New(service->GetIsolate(), centerArrayElements[i]));
+    }
+    Local<Value> argv[] = {headMatrixFloat32Array, headQuaternionFloat32Array, centerFloat32Array};
     callFunction("onDrawFrame", sizeof(argv)/sizeof(argv[0]), argv);
   });
 
   env->ReleaseFloatArrayElements(headViewMatrix, headViewMatrixElements, 0);
   env->ReleaseFloatArrayElements(headQuaternion, headQuaternionElements, 0);
+  env->ReleaseFloatArrayElements(centerArray, centerArrayElements, 0);
 }
 
 
@@ -603,7 +609,7 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_onDrawEye
       eyeViewMatrixFloat32Array->Set(i, Number::New(service->GetIsolate(), eyeViewMatrixElements[i]));
     }
     Local<Float32Array> eyePerspectiveMatrixFloat32Array = Float32Array::New(ArrayBuffer::New(service->GetIsolate(), 4 * 4), 0, 4);
-    for (int i = 0; i < 16; i++) {
+    for (int i = 0; i < 4; i++) {
       eyePerspectiveMatrixFloat32Array->Set(i, Number::New(service->GetIsolate(), eyePerspectiveMatrixElements[i]));
     }
     Local<Value> argv[] = {eyeViewMatrixFloat32Array, eyePerspectiveMatrixFloat32Array};
@@ -616,9 +622,10 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_onDrawEye
 
 
 JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_onDrawFrame
-(JNIEnv *env, jclass clas, jfloatArray viewMatrix, jfloatArray projectionMatrix) {
+(JNIEnv *env, jclass clas, jfloatArray viewMatrix, jfloatArray projectionMatrix, jfloatArray centerArray) {
   jfloat* viewMatrixElements = env->GetFloatArrayElements(viewMatrix, 0);
   jfloat* projectionMatrixElements = env->GetFloatArrayElements(projectionMatrix, 0);
+  jfloat* centerArrayElements = env->GetFloatArrayElements(centerArray, 0);
 
   interruptScope([&]() {
     Local<Float32Array> viewFloat32Array = Float32Array::New(ArrayBuffer::New(service->GetIsolate(), 16 * 4), 0, 16);
@@ -629,12 +636,17 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_onDrawFrame
     for (int i = 0; i < 16; i++) {
       projectionFloat32Array->Set(i, Number::New(service->GetIsolate(), projectionMatrixElements[i]));
     }
-    Local<Value> argv[] = {viewFloat32Array, projectionFloat32Array};
+    Local<Float32Array> centerFloat32Array = Float32Array::New(ArrayBuffer::New(service->GetIsolate(), 3 * 4), 0, 3);
+    for (int i = 0; i < 3; i++) {
+      centerFloat32Array->Set(i, Number::New(service->GetIsolate(), centerArrayElements[i]));
+    }
+    Local<Value> argv[] = {viewFloat32Array, projectionFloat32Array, centerFloat32Array};
     callFunction("onDrawFrame", sizeof(argv)/sizeof(argv[0]), argv);
   });
 
   env->ReleaseFloatArrayElements(viewMatrix, viewMatrixElements, 0);
   env->ReleaseFloatArrayElements(projectionMatrix, projectionMatrixElements, 0);
+  env->ReleaseFloatArrayElements(centerArray, centerArrayElements, 0);
 }
 
 /* // NOTE: must be called from the render thread. Multiple threads accessing

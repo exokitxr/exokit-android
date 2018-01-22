@@ -4,6 +4,7 @@ console.log('node boot html start');
 
 const path = require('path');
 const browserPoly = require('browser-poly');
+const THREE = require('three-zeo');
 
 const {window} = browserPoly();
 const {document, fetch} = window;
@@ -41,9 +42,13 @@ global.onDrawEye = (eyeViewMatrixFloat32Array, eyePerspectiveMatrixFloat32Array)
 };
 
 // AR
-global.onDrawFrame = (viewMatrixFloat32Array, projectionMatrixFloat32Array) => {
+const localMatrix = new THREE.Matrix4();
+global.onDrawFrame = (viewMatrixFloat32Array, projectionMatrixFloat32Array, centerFloat32Array) => {
   camera.matrixWorldInverse.fromArray(viewMatrixFloat32Array);
-  camera.matrixWorld.getInverse(camera.matrixWorldInverse);
+  camera.matrixWorld.getInverse(camera.matrixWorldInverse)
+    .premultiply(localMatrix.makeTranslation(-centerFloat32Array[0], -centerFloat32Array[1], -centerFloat32Array[2]));
+  camera.matrixWorldInverse.getInverse(camera.matrixWorld);
+
   camera.projectionMatrix.fromArray(projectionMatrixFloat32Array);
 
   window.tickAnimationFrame();
@@ -51,7 +56,6 @@ global.onDrawFrame = (viewMatrixFloat32Array, projectionMatrixFloat32Array) => {
 
 // MAIN
 
-const THREE = require('three-zeo');
 const skinJs = require('skin-js');
 const skinJsPath = path.dirname(require.resolve('skin-vr'));
 const skin = skinJs(THREE);
@@ -103,7 +107,7 @@ const _startAnimation = () => {
   // renderer.setClearColor(0xFF0000, 0.5);
 
   const scene = new THREE.Scene();
-  scene.matrixAutoUpdate = false;
+  scene.autoUpdate = false;
 
   camera = new THREE.PerspectiveCamera(90, canvas.width / canvas.height, 0.1, 100);
   camera.position.set(2, 2, 2);
