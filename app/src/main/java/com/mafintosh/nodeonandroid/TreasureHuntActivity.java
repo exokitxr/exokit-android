@@ -184,7 +184,7 @@ public class TreasureHuntActivity extends GvrActivity implements GvrView.StereoR
 
     System.out.println("start vr");
 
-    GlesJSUtils.init(this);
+    // GlesJSUtils.init(this);
 
     initializeGvrView();
 
@@ -392,7 +392,7 @@ public class TreasureHuntActivity extends GvrActivity implements GvrView.StereoR
 
     updateModelPosition();
 
-    GlesJSLib.onSurfaceCreated();
+    // GlesJSLib.onSurfaceCreated();
 
     checkGLError("onSurfaceCreated");
   }
