@@ -77,11 +77,5 @@
               <category android:name="android.intent.category.DEFAULT" />
           </intent-filter>
         </activity>
-
-        <service
-            android:name=".NodeService"
-            android:process="@string/node_process_name"
-            android:enabled="true"
-            android:exported="false"/>
     </application>
 </manifest>
