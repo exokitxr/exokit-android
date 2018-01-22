@@ -6,35 +6,96 @@ import android.content.res.AssetManager;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
 import android.content.Context;
+import android.util.Log;
+import android.util.TimingLogger;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 
-public class NodeService {
-    static {
-      System.loadLibrary("node");
-      System.loadLibrary("freeimage");
-      System.loadLibrary("nodebinding");
+public class NodeService implements Runnable {
+    private static final String TAG = NodeService.class.getSimpleName();
+
+    private Context context;
+    private boolean running;
+    ArrayList<Runnable> onRunningRunnables;
+
+    public NodeService(Context ctx) {
+      context = ctx;
+      running = false;
+      onRunningRunnables = new ArrayList<Runnable>();
     }
 
-    public static void init(Context context) {
-      String cache = context.getCacheDir().getAbsolutePath();
-      String nodePath = cache + "/node";
-      String corePath = cache + "/node_modules";
-      AssetManager am = context.getAssets();
-      copyAssets(am, "node_modules", corePath);
-      copyAssets(am, "node", nodePath);
-      // startNode("node", jsPath, "" + ipcPort);
-      // startNode(nodePath + "/html5.js", "" + 8000);
-      start(nodePath + "/bin/node", nodePath + "/html5.js");
+    public void run() {
+      {
+        TimingLogger timings = new TimingLogger(TAG, "node service init");
+
+        timings.addSplit("load libraries");
+
+        System.loadLibrary("node");
+        System.loadLibrary("freeimage");
+        System.loadLibrary("nodebinding");
+
+        timings.addSplit("copy assets");
+
+        String cache = context.getCacheDir().getAbsolutePath();
+        String nodePath = cache + "/node";
+        String corePath = cache + "/node_modules";
+        AssetManager am = context.getAssets();
+        copyAssets(am, "node_modules", corePath);
+        copyAssets(am, "node", nodePath);
+
+        timings.addSplit("start node");
+
+        start(nodePath + "/bin/node", nodePath + "/html5.js");
+
+        timings.addSplit("set running");
+
+        setRunning();
+
+        timings.dumpToLog();
+      }
+
+      // loop();
     }
-    public static native void tick(int timeout);
 
-    // private static native void startNode(String scriptString, String portString);
-    private static native void start(String binString, String scriptString);
+    public synchronized boolean isRunning() {
+      return running;
+    }
 
-    private static void copyAssets (AssetManager am, String src, String dest) {
+    public synchronized void onRunning(Runnable runnable) {
+      onRunningRunnables.add(runnable);
+    }
+
+    private synchronized void setRunning() {
+      running = true;
+
+      for (int i = 0; i < onRunningRunnables.size(); i++) {
+        onRunningRunnables.get(i).run();
+      }
+
+      timings.dumpToLog();
+    }
+
+    // uv
+    private native void start(String binString, String scriptString);
+    public native void tick(int timeout);
+    private native void loop();
+
+    // GL
+    public native void onSurfaceCreated();
+    public native void onSurfaceChanged(int width, int height);
+
+    // VR
+    public native void onNewFrame(float[] headViewMatrix, float[] headQuaternion);
+    public native void onDrawEye(float[] eyeViewMatrix, float[] eyePerspectiveMatrix);
+
+    // AR
+    public native void onDrawFrame(float[] viewMatrix, float[] projectionMatrix);
+
+    // helpers
+    private static void copyAssets(AssetManager am, String src, String dest) {
         try {
             copyAssetFile(am, src, dest);
         } catch (Exception e) {

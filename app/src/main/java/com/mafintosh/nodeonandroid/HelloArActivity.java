@@ -73,6 +73,7 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
     private GestureDetector mGestureDetector;
     private Snackbar mMessageSnackbar;
     private DisplayRotationHelper mDisplayRotationHelper;
+    private NodeService service;
     private long lastFrameTime;
 
     private final BackgroundRenderer mBackgroundRenderer = new BackgroundRenderer();
@@ -82,7 +83,7 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
     private final PointCloudRenderer mPointCloud = new PointCloudRenderer(); */
 
     // Temporary matrix allocated here to reduce number of allocations for each frame.
-    private final float[] mAnchorMatrix = new float[16];
+    // private final float[] mAnchorMatrix = new float[16];
 
     // Tap handling and UI.
     private final ArrayBlockingQueue<MotionEvent> mQueuedSingleTaps = new ArrayBlockingQueue<>(16);
@@ -134,8 +135,8 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
         mSurfaceView.setEGLContextClientVersion(3);
         mSurfaceView.setEGLConfigChooser(8, 8, 8, 8, 16, 0); // Alpha used for plane blending.
         mSurfaceView.setRenderer(this);
-        // mSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_CONTINUOUSLY);
-        mSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
+        mSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_CONTINUOUSLY);
+        // mSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
 
         Exception exception = null;
         String message = null;
@@ -169,7 +170,10 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
         }
         mSession.configure(config);
 
+        service = new NodeService(this);
+        service.run();
         lastFrameTime = 0;
+        // new Thread(service).start();
     }
 
     @Override
@@ -190,7 +194,7 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
             CameraPermissionHelper.requestCameraPermission(this);
         }
 
-        // GlesJSUtils.resumeAudio();
+        // service.resumeAudio();
     }
 
     @Override
@@ -202,7 +206,7 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
         // still call mSession.update() and get a SessionPausedException.
         mDisplayRotationHelper.onPause();
         mSurfaceView.onPause();
-        // GlesJSUtils.pauseAudio();
+        // service.pauseAudio();
         if (mSession != null) {
             mSession.pause();
         }
@@ -271,13 +275,13 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
         }
         mPointCloud.createOnGlThread(this); */
 
-        Log.i(TAG, "JNI start node 1");
-
-        NodeService.init(this);
-
-        Log.i(TAG, "JNI start node 2");
-
-        GlesJSLib.onSurfaceCreated();
+        if (service.isRunning()) {
+          service.onSurfaceCreated();
+        } else {
+          service.onRunning(() -> {
+            service.onSurfaceCreated();
+          });
+        }
     }
 
     @Override
@@ -286,7 +290,13 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
 
         // GLES30.glViewport(0, 0, width, height);
 
-        GlesJSLib.onSurfaceChanged(width, height);
+        if (service.isRunning()) {
+          service.onSurfaceChanged(width, height);
+        } else {
+          service.onRunning(() -> {
+            service.onSurfaceChanged(width, height);
+          });
+        }
     }
 
     @Override
@@ -342,29 +352,31 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
                 return;
             } */
 
-            // Get projection matrix.
-            float[] projmtx = new float[16];
-            camera.getProjectionMatrix(projmtx, 0, 0.1f, 100.0f);
+            if (service.isRunning()) {
+              // Get projection matrix.
+              float[] projmtx = new float[16];
+              camera.getProjectionMatrix(projmtx, 0, 0.1f, 100.0f);
 
-            // Get camera matrix and draw.
-            float[] viewmtx = new float[16];
-            camera.getViewMatrix(viewmtx, 0);
+              // Get camera matrix and draw.
+              float[] viewmtx = new float[16];
+              camera.getViewMatrix(viewmtx, 0);
 
-            GlesJSLib.onDrawFrame(viewmtx, projmtx);
+              service.onDrawFrame(viewmtx, projmtx);
 
-            /* GLES30.glDisable(GLES30.GL_DEPTH_TEST);
-            GLES30.glDisable(GLES30.GL_CULL_FACE);
-            GLES30.glDisable(GLES30.GL_BLEND); */
+              /* GLES30.glDisable(GLES30.GL_DEPTH_TEST);
+              GLES30.glDisable(GLES30.GL_CULL_FACE);
+              GLES30.glDisable(GLES30.GL_BLEND); */
 
-            GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, 0);
-            GLES30.glBindBuffer(GLES30.GL_ELEMENT_ARRAY_BUFFER, 0);
+              GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, 0);
+              GLES30.glBindBuffer(GLES30.GL_ELEMENT_ARRAY_BUFFER, 0);
 
-            long now = System.currentTimeMillis();
-            int frameTime = Math.min(Math.max((int)(FRAME_TIME_MAX - (now - lastFrameTime)), FRAME_TIME_MIN), FRAME_TIME_MAX);
-            NodeService.tick(frameTime);
-            lastFrameTime = now;
+              long now = System.currentTimeMillis();
+              int frameTime = Math.min(Math.max((int)(FRAME_TIME_MAX - (now - lastFrameTime)), FRAME_TIME_MIN), FRAME_TIME_MAX);
+              service.tick(frameTime);
+              lastFrameTime = now;
+            }
 
-            mSurfaceView.requestRender();
+            // mSurfaceView.requestRender();
 
             /* // Compute lighting from average intensity of the image.
             final float lightIntensity = frame.getLightEstimate().getPixelIntensity();

@@ -72,8 +72,8 @@ class MallocArrayBufferAllocator : public v8::ArrayBuffer::Allocator {
 // -----------------------------------------------
 
 node::NodeService *service;
-JNIEnv *jnienv = NULL;
-jclass utilsClass;
+// JNIEnv *jnienv = NULL;
+// jclass utilsClass;
 
 long readAsset(const char *filename, char **output);
 
@@ -150,9 +150,10 @@ void __localStorage_removeItem(const v8::FunctionCallbackInfo<v8::Value>& args){
 // internal functions used by glbinding
 
 
-#define UNIFORMINT   0
-#define UNIFORMFLOAT 1
-#define UNIFORMMATRIXFLOAT 2
+/*
+// #define UNIFORMINT   0
+// #define UNIFORMFLOAT 1
+// #define UNIFORMMATRIXFLOAT 2
 // vecsize: 1,2,3,4 (for matrices: 2,3,4)
 // type: 0 = integer  1 = float  2 = float matrix
 // transpose: only relevant for matrices
@@ -424,15 +425,23 @@ void __getImageDimensions(const v8::FunctionCallbackInfo<v8::Value>& args) {
 	jsretval->Set(0, v8::Integer::New(args.GetIsolate(), retwidth));
 	jsretval->Set(1, v8::Integer::New(args.GetIsolate(), retheight));
 	args.GetReturnValue().Set(jsretval);
-}
+} */
 
-std::function<void ()> scopeFn;
+std::deque<std::function<void ()>> scopeFns;
 
-void scope(std::function<void ()> fn) {
+/* void scope(std::function<void ()> fn) {
   scopeFn = fn;
 
   service->Scope([]() {
     scopeFn();
+  });
+} */
+void interruptScope(std::function<void ()> fn) {
+  scopeFns.push_back(fn);
+
+  service->InterruptScope([]() {
+    scopeFns.front()();
+    scopeFns.pop_front();
   });
 }
 
@@ -471,7 +480,7 @@ void callFunction(const char *funcname, const int argc, Local<Value> argv[]) {
 
 
 
-// output must be freed using free()
+/* // output must be freed using free()
 long readAsset(const char *filename, char **output) {
 	LOGI("readAsset %s",filename);
 	jmethodID mid = jnienv->GetStaticMethodID(utilsClass, "readAsset",
@@ -505,78 +514,37 @@ jint JNI_OnLoad(JavaVM* vm, void* reserved) {
 	// Register methods with env->RegisterNatives.
 
 	return JNI_VERSION_1_6;
-}
+} */
 
 void redirectStdioToLog() {
-    setvbuf(stdout, 0, _IOLBF, 0);
-    setvbuf(stderr, 0, _IONBF, 0);
+  setvbuf(stdout, 0, _IOLBF, 0);
+  setvbuf(stderr, 0, _IONBF, 0);
 
-    int pfd[2];
-    pipe(pfd);
-    dup2(pfd[1], 1);
-    dup2(pfd[1], 2);
+  int pfd[2];
+  pipe(pfd);
+  dup2(pfd[1], 1);
+  dup2(pfd[1], 2);
 
-    std::thread([](int pfd0) {
-      char buf[1024];
-      std::size_t nBytes = 0;
-      while ((nBytes = read(pfd0, buf, sizeof buf - 1)) > 0) {
-        if (buf[nBytes - 1] == '\n') --nBytes;
-        buf[nBytes] = 0;
-        LOGI("%s", buf);
-      }
-    }, pfd[0]).detach();
+  std::thread([](int pfd0) {
+    char buf[1024];
+    std::size_t nBytes = 0;
+    while ((nBytes = read(pfd0, buf, sizeof buf - 1)) > 0) {
+      if (buf[nBytes - 1] == '\n') --nBytes;
+      buf[nBytes] = 0;
+      LOGI("%s", buf);
+    }
+  }, pfd[0]).detach();
 }
-
-/* v8::Local<v8::Object> makeGl(node::NodeService *service) {
-  Isolate *isolate = service->GetIsolate();
-  v8::Local<v8::ObjectTemplate> _gl = v8::ObjectTemplate::New(isolate);
-
-	_gl->Set(v8::String::NewFromUtf8(isolate, "createRenderbuffer"),
-			v8::FunctionTemplate::New(isolate, __createRenderbuffer));
-
-	_gl->Set(v8::String::NewFromUtf8(isolate, "createFramebuffer"),
-			v8::FunctionTemplate::New(isolate, __createFramebuffer));
-
-	_gl->Set(v8::String::NewFromUtf8(isolate, "createBuffer"),
-			v8::FunctionTemplate::New(isolate, __createBuffer));
-
-	_gl->Set(v8::String::NewFromUtf8(isolate, "createTexture"),
-			v8::FunctionTemplate::New(isolate, __createTexture));
-
-	_gl->Set(v8::String::NewFromUtf8(isolate, "getProgramParameter"),
-			v8::FunctionTemplate::New(isolate, __getProgramParameter));
-
-	_gl->Set(v8::String::NewFromUtf8(isolate, "getShaderParameter"),
-			v8::FunctionTemplate::New(isolate, __getShaderParameter));
-
-	_gl->Set(v8::String::NewFromUtf8(isolate, "getProgramInfoLog"),
-			v8::FunctionTemplate::New(isolate, __getProgramInfoLog));
-
-	_gl->Set(v8::String::NewFromUtf8(isolate, "getShaderInfoLog"),
-			v8::FunctionTemplate::New(isolate, __getShaderInfoLog));
-
-	// the "raw" function takes an asset location string.
-	// html5.js provides a wrapper that takes Image
-	_gl->Set(v8::String::NewFromUtf8(isolate, "_texImage2D"),
-			v8::FunctionTemplate::New(isolate, __texImage2D));
-
-	_gl->Set(v8::String::NewFromUtf8(isolate, "_getImageDimensions"),
-			v8::FunctionTemplate::New(isolate, __getImageDimensions));
-
-#include "gluegen/glbindinit.h"
-
-  return _gl->NewInstance();
-} */
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_GlesJSLib_onSurfaceCreated
+JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_onSurfaceCreated
 (JNIEnv *env, jclass clas) {
 	LOGI("JNI onSurfaceCreated");
 
-  scope([&]() {
+  interruptScope([&]() {
     Local<Value> argv[] = {};
     callFunction("onSurfaceCreated", sizeof(argv)/sizeof(argv[0]), argv);
   });
@@ -585,11 +553,11 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_GlesJSLib_onSurfaceCreat
 /* This does double duty as both the init and displaychanged function.
  * Signature: (II)V
  */
-JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_GlesJSLib_onSurfaceChanged
+JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_onSurfaceChanged
 (JNIEnv *env, jclass clas, jint width, jint height) {
 	LOGI("JNI onSurfaceChanged");
 
-  scope([&]() {
+  interruptScope([&]() {
     Isolate *isolate = service->GetIsolate();
 
     Handle<Number> js_width = v8::Integer::New(isolate, width);
@@ -601,12 +569,12 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_GlesJSLib_onSurfaceChang
 }
 
 
-JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_GlesJSLib_onNewFrame
+JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_onNewFrame
 (JNIEnv *env, jclass clas, jfloatArray headViewMatrix, jfloatArray headQuaternion) {
   jfloat* headViewMatrixElements = env->GetFloatArrayElements(headViewMatrix, 0);
   jfloat* headQuaternionElements = env->GetFloatArrayElements(headQuaternion, 0);
 
-  scope([&]() {
+  interruptScope([&]() {
     Local<Float32Array> headMatrixFloat32Array = Float32Array::New(ArrayBuffer::New(service->GetIsolate(), 16 * 4), 0, 16);
     for (int i = 0; i < 16; i++) {
       headMatrixFloat32Array->Set(i, Number::New(service->GetIsolate(), headViewMatrixElements[i]));
@@ -624,12 +592,12 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_GlesJSLib_onNewFrame
 }
 
 
-JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_GlesJSLib_onDrawEye
+JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_onDrawEye
 (JNIEnv *env, jclass clasj, jfloatArray eyeViewMatrix, jfloatArray eyePerspectiveMatrix) {
   jfloat* eyeViewMatrixElements = env->GetFloatArrayElements(eyeViewMatrix, 0);
   jfloat* eyePerspectiveMatrixElements = env->GetFloatArrayElements(eyePerspectiveMatrix, 0);
 
-  scope([&]() {
+  interruptScope([&]() {
     Local<Float32Array> eyeViewMatrixFloat32Array = Float32Array::New(ArrayBuffer::New(service->GetIsolate(), 16 * 4), 0, 16);
     for (int i = 0; i < 16; i++) {
       eyeViewMatrixFloat32Array->Set(i, Number::New(service->GetIsolate(), eyeViewMatrixElements[i]));
@@ -647,17 +615,12 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_GlesJSLib_onDrawEye
 }
 
 
-/*
- * Class:     com_mafintosh_nodeonandroid_GlesJSLib
- * Method:    onDrawFrame
- * Signature: ()V
- */
-JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_GlesJSLib_onDrawFrame
+JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_onDrawFrame
 (JNIEnv *env, jclass clas, jfloatArray viewMatrix, jfloatArray projectionMatrix) {
   jfloat* viewMatrixElements = env->GetFloatArrayElements(viewMatrix, 0);
   jfloat* projectionMatrixElements = env->GetFloatArrayElements(projectionMatrix, 0);
 
-  scope([&]() {
+  interruptScope([&]() {
     Local<Float32Array> viewFloat32Array = Float32Array::New(ArrayBuffer::New(service->GetIsolate(), 16 * 4), 0, 16);
     for (int i = 0; i < 16; i++) {
       viewFloat32Array->Set(i, Number::New(service->GetIsolate(), viewMatrixElements[i]));
@@ -674,12 +637,7 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_GlesJSLib_onDrawFrame
   env->ReleaseFloatArrayElements(projectionMatrix, projectionMatrixElements, 0);
 }
 
-/*
- * Class:     com_mafintosh_nodeonandroid_GlesJSLib
- * Method:    onTouchEvent
- * Signature: (DDZZZ)V
- */
-// NOTE: must be called from the render thread. Multiple threads accessing
+/* // NOTE: must be called from the render thread. Multiple threads accessing
 // isolate will cause crash.
 JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_GlesJSLib_onTouchEvent
 (JNIEnv *env, jclass clas, jint ptrid, jdouble x, jdouble y,
@@ -712,12 +670,6 @@ jboolean press, jboolean release) {
 	}
 }
 
-
-/*
- * Class:     com_mafintosh_nodeonandroid_GlesJSLib
- * Method:    onMultitouchCoordinates
- * Signature: (IDD)V
- */
 JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_GlesJSLib_onMultitouchCoordinates
 (JNIEnv * env, jclass clas, jint ptrid, jdouble x, jdouble y) {
 	//LOGI("JNI MultitouchCoordinates");
@@ -734,7 +686,7 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_GlesJSLib_onMultitouchCo
 }
 
 
-/* JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_startNode__Ljava_lang_String_2Ljava_lang_String_2
+JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_startNode__Ljava_lang_String_2Ljava_lang_String_2
 (JNIEnv *env, jobject thiz, jstring jsPath, jstring port) {
   const char *nodeString = "node";
   const char *jsPathString = env->GetStringUTFChars(jsPath, NULL);
@@ -791,6 +743,11 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_start
 JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_tick
 (JNIEnv *env, jobject thiz, jint timeout) {
   service->Tick(timeout);
+}
+
+JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_loop
+(JNIEnv *env, jobject thiz) {
+  service->Loop();
 }
 
 
