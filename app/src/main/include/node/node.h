@@ -222,6 +222,7 @@ class NodeService {
   v8::Isolate *isolate;
   Environment *env;
   v8::Eternal<v8::Context> context;
+  uv_idle_t idle;
   uv_timer_t timer;
 
   NODE_EXTERN NodeService(int argc, char** argv, void (*initEnv)(NodeService *service));
