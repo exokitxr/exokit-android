@@ -75,7 +75,7 @@ node::NodeService *service;
 // JNIEnv *jnienv = NULL;
 // jclass utilsClass;
 
-long readAsset(const char *filename, char **output);
+// long readAsset(const char *filename, char **output);
 
 // utils
 

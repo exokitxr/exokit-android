@@ -25,7 +25,7 @@ using namespace v8;
 using namespace std;
 
 // forward declarations
-enum GLObjectType {
+/* enum GLObjectType {
   GLOBJECT_TYPE_BUFFER,
   GLOBJECT_TYPE_FRAMEBUFFER,
   GLOBJECT_TYPE_PROGRAM,
@@ -35,7 +35,7 @@ enum GLObjectType {
 };
 
 void registerGLObj(GLObjectType type, GLuint obj);
-void unregisterGLObj(GLuint obj);
+void unregisterGLObj(GLuint obj); */
 
 // A 32-bit and 64-bit compatible way of converting a pointer to a GLuint.
 static GLuint ToGLuint(const void* ptr) {
@@ -570,7 +570,7 @@ NAN_METHOD(CreateShader) {
   #ifdef LOGGING
   cout<<"createShader "<<shader<<endl;
   #endif
-  registerGLObj(GLOBJECT_TYPE_SHADER, shader);
+  // registerGLObj(GLOBJECT_TYPE_SHADER, shader);
   info.GetReturnValue().Set(Nan::New<Number>(shader));
 }
 
@@ -654,7 +654,7 @@ NAN_METHOD(CreateProgram) {
   #ifdef LOGGING
   cout<<"createProgram "<<program<<endl;
   #endif
-  registerGLObj(GLOBJECT_TYPE_PROGRAM, program);
+  // registerGLObj(GLOBJECT_TYPE_PROGRAM, program);
   info.GetReturnValue().Set(Nan::New<Number>(program));
 }
 
@@ -764,7 +764,7 @@ NAN_METHOD(CreateTexture) {
   #ifdef LOGGING
   cout<<"createTexture "<<texture<<endl;
   #endif
-  registerGLObj(GLOBJECT_TYPE_TEXTURE, texture);
+  // registerGLObj(GLOBJECT_TYPE_TEXTURE, texture);
   info.GetReturnValue().Set(Nan::New<Number>(texture));
 }
 
@@ -926,7 +926,7 @@ NAN_METHOD(CreateBuffer) {
   #ifdef LOGGING
   cout<<"createBuffer "<<buffer<<endl;
   #endif
-  registerGLObj(GLOBJECT_TYPE_BUFFER, buffer);
+  // registerGLObj(GLOBJECT_TYPE_BUFFER, buffer);
   info.GetReturnValue().Set(Nan::New<Number>(buffer));
 }
 
@@ -949,7 +949,7 @@ NAN_METHOD(CreateFramebuffer) {
   #ifdef LOGGING
   cout<<"createFrameBuffer "<<buffer<<endl;
   #endif
-  registerGLObj(GLOBJECT_TYPE_FRAMEBUFFER, buffer);
+  // registerGLObj(GLOBJECT_TYPE_FRAMEBUFFER, buffer);
   info.GetReturnValue().Set(Nan::New<Number>(buffer));
 }
 
@@ -1539,7 +1539,7 @@ NAN_METHOD(CreateRenderbuffer) {
   #ifdef LOGGING
   cout<<"createRenderBuffer "<<renderbuffers<<endl;
   #endif
-  registerGLObj(GLOBJECT_TYPE_RENDERBUFFER, renderbuffers);
+  // registerGLObj(GLOBJECT_TYPE_RENDERBUFFER, renderbuffers);
   info.GetReturnValue().Set(Nan::New<Number>(renderbuffers));
 }
 
@@ -2136,7 +2136,7 @@ NAN_METHOD(CheckFramebufferStatus) {
   info.GetReturnValue().Set(JS_INT((int)glCheckFramebufferStatus(target)));
 }
 
-struct GLObj {
+/* struct GLObj {
   GLObjectType type;
   GLuint obj;
   GLObj(GLObjectType type, GLuint obj) {
@@ -2168,7 +2168,7 @@ void unregisterGLObj(GLuint obj) {
   }
 }
 
-/* void AtExit() {
+void AtExit() {
   atExit=true;
   //glFinish();
 
