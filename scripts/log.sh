@@ -1,3 +1,3 @@
 #!/bin/bash
 
-adb logcat -d | less
+adb logcat -d *:V | less
