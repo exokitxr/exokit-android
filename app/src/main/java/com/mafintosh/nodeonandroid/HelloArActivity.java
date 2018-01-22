@@ -63,8 +63,8 @@ import org.xmlpull.v1.*;
  */
 public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.Renderer {
     private static final String TAG = HelloArActivity.class.getSimpleName();
-    private static int FRAME_TIME_MAX = 1000 / 60;
-    private static int FRAME_TIME_MIN = FRAME_TIME_MAX / 5;
+    /* private static int FRAME_TIME_MAX = 1000 / 60;
+    private static int FRAME_TIME_MIN = FRAME_TIME_MAX / 5; */
 
     // Rendering. The Renderers are created here, and initialized when the GL surface is created.
     private GLSurfaceView mSurfaceView;
@@ -74,7 +74,7 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
     private Snackbar mMessageSnackbar;
     private DisplayRotationHelper mDisplayRotationHelper;
     private NodeService service;
-    private long lastFrameTime;
+    private ArrayList<Runnable> runnables;
 
     private final BackgroundRenderer mBackgroundRenderer = new BackgroundRenderer();
     /* private final ObjectRenderer mVirtualObject = new ObjectRenderer();
@@ -171,9 +171,9 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
         mSession.configure(config);
 
         service = new NodeService(this);
-        service.run();
-        lastFrameTime = 0;
-        // new Thread(service).start();
+        new Thread(service).start();
+
+        runnables = new ArrayList<Runnable>();
     }
 
     @Override
@@ -278,7 +278,7 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
         if (service.isRunning()) {
           service.onSurfaceCreated();
         } else {
-          service.onRunning(() -> {
+          runnables.add(() -> {
             service.onSurfaceCreated();
           });
         }
@@ -293,7 +293,7 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
         if (service.isRunning()) {
           service.onSurfaceChanged(width, height);
         } else {
-          service.onRunning(() -> {
+          runnables.add(() -> {
             service.onSurfaceChanged(width, height);
           });
         }
@@ -353,6 +353,11 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
             } */
 
             if (service.isRunning()) {
+              for (int i = 0; i < runnables.size(); i++) {
+                runnables.get(i).run();
+              }
+              runnables.clear();
+
               // Get projection matrix.
               float[] projmtx = new float[16];
               camera.getProjectionMatrix(projmtx, 0, 0.1f, 100.0f);
@@ -363,17 +368,14 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
 
               service.onDrawFrame(viewmtx, projmtx);
 
+              GLES30.glFlush();
+
               /* GLES30.glDisable(GLES30.GL_DEPTH_TEST);
               GLES30.glDisable(GLES30.GL_CULL_FACE);
               GLES30.glDisable(GLES30.GL_BLEND); */
 
               GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, 0);
               GLES30.glBindBuffer(GLES30.GL_ELEMENT_ARRAY_BUFFER, 0);
-
-              long now = System.currentTimeMillis();
-              int frameTime = Math.min(Math.max((int)(FRAME_TIME_MAX - (now - lastFrameTime)), FRAME_TIME_MIN), FRAME_TIME_MAX);
-              service.tick(frameTime);
-              lastFrameTime = now;
             }
 
             // mSurfaceView.requestRender();

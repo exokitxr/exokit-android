@@ -19,12 +19,10 @@ public class NodeService implements Runnable {
 
     private Context context;
     private boolean running;
-    ArrayList<Runnable> onRunningRunnables;
 
     public NodeService(Context ctx) {
       context = ctx;
       running = false;
-      onRunningRunnables = new ArrayList<Runnable>();
     }
 
     public void run() {
@@ -57,28 +55,20 @@ public class NodeService implements Runnable {
         timings.dumpToLog();
       }
 
-      // loop();
+      loop();
     }
 
     public synchronized boolean isRunning() {
       return running;
     }
 
-    public synchronized void onRunning(Runnable runnable) {
-      onRunningRunnables.add(runnable);
-    }
-
     private synchronized void setRunning() {
       running = true;
-
-      for (int i = 0; i < onRunningRunnables.size(); i++) {
-        onRunningRunnables.get(i).run();
-      }
     }
 
     // uv
     private native void start(String binString, String scriptString);
-    public native void tick(int timeout);
+    // public native void tick(int timeout);
     private native void loop();
 
     // GL
