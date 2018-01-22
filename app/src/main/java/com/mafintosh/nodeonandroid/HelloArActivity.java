@@ -76,10 +76,10 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
     private long lastFrameTime;
 
     private final BackgroundRenderer mBackgroundRenderer = new BackgroundRenderer();
-    private final ObjectRenderer mVirtualObject = new ObjectRenderer();
+    /* private final ObjectRenderer mVirtualObject = new ObjectRenderer();
     private final ObjectRenderer mVirtualObjectShadow = new ObjectRenderer();
     private final PlaneRenderer mPlaneRenderer = new PlaneRenderer();
-    private final PointCloudRenderer mPointCloud = new PointCloudRenderer();
+    private final PointCloudRenderer mPointCloud = new PointCloudRenderer(); */
 
     // Temporary matrix allocated here to reduce number of allocations for each frame.
     private final float[] mAnchorMatrix = new float[16];
@@ -94,8 +94,6 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
 
         Log.i(TAG, "JNI on create");
 
-        // GlesJSUtils.init(this);
-
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         getWindow().getDecorView().setSystemUiVisibility(
                 View.SYSTEM_UI_FLAG_LAYOUT_STABLE |
@@ -108,7 +106,7 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
         mSurfaceView = new GLSurfaceView(this);
         setContentView(mSurfaceView);
 
-        mDisplayRotationHelper = new DisplayRotationHelper(/*context=*/ this);
+        mDisplayRotationHelper = new DisplayRotationHelper(this);
 
         // Set up tap listener.
         mGestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
@@ -142,7 +140,7 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
         Exception exception = null;
         String message = null;
         try {
-            mSession = new Session(/* context= */ this);
+            mSession = new Session(this);
         } catch (UnavailableArcoreNotInstalledException e) {
             message = "Please install ARCore";
             exception = e;
@@ -158,7 +156,7 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
         }
 
         if (message != null) {
-            showSnackbarMessage(message, true);
+            // showSnackbarMessage(message, true);
             Log.e(TAG, "Exception creating session", exception);
             return;
         }
@@ -166,7 +164,8 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
         // Create default config and check if supported.
         Config config = new Config(mSession);
         if (!mSession.isSupported(config)) {
-            showSnackbarMessage("This device does not support AR", true);
+            // showSnackbarMessage("This device does not support AR", true);
+            Log.e(TAG, "This device does not support AR");
         }
         mSession.configure(config);
 
@@ -181,7 +180,7 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
         // permission on Android M and above, now is a good time to ask the user for it.
         if (CameraPermissionHelper.hasCameraPermission(this)) {
             if (mSession != null) {
-                showLoadingMessage();
+                // showLoadingMessage();
                 // Note that order matters - see the note in onPause(), the reverse applies here.
                 mSession.resume();
             }
@@ -248,17 +247,17 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
         GLES30.glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 
         // Create the texture and pass it to ARCore session to be filled during update().
-        mBackgroundRenderer.createOnGlThread(/*context=*/ this);
+        mBackgroundRenderer.createOnGlThread(this);
         if (mSession != null) {
             mSession.setCameraTextureName(mBackgroundRenderer.getTextureId());
         }
 
-        // Prepare the other rendering objects.
+        /* // Prepare the other rendering objects.
         try {
-            mVirtualObject.createOnGlThread(/*context=*/this, "andy.obj", "andy.png");
+            mVirtualObject.createOnGlThread(this, "andy.obj", "andy.png");
             mVirtualObject.setMaterialProperties(0.0f, 3.5f, 1.0f, 6.0f);
 
-            mVirtualObjectShadow.createOnGlThread(/*context=*/this,
+            mVirtualObjectShadow.createOnGlThread(this,
                 "andy_shadow.obj", "andy_shadow.png");
             mVirtualObjectShadow.setBlendMode(BlendMode.Shadow);
             mVirtualObjectShadow.setMaterialProperties(1.0f, 0.0f, 0.0f, 1.0f);
@@ -266,11 +265,11 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
             Log.e(TAG, "Failed to read obj file");
         }
         try {
-            mPlaneRenderer.createOnGlThread(/*context=*/this, "trigrid.png");
+            mPlaneRenderer.createOnGlThread(this, "trigrid.png");
         } catch (IOException e) {
             Log.e(TAG, "Failed to read plane texture");
         }
-        mPointCloud.createOnGlThread(/*context=*/this);
+        mPointCloud.createOnGlThread(this); */
 
         Log.i(TAG, "JNI start node 1");
 
@@ -443,7 +442,7 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
         mMessageSnackbar.show();
     }
 
-    private void showLoadingMessage() {
+    /* private void showLoadingMessage() {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -462,5 +461,5 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
                 mMessageSnackbar = null;
             }
         });
-    }
+    } */
 }
