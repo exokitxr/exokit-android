@@ -74,8 +74,6 @@ public class NodeService implements Runnable {
       for (int i = 0; i < onRunningRunnables.size(); i++) {
         onRunningRunnables.get(i).run();
       }
-
-      timings.dumpToLog();
     }
 
     // uv
