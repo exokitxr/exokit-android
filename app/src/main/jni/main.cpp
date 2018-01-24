@@ -724,11 +724,12 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_startNode__L
 
 
 JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_start
-(JNIEnv *env, jobject thiz, jstring binPath, jstring jsPath) {
+(JNIEnv *env, jobject thiz, jstring binPath, jstring jsPath, jstring libpath) {
   redirectStdioToLog();
 
   const char *binPathString = env->GetStringUTFChars(binPath, NULL);
   const char *jsPathString = env->GetStringUTFChars(jsPath, NULL);
+  const char *libPathString = env->GetStringUTFChars(libpath, NULL);
   char argsString[4096];
   int i = 0;
 
@@ -740,7 +741,11 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_start
   strncpy(jsPathArg, jsPathString, sizeof(argsString) - i);
   i += strlen(jsPathString) + 1;
 
-  char *args[] = {binPathArg, jsPathArg};
+  char *libPathArg = argsString + i;
+  strncpy(libPathArg, libPathString, sizeof(argsString) - i);
+  i += strlen(libPathString) + 1;
+
+  char *args[] = {binPathArg, jsPathArg, libPathArg};
   // node::Start(3, args);
   // service = new node::NodeService(3, args);
 

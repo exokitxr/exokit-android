@@ -26,6 +26,8 @@ public class NodeService implements Runnable {
     }
 
     public void run() {
+      String nativeLibraryDir = context.getApplicationInfo().nativeLibraryDir;
+
       {
         TimingLogger timings = new TimingLogger(TAG, "node service init");
 
@@ -46,7 +48,7 @@ public class NodeService implements Runnable {
 
         timings.addSplit("start node");
 
-        start(nodePath + "/bin/node", nodePath + "/html5.js");
+        start(nativeLibraryDir + "/node.so", nodePath + "/html5.js", nativeLibraryDir);
 
         timings.addSplit("set running");
 
@@ -67,7 +69,7 @@ public class NodeService implements Runnable {
     }
 
     // uv
-    private native void start(String binString, String scriptString);
+    private native void start(String binString, String scriptString, String libPath);
     // public native void tick(int timeout);
     private native void loop();
 
