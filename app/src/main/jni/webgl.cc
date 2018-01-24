@@ -618,7 +618,7 @@ NAN_METHOD(GetShaderParameter) {
   case GL_DELETE_STATUS:
   case GL_COMPILE_STATUS:
     glGetShaderiv(shader, pname, &value);
-    info.GetReturnValue().Set(JS_BOOL(static_cast<bool>(value!=0)));
+    info.GetReturnValue().Set(JS_BOOL(static_cast<bool>(value)));
     break;
   case GL_SHADER_TYPE:
     glGetShaderiv(shader, pname, &value);
