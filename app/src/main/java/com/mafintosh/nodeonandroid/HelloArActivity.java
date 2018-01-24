@@ -387,6 +387,8 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
               GLES30.glDisable(GLES30.GL_CULL_FACE);
               GLES30.glDisable(GLES30.GL_BLEND); */
 
+              reportFullyDrawn();
+
               GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, 0);
               GLES30.glBindBuffer(GLES30.GL_ELEMENT_ARRAY_BUFFER, 0);
             }
