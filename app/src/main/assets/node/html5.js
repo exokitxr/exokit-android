@@ -97,10 +97,6 @@ let animating = false;
 const _startAnimation = () => {
   console.log('node html start animation');
 
-  gl.enable = () => {};
-  gl.disable = () => {};
-  gl.clear = () => {};
-
   renderer = new THREE.WebGLRenderer({
     canvas,
     context: gl,

@@ -283,6 +283,10 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
         } else {
           runnables.add(() -> {
             service.onSurfaceCreated();
+
+            /* GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, 0);
+            GLES30.glBindBuffer(GLES30.GL_ELEMENT_ARRAY_BUFFER, 0);
+            GLES30.glDisable(GLES30.GL_BLEND); */
           });
         }
     }
@@ -381,7 +385,7 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
 
               service.onDrawFrame(viewmtx, projmtx, centerArray);
 
-              GLES30.glFlush();
+              // GLES30.glFlush();
 
               /* GLES30.glDisable(GLES30.GL_DEPTH_TEST);
               GLES30.glDisable(GLES30.GL_CULL_FACE);
@@ -391,6 +395,7 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
 
               GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, 0);
               GLES30.glBindBuffer(GLES30.GL_ELEMENT_ARRAY_BUFFER, 0);
+              GLES30.glDisable(GLES30.GL_CULL_FACE);
             }
 
             // mSurfaceView.requestRender();
