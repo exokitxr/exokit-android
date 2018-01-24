@@ -1,8 +1,19 @@
 console.log('node boot html start');
 
-// ENVIRONMENT
+// BOOTSTRAP
 
 const path = require('path');
+
+// correct exec path autodetection
+const libPath = process.argv[2];
+process.argv[0] = process.execPath = path.join(libPath, 'node.so');
+process.env['LD_LIBRARY_PATH'] = libPath;
+
+// const b = require('child_process').execFileSync(process.execPath, ['-e', 'console.log("sub node log");']);
+// console.log(b.toString());
+
+// ENVIRONMENT
+
 const browserPoly = require('browser-poly');
 const THREE = require('three-zeo');
 
