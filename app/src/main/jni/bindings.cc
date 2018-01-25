@@ -74,7 +74,7 @@ Local<Object> makeGl(node::NodeService *service) {
   Nan::SetMethod(target, "disable", webgl::Disable);
   Nan::SetMethod(target, "createTexture", webgl::CreateTexture);
   Nan::SetMethod(target, "bindTexture", webgl::BindTexture);
-  Nan::SetMethod(target, "flipTextureData", webgl::FlipTextureData);
+  // Nan::SetMethod(target, "flipTextureData", webgl::FlipTextureData);
   Nan::SetMethod(target, "texImage2D", webgl::TexImage2D);
   Nan::SetMethod(target, "texParameteri", webgl::TexParameteri);
   Nan::SetMethod(target, "texParameterf", webgl::TexParameterf);

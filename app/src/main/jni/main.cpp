@@ -428,6 +428,17 @@ void __getImageDimensions(const v8::FunctionCallbackInfo<v8::Value>& args) {
 } */
 
 std::deque<std::function<void ()>> scopeFns;
+bool isUiThread = false;
+std::deque<std::function<void ()>> uiThreadFns;
+
+void blockUiSoft() {
+  uiThreadFns.clear();
+}
+void blockUiHard() {
+  uiThreadFns.clear();
+
+  Nan::ThrowError("Hard not on main thread");
+}
 
 /* void scope(std::function<void ()> fn) {
   scopeFn = fn;
@@ -440,8 +451,12 @@ void interruptScope(std::function<void ()> fn) {
   scopeFns.push_back(fn);
 
   service->InterruptScope([]() {
+    isUiThread = true;
+
     scopeFns.front()();
     scopeFns.pop_front();
+
+    isUiThread = false;
   });
 }
 
@@ -749,12 +764,14 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_start
   // node::Start(3, args);
   // service = new node::NodeService(3, args);
 
+  isUiThread = true;
   service = new node::NodeService(sizeof(args)/sizeof(args[0]), args, [](node::NodeService *service) {
     Isolate *isolate = service->GetIsolate();
     Local<Object> global = service->GetContext()->Global();
     global->Set(v8::String::NewFromUtf8(isolate, "nativeGl"), makeGl(service));
     global->Set(v8::String::NewFromUtf8(isolate, "Image"), makeImage(service));
   });
+  isUiThread = false;
 }
 
 JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_tick
