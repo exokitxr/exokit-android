@@ -451,10 +451,7 @@ void blockUiHard(std::function<void()> fn) {
     uiThreadWorkSemaphore.notify();
   }
 
-  {
-    v8::Unlocker unlocker(service->GetIsolate());
-    uiThreadBlockCondition.block();
-  }
+  uiThreadBlockCondition.block();
 
   {
     std::unique_lock<decltype(uiThreadMutex)> lock(uiThreadMutex);
@@ -469,18 +466,8 @@ void queueServiceUiThread(std::function<void ()> fn) {
 
   service->Queue([]() {
     // in node service thread
-    blockUiHard([]() {
-      // in ui thread
-      isUiThread = true;
-
-      service->Scope([]() {
-        // in isolate
-        serviceUiThreadFns.front()();
-        serviceUiThreadFns.pop_front();
-      });
-
-      isUiThread = false;
-    });
+    serviceUiThreadFns.front()();
+    serviceUiThreadFns.pop_front();
   });
 }
 
@@ -584,6 +571,8 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_onSurfaceCre
 	LOGI("JNI onSurfaceCreated");
 
   queueServiceUiThread([=]() {
+  	HandleScope handle_scope(service->GetIsolate());
+
     Local<Value> argv[] = {};
     callFunction("onSurfaceCreated", sizeof(argv)/sizeof(argv[0]), argv);
   });
@@ -598,6 +587,8 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_onSurfaceCha
 
   queueServiceUiThread([=]() {
     Isolate *isolate = service->GetIsolate();
+
+  	HandleScope handle_scope(isolate);
 
     Handle<Number> js_width = v8::Integer::New(isolate, width);
     Handle<Number> js_height = v8::Integer::New(isolate, height);
@@ -626,6 +617,8 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_onNewFrame
   env->ReleaseFloatArrayElements(centerArray, centerArrayElements, 0);
 
   queueServiceUiThread([=]() {
+  	HandleScope handle_scope(service->GetIsolate());
+
     Local<Float32Array> headMatrixFloat32Array = Float32Array::New(ArrayBuffer::New(service->GetIsolate(), 16 * 4), 0, 16);
     for (int i = 0; i < 16; i++) {
       headMatrixFloat32Array->Set(i, Number::New(service->GetIsolate(), headViewMatrixElements2[i]));
@@ -661,6 +654,8 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_onDrawEye
   env->ReleaseFloatArrayElements(eyePerspectiveMatrix, eyePerspectiveMatrixElements, 0);
 
   queueServiceUiThread([=]() {
+  	HandleScope handle_scope(service->GetIsolate());
+
     Local<Float32Array> eyeViewMatrixFloat32Array = Float32Array::New(ArrayBuffer::New(service->GetIsolate(), 16 * 4), 0, 16);
     for (int i = 0; i < 16; i++) {
       eyeViewMatrixFloat32Array->Set(i, Number::New(service->GetIsolate(), eyeViewMatrixElements2[i]));
@@ -698,6 +693,8 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_onDrawFrame
   env->ReleaseFloatArrayElements(centerArray, centerArrayElements, 0);
 
   queueServiceUiThread([=]() {
+  	HandleScope handle_scope(service->GetIsolate());
+
     Local<Float32Array> viewFloat32Array = Float32Array::New(ArrayBuffer::New(service->GetIsolate(), 16 * 4), 0, 16);
     for (int i = 0; i < 16; i++) {
       viewFloat32Array->Set(i, Number::New(service->GetIsolate(), viewMatrixElements2[i]));
