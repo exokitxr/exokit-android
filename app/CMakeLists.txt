@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.6)
 
-add_compile_options(-std=c++14)
+add_compile_options(-std=c++14 -pthread)
 
 file(GLOB app_src_files "src/main/jni/main.cpp" "src/main/jni/webgl.cc" "src/main/jni/image.cc" "src/main/jni/bindings.cc" )
 
