@@ -14,11 +14,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 
-public class NodeService implements Runnable {
+public class NodeService {
     private static final String TAG = NodeService.class.getSimpleName();
 
     private Context context;
-    private boolean running;
 
     static {
       System.loadLibrary("node");
@@ -28,10 +27,9 @@ public class NodeService implements Runnable {
 
     public NodeService(Context ctx) {
       context = ctx;
-      running = false;
     }
 
-    public void run() {
+    public void init() {
       String nativeLibraryDir = context.getApplicationInfo().nativeLibraryDir;
 
       {
@@ -52,36 +50,17 @@ public class NodeService implements Runnable {
         Log.i(TAG, "started node");
         timings.addSplit("started node");
 
-        setRunning();
-
-        Log.i(TAG, "setted running");
-        timings.addSplit("setted running");
-
         timings.dumpToLog();
       }
-
-      loop();
-    }
-
-    public synchronized boolean isRunning() {
-      return running;
-    }
-
-    private synchronized void setRunning() {
-      running = true;
     }
 
     // uv
     private native void start(String binString, String scriptString, String libPath);
-    // public native void tick(int timeout);
-    private native void loop();
-    public native void waitForUiWork();
-    public native void flushUiWork();
-    public native void flushUiWorkUntilFrameDone();
+    public native void tick(int timeout);
 
     // GL
-    public native void onSurfaceCreated();
-    public native void onSurfaceChanged(int width, int height);
+    // public native void onSurfaceCreated();
+    public native void onResize(int width, int height);
 
     // VR
     public native void onNewFrame(float[] headViewMatrix, float[] headQuaternion);

@@ -14,9 +14,9 @@ process.env['LD_LIBRARY_PATH'] = libPath;
 const exokit = require('exokit');
 // const THREE = require('three-zeo');
 
-const {VERSION} = nativeGl;
+/* const {VERSION} = nativeGl;
 
-/* nativeGl = {};
+nativeGl = {};
 nativeGl.VERSION = VERSION; */
 /* nativeGl.enable = () => {};
 nativeGl.disable = () => {};
@@ -45,7 +45,7 @@ nativeGl.blendEquation = () => {};
 nativeGl.blendFunc = () => {};
 const _viewport = nativeGl.viewport;
 nativeGl.viewport = function() {
-  console.log('call viewport', arguments, new Error().stack);
+  console.log('gl viewport', arguments, new Error().stack);
   _viewport.apply(this, arguments);
 }; */
 
@@ -58,17 +58,17 @@ let innerHeight = 1024;
 
 // CALLBACKS
 
-global.onSurfaceCreated = () => {
+/* global.onSurfaceCreated = () => {
   // console.log('js onSurfaceCreated');
 
-  /* if (!animating) {
+  if (!animating) {
     animating = true;
 
     _startAnimation();
-  } */
-};
-global.onSurfaceChanged = (width, height) => {
- //  console.log('js onSurfaceChanged', {width, height});
+  }
+}; */
+global.onResize = (width, height) => {
+  //  console.log('js onSurfaceChanged', {width, height});
 
   // gl.viewport(0, 0, width, height);
 

@@ -66,8 +66,8 @@ import org.xmlpull.v1.*;
  */
 public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.Renderer {
     private static final String TAG = HelloArActivity.class.getSimpleName();
-    /* private static int FRAME_TIME_MAX = 1000 / 60;
-    private static int FRAME_TIME_MIN = FRAME_TIME_MAX / 5; */
+    private static int FRAME_TIME_MAX = 1000 / 60;
+    private static int FRAME_TIME_MIN = FRAME_TIME_MAX / 5;
 
     // Rendering. The Renderers are created here, and initialized when the GL surface is created.
     private GLSurfaceView mSurfaceView;
@@ -77,7 +77,8 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
     private Snackbar mMessageSnackbar;
     private DisplayRotationHelper mDisplayRotationHelper;
     private NodeService service;
-    private ArrayList<Runnable> isRunningRunnables;
+    boolean serviceInitialized;
+    long lastFrameTime;
 
     private final BackgroundRenderer mBackgroundRenderer = new BackgroundRenderer();
     /* private final ObjectRenderer mVirtualObject = new ObjectRenderer();
@@ -176,38 +177,7 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
 
         service = new NodeService(this);
 
-        isRunningRunnables = new ArrayList<Runnable>();
-
-        new Thread(service).start();
-        /* new Thread() {
-          @Override
-          public void run() {
-            try {
-              Semaphore semaphore = new Semaphore(0);
-
-              for (;;) {
-                Log.i(TAG, "wait for ui work pre");
-
-                service.waitForUiWork();
-
-                Log.i(TAG, "wait for ui work post");
-
-                mSurfaceView.queueEvent(new Runnable() {
-                  @Override
-                  public void run() {
-                    Log.i(TAG, "flush ui work async");
-
-                    service.flushUiWork();
-                    semaphore.release();
-                  }
-                });
-                semaphore.acquire();
-              }
-            } catch (InterruptedException e) {
-              e.printStackTrace();
-            }
-          }
-        }.start(); */
+        lastFrameTime = System.currentTimeMillis();
     }
 
     @Override
@@ -308,14 +278,6 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
             Log.e(TAG, "Failed to read plane texture");
         }
         mPointCloud.createOnGlThread(this); */
-
-        if (service.isRunning()) {
-          service.onSurfaceCreated();
-        } else {
-          isRunningRunnables.add(() -> {
-            service.onSurfaceCreated();
-          });
-        }
     }
 
     @Override
@@ -324,13 +286,12 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
 
         // GLES30.glViewport(0, 0, width, height);
 
-        if (service.isRunning()) {
-          service.onSurfaceChanged(width, height);
-        } else {
-          isRunningRunnables.add(() -> {
-            service.onSurfaceChanged(width, height);
-          });
+        if (!serviceInitialized) {
+          service.init();
+          // service.onSurfaceCreated();
+          serviceInitialized = true;
         }
+        service.onResize(width, height);
     }
 
     @Override
@@ -385,50 +346,43 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
                 return;
             } */
 
-            if (service.isRunning()) {
-              int numIsRunningRunnables = isRunningRunnables.size();
-              if (numIsRunningRunnables > 0) {
-                for (int i = 0; i < numIsRunningRunnables; i++) {
-                  isRunningRunnables.get(i).run();
-                }
-                isRunningRunnables.clear();
+            // Get projection matrix.
+            float[] projmtx = new float[16];
+            camera.getProjectionMatrix(projmtx, 0, 0.1f, 100.0f);
+
+            // Get camera matrix and draw.
+            float[] viewmtx = new float[16];
+            camera.getViewMatrix(viewmtx, 0);
+
+            float[] centerArray = new float[3];
+            if (mAnchor == null) {
+              Collection<Plane> allPlanes = mSession.getAllTrackables(Plane.class);
+              if (allPlanes.size() > 0) {
+                Plane plane = allPlanes.iterator().next();
+                mAnchor = plane.createAnchor(plane.getCenterPose());
               }
-
-              // Get projection matrix.
-              float[] projmtx = new float[16];
-              camera.getProjectionMatrix(projmtx, 0, 0.1f, 100.0f);
-
-              // Get camera matrix and draw.
-              float[] viewmtx = new float[16];
-              camera.getViewMatrix(viewmtx, 0);
-
-              float[] centerArray = new float[3];
-              if (mAnchor == null) {
-                Collection<Plane> allPlanes = mSession.getAllTrackables(Plane.class);
-                if (allPlanes.size() > 0) {
-                  Plane plane = allPlanes.iterator().next();
-                  mAnchor = plane.createAnchor(plane.getCenterPose());
-                }
-              }
-              if (mAnchor != null) {
-                Pose center = mAnchor.getPose();
-                centerArray[0] = center.tx();
-                centerArray[1] = center.ty();
-                centerArray[2] = center.tz();
-              }
-
-              service.onDrawFrame(viewmtx, projmtx, centerArray);
-
-              service.flushUiWorkUntilFrameDone();
-
-              // GLES30.glFlush();
-
-              /* GLES30.glDisable(GLES30.GL_DEPTH_TEST);
-              GLES30.glDisable(GLES30.GL_CULL_FACE);
-              GLES30.glDisable(GLES30.GL_BLEND); */
-
-              reportFullyDrawn();
             }
+            if (mAnchor != null) {
+              Pose center = mAnchor.getPose();
+              centerArray[0] = center.tx();
+              centerArray[1] = center.ty();
+              centerArray[2] = center.tz();
+            }
+
+            service.onDrawFrame(viewmtx, projmtx, centerArray);
+
+            long now = System.currentTimeMillis();
+            int timeout = (int)Math.min(Math.max(FRAME_TIME_MAX - (now - lastFrameTime), FRAME_TIME_MIN), FRAME_TIME_MAX);
+            lastFrameTime = now;
+            service.tick(timeout);
+
+            // GLES30.glFlush();
+
+            /* GLES30.glDisable(GLES30.GL_DEPTH_TEST);
+            GLES30.glDisable(GLES30.GL_CULL_FACE);
+            GLES30.glDisable(GLES30.GL_BLEND); */
+
+            reportFullyDrawn();
 
             // mSurfaceView.requestRender();
 
