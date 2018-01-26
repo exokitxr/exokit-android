@@ -3238,7 +3238,7 @@ NAN_METHOD(GetProgramInfoLog) {
     blockUiHard([&]() {
       char localError2[sizeof(Error) / sizeof(Error[0])];
       int localLen2;
-      glGetProgramInfoLog(program, sizeof(Error), &Len, localError2);
+      glGetProgramInfoLog(program, sizeof(Error), &localLen2, localError2);
       memcpy((void *)localError, localError2, sizeof(Error));
       localLen = localLen2;
     });
