@@ -597,7 +597,7 @@ NAN_METHOD(BindAttribLocation) {
 NAN_METHOD(GetError) {
   Nan::HandleScope scope;
 
-  GLint error;
+  volatile GLint error;
   if (isUiThread) {
     error = glGetError();
   } else {
@@ -787,13 +787,14 @@ NAN_METHOD(GetAttribLocation) {
 
   int program = info[0]->Int32Value();
   String::Utf8Value name(info[1]);
+  const char *pName = *name;
+  volatile GLint result;
 
-  GLint result;
   if (isUiThread) {
-    result = glGetAttribLocation(program, *name);
+    result = glGetAttribLocation(program, pName);
   } else {
     blockUiHard([&]() {
-      result = glGetAttribLocation(program, *name);
+      result = glGetAttribLocation(program, pName);
     });
   }
   info.GetReturnValue().Set(Nan::New<Number>(result));
@@ -839,7 +840,7 @@ NAN_METHOD(CreateShader) {
   Nan::HandleScope scope;
 
   GLint arg = info[0]->Int32Value();
-  GLuint shader;
+  volatile GLuint shader;
   /* #ifdef LOGGING
   cout<<"createShader "<<shader<<endl;
   #endif */
@@ -861,14 +862,13 @@ NAN_METHOD(ShaderSource) {
   int id = info[0]->Int32Value();
   String::Utf8Value code(info[1]);
 
-  const char *codePtr = *code;
   GLint length = code.length();
 
   if (isUiThread) {
-    const char* codes[] = {codePtr};
+    const char* codes[] = {*code};
     glShaderSource(id, 1, codes, &length);
   } else {
-    char *codePtr2 = cloneData((char *)codePtr, length * sizeof(GLint));
+    char *codePtr2 = cloneData(*code, length + 1);
     blockUiSoft([=]() {
       const char* codes[] = {codePtr2};
       glShaderSource(id, 1, codes, &length);
@@ -923,9 +923,13 @@ NAN_METHOD(GetShaderParameter) {
       if (isUiThread) {
         glGetShaderiv(shader, pname, &value);
       } else {
+        volatile int localValue;
         blockUiHard([&]() {
-          glGetShaderiv(shader, pname, &value);
+          int localValue2;
+          glGetShaderiv(shader, pname, &localValue2);
+          localValue = localValue2;
         });
+        value = localValue;
       }
       info.GetReturnValue().Set(JS_BOOL(static_cast<bool>(value)));
       break;
@@ -933,9 +937,13 @@ NAN_METHOD(GetShaderParameter) {
       if (isUiThread) {
         glGetShaderiv(shader, pname, &value);
       } else {
+        volatile int localValue;
         blockUiHard([&]() {
-          glGetShaderiv(shader, pname, &value);
+          int localValue2;
+          glGetShaderiv(shader, pname, &localValue2);
+          localValue = localValue2;
         });
+        value = localValue;
       }
       info.GetReturnValue().Set(JS_FLOAT(static_cast<unsigned long>(value)));
       break;
@@ -944,9 +952,13 @@ NAN_METHOD(GetShaderParameter) {
       if (isUiThread) {
         glGetShaderiv(shader, pname, &value);
       } else {
+        volatile int localValue;
         blockUiHard([&]() {
-          glGetShaderiv(shader, pname, &value);
+          int localValue2;
+          glGetShaderiv(shader, pname, &localValue2);
+          localValue = localValue2;
         });
+        value = localValue;
       }
       info.GetReturnValue().Set(JS_FLOAT(static_cast<long>(value)));
       break;
@@ -961,24 +973,33 @@ NAN_METHOD(GetShaderInfoLog) {
   Nan::HandleScope scope;
 
   int id = info[0]->Int32Value();
-  int Len = 1024;
   char Error[1024];
+  int Len;
+
   if (isUiThread) {
-    glGetShaderInfoLog(id, 1024, &Len, Error);
+    glGetShaderInfoLog(id, sizeof(Error), &Len, Error);
   } else {
+    volatile char localError[sizeof(Error) / sizeof(Error[0])];
+    volatile int localLen;
     blockUiHard([&]() {
-      glGetShaderInfoLog(id, 1024, &Len, Error);
+      char localError2[sizeof(Error) / sizeof(Error[0])];
+      int localLen2;
+      glGetShaderInfoLog(id, sizeof(Error), &localLen2, localError2);
+      memcpy((void *)localError, localError2, sizeof(Error));
+      localLen = localLen2;
     });
+    memcpy(Error, (void *)localError, sizeof(Error));
+    Len = localLen;
   }
 
-  info.GetReturnValue().Set(JS_STR(Error));
+  info.GetReturnValue().Set(JS_STR(Error, Len));
 }
 
 
 NAN_METHOD(CreateProgram) {
   Nan::HandleScope scope;
 
-  GLuint program;
+  volatile GLuint program;
   /* #ifdef LOGGING
   cout<<"createProgram "<<program<<endl;
   #endif */
@@ -1034,8 +1055,8 @@ NAN_METHOD(GetProgramParameter) {
 
   int program = info[0]->Int32Value();
   int pname = info[1]->Int32Value();
-
   int value;
+
   switch (pname) {
     case GL_DELETE_STATUS:
     case GL_LINK_STATUS:
@@ -1043,9 +1064,13 @@ NAN_METHOD(GetProgramParameter) {
       if (isUiThread) {
         glGetProgramiv(program, pname, &value);
       } else {
+        volatile int localValue;
         blockUiHard([&]() {
-          glGetProgramiv(program, pname, &value);
+          int localValue2;
+          glGetProgramiv(program, pname, &localValue2);
+          localValue = localValue2;
         });
+        value = localValue;
       }
       info.GetReturnValue().Set(JS_BOOL(static_cast<bool>(value)));
       break;
@@ -1055,9 +1080,13 @@ NAN_METHOD(GetProgramParameter) {
       if (isUiThread) {
         glGetProgramiv(program, pname, &value);
       } else {
+        volatile int localValue;
         blockUiHard([&]() {
-          glGetProgramiv(program, pname, &value);
+          int localValue2;
+          glGetProgramiv(program, pname, &localValue2);
+          localValue = localValue2;
         });
+        value = localValue;
       }
       info.GetReturnValue().Set(JS_FLOAT(static_cast<long>(value)));
       break;
@@ -1074,13 +1103,14 @@ NAN_METHOD(GetUniformLocation) {
 
   int program = info[0]->Int32Value();
   v8::String::Utf8Value name(info[1]);
- 
-  GLint location;
+  const char *pName = *name;
+  volatile GLint location;
+
   if (isUiThread) {
-    location = glGetUniformLocation(program, *name);
+    location = glGetUniformLocation(program, pName);
   } else {
     blockUiHard([&]() {
-      location = glGetUniformLocation(program, *name);
+      location = glGetUniformLocation(program, pName);
     });
   }
   info.GetReturnValue().Set(JS_INT(location));
@@ -1166,9 +1196,13 @@ NAN_METHOD(CreateTexture) {
   if (isUiThread) {
     glGenTextures(1, &texture);
   } else {
+    volatile GLuint localTexture;
     blockUiHard([&]() {
-      glGenTextures(1, &texture);
+      GLuint localTexture2;
+      glGenTextures(1, &localTexture2);
+      localTexture = localTexture2;
     });
+    texture = localTexture;
   }
   info.GetReturnValue().Set(Nan::New<Number>(texture));
 }
@@ -1376,9 +1410,13 @@ NAN_METHOD(CreateBuffer) {
   if (isUiThread) {
     glGenBuffers(1, &buffer);
   } else {
+    volatile GLuint localBuffer;
     blockUiHard([&]() {
-      glGenBuffers(1, &buffer);
+      GLuint localBuffer2;
+      glGenBuffers(1, &localBuffer2);
+      localBuffer = localBuffer2;
     });
+    buffer = localBuffer;
   }
   info.GetReturnValue().Set(Nan::New<Number>(buffer));
 }
@@ -1413,9 +1451,13 @@ NAN_METHOD(CreateFramebuffer) {
   if (isUiThread) {
     glGenFramebuffers(1, &buffer);
   } else {
+    volatile GLuint localBuffer;
     blockUiHard([&]() {
-      glGenFramebuffers(1, &buffer);
+      GLuint localBuffer2;
+      glGenFramebuffers(1, &localBuffer2);
+      localBuffer = localBuffer2;
     });
+    buffer = localBuffer;
   }
   info.GetReturnValue().Set(Nan::New<Number>(buffer));
 }
@@ -2128,8 +2170,8 @@ NAN_METHOD(IsEnabled) {
   Nan::HandleScope scope;
 
   GLenum cap = info[0]->Int32Value();
+  volatile bool ret;
 
-  bool ret;
   if (isUiThread) {
     ret = glIsEnabled(cap) != 0;
   } else {
@@ -2343,9 +2385,13 @@ NAN_METHOD(CreateRenderbuffer) {
   if (isUiThread) {
     glGenRenderbuffers(1, &renderbuffers);
   } else {
+    volatile GLuint localRenderbuffers;
     blockUiHard([&]() {
-      glGenRenderbuffers(1, &renderbuffers);
+      GLuint localRenderbuffers2;
+      glGenRenderbuffers(1, &localRenderbuffers2);
+      localRenderbuffers = localRenderbuffers2;
     });
+    renderbuffers = localRenderbuffers;
   }
   // registerGLObj(GLOBJECT_TYPE_RENDERBUFFER, renderbuffers);
 
@@ -2489,14 +2535,18 @@ NAN_METHOD(GetVertexAttribOffset) {
 
   GLuint index = info[0]->Uint32Value();
   GLenum pname = info[1]->Int32Value();
-  void *ret = NULL;
+  void *ret = nullptr;
 
   if (isUiThread) {
     glGetVertexAttribPointerv(index, pname, &ret);
   } else {
+    void * volatile localRet;
     blockUiHard([&]() {
-      glGetVertexAttribPointerv(index, pname, &ret);
+      void *localRet2;
+      glGetVertexAttribPointerv(index, pname, &localRet2);
+      localRet = localRet2;
     });
+    ret = localRet;
   }
 
   info.GetReturnValue().Set(JS_INT(ToGLuint(ret)));
@@ -2506,7 +2556,7 @@ NAN_METHOD(IsBuffer) {
   Nan::HandleScope scope;
 
   GLuint arg = info[0]->Uint32Value();
-  bool ret;
+  volatile bool ret;
 
   if (isUiThread) {
     ret = glIsBuffer(arg) != 0;
@@ -2522,7 +2572,7 @@ NAN_METHOD(IsFramebuffer) {
   Nan::HandleScope scope;
 
   GLuint arg = info[0]->Uint32Value();
-  bool ret;
+  volatile bool ret;
 
   if (isUiThread) {
     ret = glIsFramebuffer(arg) != 0;
@@ -2539,7 +2589,7 @@ NAN_METHOD(IsProgram) {
   Nan::HandleScope scope;
 
   GLuint arg = info[0]->Uint32Value();
-  bool ret;
+  volatile bool ret;
 
   if (isUiThread) {
     ret = glIsProgram(arg) != 0;
@@ -2556,7 +2606,7 @@ NAN_METHOD(IsRenderbuffer) {
   Nan::HandleScope scope;
 
   GLuint arg = info[0]->Uint32Value();
-  bool ret;
+  volatile bool ret;
 
   if (isUiThread) {
     ret = glIsRenderbuffer(arg) != 0;
@@ -2573,7 +2623,7 @@ NAN_METHOD(IsShader) {
   Nan::HandleScope scope;
 
   GLuint arg = info[0]->Uint32Value();
-  bool ret;
+  volatile bool ret;
 
   if (isUiThread) {
     ret = glIsShader(arg) != 0;
@@ -2590,7 +2640,7 @@ NAN_METHOD(IsTexture) {
   Nan::HandleScope scope;
 
   GLuint arg = info[0]->Uint32Value();
-  bool ret;
+  volatile bool ret;
 
   if (isUiThread) {
     ret = glIsTexture(arg) != 0;
@@ -2632,14 +2682,14 @@ NAN_METHOD(GetShaderSource) {
   GLchar *source = new GLchar[len];
 
   if (isUiThread) {
-    glGetShaderSource(shader, len, NULL, source);
+    glGetShaderSource(shader, len, nullptr, source);
   } else {
     blockUiHard([&]() {
-      glGetShaderSource(shader, len, NULL, source);
+      glGetShaderSource(shader, len, nullptr, source);
     });
   }
 
-  Local<String> str = JS_STR(source);
+  Local<String> str = JS_STR(source, len);
   delete[] source;
 
   info.GetReturnValue().Set(str);
@@ -2720,17 +2770,21 @@ NAN_METHOD(GetTexParameter) {
 
   GLenum target = info[0]->Int32Value();
   GLenum pname = info[1]->Int32Value();
+  GLint value;
 
-  GLint param_value = 0;
   if (isUiThread) {
-    glGetTexParameteriv(target, pname, &param_value);
+    glGetTexParameteriv(target, pname, &value);
   } else {
+    volatile GLint localValue;
     blockUiHard([&]() {
-      glGetTexParameteriv(target, pname, &param_value);
+      GLint localValue2;
+      glGetTexParameteriv(target, pname, &localValue2);
+      localValue = localValue2;
     });
+    value = localValue;
   }
 
-  info.GetReturnValue().Set(Nan::New<Number>(param_value));
+  info.GetReturnValue().Set(Nan::New<Number>(value));
 }
 
 NAN_METHOD(GetActiveAttrib) {
@@ -2740,21 +2794,38 @@ NAN_METHOD(GetActiveAttrib) {
   GLuint index = info[1]->Int32Value();
 
   char name[1024];
-  GLsizei length = 0;
-  GLenum type;
+  GLsizei length;
   GLsizei size;
+  GLenum type;
+
   if (isUiThread) {
-    glGetActiveAttrib(program, index, 1024, &length, &size, &type, name);
+    glGetActiveAttrib(program, index, sizeof(name), &length, &size, &type, name);
   } else {
+    volatile GLsizei localLength;
+    volatile GLsizei localSize;
+    volatile GLenum localType;
+    volatile char localName[sizeof(name) / sizeof(name[0])];
     blockUiHard([&]() {
-      glGetActiveAttrib(program, index, 1024, &length, &size, &type, name);
+      GLsizei localLength2;
+      GLsizei localSize2;
+      GLenum localType2;
+      char localName2[sizeof(name) / sizeof(name[0])];
+      glGetActiveAttrib(program, index, sizeof(name), &localLength2, &localSize2, &localType2, localName2);
+      localLength = localLength2;
+      localSize = localSize2;
+      localType = localType2;
+      memcpy((void *)localName, localName2, sizeof(name));
     });
+    length = localLength;
+    size = localSize;
+    type = localType;
+    memcpy(name, (void *)localName, sizeof(name));
   }
 
-  Local<Array> activeInfo = Nan::New<Array>(3);
+  Local<Object> activeInfo = Nan::New<Object>();
   activeInfo->Set(JS_STR("size"), JS_INT(size));
   activeInfo->Set(JS_STR("type"), JS_INT((int)type));
-  activeInfo->Set(JS_STR("name"), JS_STR(name));
+  activeInfo->Set(JS_STR("name"), JS_STR(name, length));
 
   info.GetReturnValue().Set(activeInfo);
 }
@@ -2766,21 +2837,37 @@ NAN_METHOD(GetActiveUniform) {
   GLuint index = info[1]->Int32Value();
 
   char name[1024];
-  GLsizei length=0;
-  GLenum type;
+  GLsizei length;
   GLsizei size;
+  GLenum type;
   if (isUiThread) {
-    glGetActiveUniform(program, index, 1024, &length, &size, &type, name);
+    glGetActiveUniform(program, index, sizeof(name), &length, &size, &type, name);
   } else {
+    volatile GLsizei localLength;
+    volatile GLsizei localSize;
+    volatile GLenum localType;
+    volatile char localName[sizeof(name) / sizeof(name[0])];
     blockUiHard([&]() {
-      glGetActiveUniform(program, index, 1024, &length, &size, &type, name);
+      GLsizei localLength2;
+      GLsizei localSize2;
+      GLenum localType2;
+      char localName2[sizeof(name) / sizeof(name[0])];
+      glGetActiveUniform(program, index, sizeof(name), &localLength2, &localSize2, &localType2, localName2);
+      localLength = localLength2;
+      localSize = localSize2;
+      localType = localType2;
+      memcpy((void *)localName, localName2, sizeof(name));
     });
+    length = localLength;
+    size = localSize;
+    type = localType;
+    memcpy(name, (void *)localName, sizeof(name));
   }
 
   Local<Object> activeInfo = Nan::New<Object>();
   activeInfo->Set(JS_STR("size"), JS_INT(size));
   activeInfo->Set(JS_STR("type"), JS_INT((int)type));
-  activeInfo->Set(JS_STR("name"), JS_STR(name));
+  activeInfo->Set(JS_STR("name"), JS_STR(name, length));
 
   info.GetReturnValue().Set(activeInfo);
 }
@@ -2789,15 +2876,23 @@ NAN_METHOD(GetAttachedShaders) {
   Nan::HandleScope scope;
 
   GLuint program = info[0]->Int32Value();
-
   GLuint shaders[1024];
   GLsizei count;
+
   if (isUiThread) {
-    glGetAttachedShaders(program, 1024, &count, shaders);
+    glGetAttachedShaders(program, sizeof(shaders) / sizeof(shaders[0]), &count, shaders);
   } else {
+    volatile GLuint localShaders[sizeof(shaders) / sizeof(shaders[0])];
+    volatile GLsizei localCount;
     blockUiHard([&]() {
-      glGetAttachedShaders(program, 1024, &count, shaders);
+      GLuint localShaders2[sizeof(shaders) / sizeof(shaders[0])];
+      GLsizei localCount2;
+      glGetAttachedShaders(program, sizeof(shaders) / sizeof(shaders[0]), &localCount2, localShaders2);
+      memcpy((void *)localShaders, localShaders2, sizeof(shaders));
+      localCount = localCount2;
     });
+    memcpy(shaders, (void *)localShaders, sizeof(shaders));
+    count = localCount;
   }
 
   Local<Array> shadersArr = Nan::New<Array>(count);
@@ -2831,9 +2926,13 @@ NAN_METHOD(GetParameter) {
     if (isUiThread) {
       glGetBooleanv(name, &params);
     } else {
+      volatile GLboolean localParams;
       blockUiHard([&]() {
-        glGetBooleanv(name, &params);
+        GLboolean localParams2;
+        glGetBooleanv(name, &localParams2);
+        localParams = localParams2;
       });
+      params = localParams;
     }
     info.GetReturnValue().Set(JS_BOOL(static_cast<bool>(params)));
     break;
@@ -2849,9 +2948,13 @@ NAN_METHOD(GetParameter) {
     if (isUiThread) {
       glGetFloatv(name, &params);
     } else {
+      volatile GLfloat localParams;
       blockUiHard([&]() {
-        glGetFloatv(name, &params);
+        GLfloat localParams2;
+        glGetFloatv(name, &localParams2);
+        localParams = localParams2;
       });
+      params = localParams;
     }
     info.GetReturnValue().Set(JS_FLOAT(params));
     break;
@@ -2862,12 +2965,12 @@ NAN_METHOD(GetParameter) {
   case GL_EXTENSIONS:
   {
     // return a string
-    char *params;
+    char * volatile params;
     if (isUiThread) {
-      params = (char*)glGetString(name);
+      params = (char *)glGetString(name);
     } else {
       blockUiHard([&]() {
-        params = (char*)glGetString(name);
+        params = (char *)glGetString(name);
       });
     }
     
@@ -2892,9 +2995,13 @@ NAN_METHOD(GetParameter) {
     if (isUiThread) {
       glGetIntegerv(name, params);
     } else {
+      volatile GLint localParams[sizeof(params) / sizeof(params[0])];
       blockUiHard([&]() {
-        glGetIntegerv(name, params);
+        GLint localParams2[sizeof(params) / sizeof(params[0])];
+        glGetIntegerv(name, localParams2);
+        memcpy((void *)localParams, localParams2, sizeof(params));
       });
+      memcpy(params, (void *)localParams, sizeof(params));
     }
 
     Local<Array> arr = Nan::New<Array>(2);
@@ -2911,9 +3018,13 @@ NAN_METHOD(GetParameter) {
     if (isUiThread) {
       glGetIntegerv(name, params);
     } else {
+      volatile GLint localParams[sizeof(params) / sizeof(params[0])];
       blockUiHard([&]() {
-        glGetIntegerv(name, params);
+        GLint localParams2[sizeof(params) / sizeof(params[0])];
+        glGetIntegerv(name, localParams2);
+        memcpy((void *)localParams, localParams2, sizeof(params));
       });
+      memcpy(params, (void *)localParams, sizeof(params));
     }
 
     Local<Array> arr = Nan::New<Array>(4);
@@ -2933,9 +3044,13 @@ NAN_METHOD(GetParameter) {
     if (isUiThread) {
       glGetFloatv(name, params);
     } else {
+      volatile GLfloat localParams[sizeof(params) / sizeof(params[0])];
       blockUiHard([&]() {
-        glGetFloatv(name, params);
+        GLfloat localParams2[sizeof(params) / sizeof(params[0])];
+        glGetFloatv(name, localParams2);
+        memcpy((void *)localParams, localParams2, sizeof(params));
       });
+      memcpy(params, (void *)localParams, sizeof(params));
     }
 
     Local<Array> arr = Nan::New<Array>(2);
@@ -2952,9 +3067,13 @@ NAN_METHOD(GetParameter) {
     if (isUiThread) {
       glGetFloatv(name, params);
     } else {
+      volatile GLfloat localParams[sizeof(params) / sizeof(params[0])];
       blockUiHard([&]() {
-        glGetFloatv(name, params);
+        GLfloat localParams2[sizeof(params) / sizeof(params[0])];
+        glGetFloatv(name, localParams2);
+        memcpy((void *)localParams, localParams2, sizeof(params));
       });
+      memcpy(params, (void *)localParams, sizeof(params));
     }
 
     Local<Array> arr = Nan::New<Array>(4);
@@ -2972,9 +3091,13 @@ NAN_METHOD(GetParameter) {
     if (isUiThread) {
       glGetBooleanv(name, params);
     } else {
+      volatile GLboolean localParams[sizeof(params) / sizeof(params[0])];
       blockUiHard([&]() {
-        glGetBooleanv(name, params);
+        GLboolean localParams2[sizeof(params) / sizeof(params[0])];
+        glGetBooleanv(name, localParams2);
+        memcpy((void *)localParams, localParams2, sizeof(params));
       });
+      memcpy(params, (void *)localParams, sizeof(params));
     }
 
     Local<Array> arr = Nan::New<Array>(4);
@@ -2997,9 +3120,13 @@ NAN_METHOD(GetParameter) {
     if (isUiThread) {
       glGetIntegerv(name, &params);
     } else {
+      volatile GLint localParams;
       blockUiHard([&]() {
-        glGetIntegerv(name, &params);
+        GLint localParams2;
+        glGetIntegerv(name, &localParams2);
+        localParams = localParams2;
       });
+      params = localParams;
     }
 
     info.GetReturnValue().Set(JS_INT(params));
@@ -3011,9 +3138,13 @@ NAN_METHOD(GetParameter) {
     if (isUiThread) {
       glGetIntegerv(name, &params);
     } else {
+      volatile GLint localParams;
       blockUiHard([&]() {
-        glGetIntegerv(name, &params);
+        GLint localParams2;
+        glGetIntegerv(name, &localParams2);
+        localParams = localParams2;
       });
+      params = localParams;
     }
 
     info.GetReturnValue().Set(JS_INT(params));
@@ -3028,14 +3159,18 @@ NAN_METHOD(GetBufferParameter) {
 
   GLenum target = info[0]->Int32Value();
   GLenum pname = info[1]->Int32Value();
-
   GLint params;
+
   if (isUiThread) {
     glGetBufferParameteriv(target, pname, &params);
   } else {
+    volatile GLint localParams;
     blockUiHard([&]() {
-      glGetBufferParameteriv(target, pname, &params);
+      GLint localParams2;
+      glGetBufferParameteriv(target, pname, &localParams2);
+      localParams = localParams2;
     });
+    params = localParams;
   }
 
   info.GetReturnValue().Set(JS_INT(params));
@@ -3047,14 +3182,18 @@ NAN_METHOD(GetFramebufferAttachmentParameter) {
   GLenum target = info[0]->Int32Value();
   GLenum attachment = info[1]->Int32Value();
   GLenum pname = info[2]->Int32Value();
-
   GLint params;
+
   if (isUiThread) {
     glGetFramebufferAttachmentParameteriv(target,attachment, pname, &params);
   } else {
+    volatile GLint localParams;
     blockUiHard([&]() {
-      glGetFramebufferAttachmentParameteriv(target,attachment, pname, &params);
+      GLint localParams2;
+      glGetFramebufferAttachmentParameteriv(target, attachment, pname, &localParams2);
+      localParams = localParams2;
     });
+    params = localParams;
   }
 
   info.GetReturnValue().Set(JS_INT(params));
@@ -3064,17 +3203,26 @@ NAN_METHOD(GetProgramInfoLog) {
   Nan::HandleScope scope;
 
   GLuint program = info[0]->Int32Value();
-  int Len = 1024;
   char Error[1024];
+  int Len;
+
   if (isUiThread) {
-    glGetProgramInfoLog(program, 1024, &Len, Error);
+    glGetProgramInfoLog(program, sizeof(Error), &Len, Error);
   } else {
+    volatile char localError[sizeof(Error) / sizeof(Error[0])];
+    volatile int localLen;
     blockUiHard([&]() {
-      glGetProgramInfoLog(program, 1024, &Len, Error);
+      char localError2[sizeof(Error) / sizeof(Error[0])];
+      int localLen2;
+      glGetProgramInfoLog(program, sizeof(Error), &Len, localError2);
+      memcpy((void *)localError, localError2, sizeof(Error));
+      localLen = localLen2;
     });
+    memcpy(Error, (void *)localError, sizeof(Error));
+    Len = localLen;
   }
 
-  info.GetReturnValue().Set(JS_STR(Error));
+  info.GetReturnValue().Set(JS_STR(Error, Len));
 }
 
 NAN_METHOD(GetRenderbufferParameter) {
@@ -3083,12 +3231,17 @@ NAN_METHOD(GetRenderbufferParameter) {
   int target = info[0]->Int32Value();
   int pname = info[1]->Int32Value();
   int value;
+
   if (isUiThread) {
     glGetRenderbufferParameteriv(target, pname, &value);
   } else {
+    volatile int localValue;
     blockUiHard([&]() {
-      glGetRenderbufferParameteriv(target, pname, &value);
+      int localValue2;
+      glGetRenderbufferParameteriv(target, pname, &localValue2);
+      localValue2 = localValue2;
     });
+    value = localValue;
   }
 
   info.GetReturnValue().Set(JS_INT(value));
@@ -3099,15 +3252,19 @@ NAN_METHOD(GetUniform) {
 
   GLuint program = info[0]->Int32Value();
   GLint location = info[1]->Int32Value();
-  if(location < 0 ) info.GetReturnValue().Set(Nan::Undefined());
-
+  if (location < 0) info.GetReturnValue().Set(Nan::Undefined());
   float data[16]; // worst case scenario is 16 floats
+
   if (isUiThread) {
     glGetUniformfv(program, location, data);
   } else {
+    volatile float localData[sizeof(data) / sizeof(data[0])];
     blockUiHard([&]() {
-      glGetUniformfv(program, location, data);
+      float localData2[sizeof(data) / sizeof(data[0])];
+      glGetUniformfv(program, location, localData2);
+      memcpy((void *)localData, localData2, sizeof(data));
     });
+    memcpy(data, (void *)localData, sizeof(data));
   }
 
   Local<Array> arr=Nan::New<Array>(16);
@@ -3123,8 +3280,7 @@ NAN_METHOD(GetVertexAttrib) {
 
   GLuint index = info[0]->Int32Value();
   GLuint pname = info[1]->Int32Value();
-
-  GLint value=0;
+  GLint value;
 
   switch (pname) {
     case GL_VERTEX_ATTRIB_ARRAY_ENABLED:
@@ -3132,9 +3288,13 @@ NAN_METHOD(GetVertexAttrib) {
       if (isUiThread) {
         glGetVertexAttribiv(index, pname, &value);
       } else {
+        volatile GLint localValue;
         blockUiHard([&]() {
-          glGetVertexAttribiv(index, pname, &value);
+          GLint localValue2;
+          glGetVertexAttribiv(index, pname, &localValue2);
+          localValue = localValue2;
         });
+        value = localValue;
       }
       info.GetReturnValue().Set(JS_BOOL(static_cast<bool>(value)));
       break;
@@ -3144,9 +3304,13 @@ NAN_METHOD(GetVertexAttrib) {
       if (isUiThread) {
         glGetVertexAttribiv(index, pname, &value);
       } else {
+        volatile GLint localValue;
         blockUiHard([&]() {
-          glGetVertexAttribiv(index, pname, &value);
+          GLint localValue2;
+          glGetVertexAttribiv(index, pname, &localValue2);
+          localValue = localValue2;
         });
+        value = localValue;
       }
       info.GetReturnValue().Set(JS_INT(value));
       break;
@@ -3154,9 +3318,13 @@ NAN_METHOD(GetVertexAttrib) {
       if (isUiThread) {
         glGetVertexAttribiv(index, pname, &value);
       } else {
+        volatile GLint localValue;
         blockUiHard([&]() {
-          glGetVertexAttribiv(index, pname, &value);
+          GLint localValue2;
+          glGetVertexAttribiv(index, pname, &localValue2);
+          localValue = localValue2;
         });
+        value = localValue;
       }
       info.GetReturnValue().Set(JS_INT(value));
       break;
@@ -3165,9 +3333,13 @@ NAN_METHOD(GetVertexAttrib) {
       if (isUiThread) {
         glGetVertexAttribfv(index, pname, vextex_attribs);
       } else {
+        volatile float localVertexAttribs[sizeof(vextex_attribs) / sizeof(vextex_attribs[0])];
         blockUiHard([&]() {
-          glGetVertexAttribfv(index, pname, vextex_attribs);
+          float localVertexAttribs2[sizeof(vextex_attribs) / sizeof(vextex_attribs[0])];
+          glGetVertexAttribfv(index, pname, localVertexAttribs2);
+          memcpy((void *)localVertexAttribs, localVertexAttribs2, sizeof(vextex_attribs));
         });
+        memcpy(vextex_attribs, (void *)localVertexAttribs, sizeof(vextex_attribs));
       }
       Local<Array> arr = Nan::New<Array>(4);
       arr->Set(0,JS_FLOAT(vextex_attribs[0]));
@@ -3187,12 +3359,12 @@ NAN_METHOD(GetVertexAttrib) {
 NAN_METHOD(GetSupportedExtensions) {
   Nan::HandleScope scope;
 
-  char *extensions;
+  char * volatile extensions;
   if (isUiThread) {
-    extensions = (char*)glGetString(GL_EXTENSIONS);
+    extensions = (char *)glGetString(GL_EXTENSIONS);
   } else {
     blockUiHard([&]() {
-      extensions = (char*)glGetString(GL_EXTENSIONS);
+      extensions = (char *)glGetString(GL_EXTENSIONS);
     });
   }
 
@@ -3258,7 +3430,7 @@ NAN_METHOD(CheckFramebufferStatus) {
   Nan::HandleScope scope;
 
   GLenum target = info[0]->Int32Value();
-  GLint ret;
+  volatile GLint ret;
 
   if (isUiThread) {
     ret = glCheckFramebufferStatus(target);
