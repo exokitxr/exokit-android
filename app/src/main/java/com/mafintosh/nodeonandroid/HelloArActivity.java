@@ -54,6 +54,7 @@ import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.ArrayBlockingQueue;
+// import java.util.concurrent.Semaphore;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 import org.xmlpull.v1.*;
@@ -174,9 +175,39 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
         mSession.configure(config);
 
         service = new NodeService(this);
-        new Thread(service).start();
 
         isRunningRunnables = new ArrayList<Runnable>();
+
+        new Thread(service).start();
+        /* new Thread() {
+          @Override
+          public void run() {
+            try {
+              Semaphore semaphore = new Semaphore(0);
+
+              for (;;) {
+                Log.i(TAG, "wait for ui work pre");
+
+                service.waitForUiWork();
+
+                Log.i(TAG, "wait for ui work post");
+
+                mSurfaceView.queueEvent(new Runnable() {
+                  @Override
+                  public void run() {
+                    Log.i(TAG, "flush ui work async");
+
+                    service.flushUiWork();
+                    semaphore.release();
+                  }
+                });
+                semaphore.acquire();
+              }
+            } catch (InterruptedException e) {
+              e.printStackTrace();
+            }
+          }
+        }.start(); */
     }
 
     @Override
@@ -256,7 +287,7 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
         // Create the texture and pass it to ARCore session to be filled during update().
         mBackgroundRenderer.createOnGlThread(this);
         if (mSession != null) {
-            mSession.setCameraTextureName(mBackgroundRenderer.getTextureId());
+          mSession.setCameraTextureName(mBackgroundRenderer.getTextureId());
         }
 
         /* // Prepare the other rendering objects.
@@ -385,9 +416,10 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
                 centerArray[1] = center.ty();
                 centerArray[2] = center.tz();
               }
-              // Log.i(TAG, "compute plane center " + numPlanes + " : " + centerArray[0] + " : " + centerArray[1] + " : " + centerArray[2]);
 
               service.onDrawFrame(viewmtx, projmtx, centerArray);
+
+              service.flushUiWorkUntilFrameDone();
 
               // GLES30.glFlush();
 
