@@ -252,7 +252,7 @@ NAN_METHOD(Uniform1fv) {
   Nan::HandleScope scope;
 
   int location = info[0]->Int32Value();
-  int num=0;
+  int num;
   if (info[1]->IsArray()) {
     Local<Array> array = Local<Array>::Cast(info[1]);
     unsigned int length = array->Length();
@@ -260,7 +260,7 @@ NAN_METHOD(Uniform1fv) {
     for (unsigned int i = 0; i < length; i++) {
       float32Array->Set(i, array->Get(i));
     }
-    GLfloat *ptr=getArrayData<GLfloat>(float32Array,&num);
+    GLfloat *ptr = getArrayData<GLfloat>(float32Array, &num);
     if (isUiThread) {
       glUniform1fv(location, num, ptr);
     } else {
@@ -271,7 +271,7 @@ NAN_METHOD(Uniform1fv) {
       });
     }
   } else {
-    GLfloat *ptr=getArrayData<GLfloat>(info[1],&num);
+    GLfloat *ptr = getArrayData<GLfloat>(info[1], &num);
     if (isUiThread) {
       glUniform1fv(location, num, ptr);
     } else {
@@ -289,7 +289,7 @@ NAN_METHOD(Uniform2fv) {
   Nan::HandleScope scope;
 
   int location = info[0]->Int32Value();
-  int num=0;
+  int num;
   if (info[1]->IsArray()) {
     Local<Array> array = Local<Array>::Cast(info[1]);
     unsigned int length = array->Length();
@@ -297,24 +297,24 @@ NAN_METHOD(Uniform2fv) {
     for (unsigned int i = 0; i < length; i++) {
       float32Array->Set(i, array->Get(i));
     }
-    GLfloat *ptr=getArrayData<GLfloat>(float32Array,&num);
+    GLfloat *ptr = getArrayData<GLfloat>(float32Array, &num);
     num /= 2;
     if (isUiThread) {
       glUniform2fv(location, num, ptr);
     } else {
-      GLfloat *ptr2 = cloneData(ptr, num * sizeof(GLfloat));
+      GLfloat *ptr2 = cloneData(ptr, num * 2 * sizeof(GLfloat));
       blockUiSoft([=]() {
         glUniform2fv(location, num, ptr2);
         free(ptr2);
       });
     }
   } else {
-    GLfloat *ptr=getArrayData<GLfloat>(info[1],&num);
+    GLfloat *ptr = getArrayData<GLfloat>(info[1], &num);
     num /= 2;
     if (isUiThread) {
       glUniform2fv(location, num, ptr);
     } else {
-      GLfloat *ptr2 = cloneData(ptr, num * sizeof(GLfloat));
+      GLfloat *ptr2 = cloneData(ptr, num * 2 * sizeof(GLfloat));
       blockUiSoft([=]() {
         glUniform2fv(location, num, ptr2);
         free(ptr2);
@@ -328,7 +328,7 @@ NAN_METHOD(Uniform3fv) {
   Nan::HandleScope scope;
 
   int location = info[0]->Int32Value();
-  int num=0;
+  int num;
   if (info[1]->IsArray()) {
     Local<Array> array = Local<Array>::Cast(info[1]);
     unsigned int length = array->Length();
@@ -336,24 +336,24 @@ NAN_METHOD(Uniform3fv) {
     for (unsigned int i = 0; i < length; i++) {
       float32Array->Set(i, array->Get(i));
     }
-    GLfloat *ptr=getArrayData<GLfloat>(float32Array,&num);
+    GLfloat *ptr = getArrayData<GLfloat>(float32Array, &num);
     num /= 3;
     if (isUiThread) {
       glUniform3fv(location, num, ptr);
     } else {
-      GLfloat *ptr2 = cloneData(ptr, num * sizeof(GLfloat));
+      GLfloat *ptr2 = cloneData(ptr, num * 3 * sizeof(GLfloat));
       blockUiSoft([=]() {
         glUniform3fv(location, num, ptr2);
         free(ptr2);
       });
     }
   } else {
-    GLfloat *ptr=getArrayData<GLfloat>(info[1],&num);
+    GLfloat *ptr = getArrayData<GLfloat>(info[1], &num);
     num /= 3;
     if (isUiThread) {
       glUniform3fv(location, num, ptr);
     } else {
-      GLfloat *ptr2 = cloneData(ptr, num * sizeof(GLfloat));
+      GLfloat *ptr2 = cloneData(ptr, num * 3 * sizeof(GLfloat));
       blockUiSoft([=]() {
         glUniform3fv(location, num, ptr2);
         free(ptr2);
@@ -367,7 +367,7 @@ NAN_METHOD(Uniform4fv) {
   Nan::HandleScope scope;
 
   int location = info[0]->Int32Value();
-  int num=0;
+  int num;
   if (info[1]->IsArray()) {
     Local<Array> array = Local<Array>::Cast(info[1]);
     unsigned int length = array->Length();
@@ -375,24 +375,24 @@ NAN_METHOD(Uniform4fv) {
     for (unsigned int i = 0; i < length; i++) {
       float32Array->Set(i, array->Get(i));
     }
-    GLfloat *ptr=getArrayData<GLfloat>(float32Array,&num);
+    GLfloat *ptr=getArrayData<GLfloat>(float32Array, &num);
     num /= 4;
     if (isUiThread) {
       glUniform4fv(location, num, ptr);
     } else {
-      GLfloat *ptr2 = cloneData(ptr, num * sizeof(GLfloat));
+      GLfloat *ptr2 = cloneData(ptr, num * 4 * sizeof(GLfloat));
       blockUiSoft([=]() {
         glUniform4fv(location, num, ptr2);
         free(ptr2);
       });
     }
   } else {
-    GLfloat *ptr=getArrayData<GLfloat>(info[1],&num);
+    GLfloat *ptr=getArrayData<GLfloat>(info[1], &num);
     num /= 4;
     if (isUiThread) {
       glUniform4fv(location, num, ptr);
     } else {
-      GLfloat *ptr2 = cloneData(ptr, num * sizeof(GLfloat));
+      GLfloat *ptr2 = cloneData(ptr, num * 4 * sizeof(GLfloat));
       blockUiSoft([=]() {
         glUniform4fv(location, num, ptr2);
         free(ptr2);
@@ -406,7 +406,7 @@ NAN_METHOD(Uniform1iv) {
   Nan::HandleScope scope;
 
   int location = info[0]->Int32Value();
-  int num=0;
+  int num;
   if (info[1]->IsArray()) {
     Local<Array> array = Local<Array>::Cast(info[1]);
     unsigned int length = array->Length();
@@ -414,7 +414,7 @@ NAN_METHOD(Uniform1iv) {
     for (unsigned int i = 0; i < length; i++) {
       int32Array->Set(i, array->Get(i));
     }
-    GLint *ptr=getArrayData<GLint>(int32Array,&num);
+    GLint *ptr = getArrayData<GLint>(int32Array, &num);
     if (isUiThread) {
       glUniform1iv(location, num, ptr);
     } else {
@@ -425,7 +425,7 @@ NAN_METHOD(Uniform1iv) {
       });
     }
   } else {
-    GLint *ptr=getArrayData<GLint>(info[1],&num);
+    GLint *ptr = getArrayData<GLint>(info[1], &num);
     if (isUiThread) {
       glUniform1iv(location, num, ptr);
     } else {
@@ -443,7 +443,7 @@ NAN_METHOD(Uniform2iv) {
   Nan::HandleScope scope;
 
   int location = info[0]->Int32Value();
-  int num=0;
+  int num;
   if (info[1]->IsArray()) {
     Local<Array> array = Local<Array>::Cast(info[1]);
     unsigned int length = array->Length();
@@ -451,24 +451,24 @@ NAN_METHOD(Uniform2iv) {
     for (unsigned int i = 0; i < length; i++) {
       int32Array->Set(i, array->Get(i));
     }
-    GLint *ptr = getArrayData<GLint>(int32Array,&num);
+    GLint *ptr = getArrayData<GLint>(int32Array, &num);
     num /= 2;
     if (isUiThread) {
       glUniform2iv(location, num, ptr);
     } else {
-      GLint *ptr2 = cloneData(ptr, num * sizeof(GLfloat));
+      GLint *ptr2 = cloneData(ptr, num * 2 * sizeof(GLfloat));
       blockUiSoft([=]() {
         glUniform2iv(location, num, ptr2);
         free(ptr2);
       });
     }
   } else {
-    GLint *ptr = getArrayData<GLint>(info[1],&num);
+    GLint *ptr = getArrayData<GLint>(info[1], &num);
     num /= 2;
     if (isUiThread) {
       glUniform2iv(location, num, ptr);
     } else {
-      GLint *ptr2 = cloneData(ptr, num * sizeof(GLfloat));
+      GLint *ptr2 = cloneData(ptr, num * 2 * sizeof(GLfloat));
       blockUiSoft([=]() {
         glUniform2iv(location, num, ptr2);
         free(ptr2);
@@ -482,7 +482,7 @@ NAN_METHOD(Uniform3iv) {
   Nan::HandleScope scope;
 
   int location = info[0]->Int32Value();
-  int num=0;
+  int num;
   if (info[1]->IsArray()) {
     Local<Array> array = Local<Array>::Cast(info[1]);
     unsigned int length = array->Length();
@@ -490,24 +490,24 @@ NAN_METHOD(Uniform3iv) {
     for (unsigned int i = 0; i < length; i++) {
       int32Array->Set(i, array->Get(i));
     }
-    GLint *ptr = getArrayData<GLint>(int32Array,&num);
+    GLint *ptr = getArrayData<GLint>(int32Array, &num);
     num /= 3;
     if (isUiThread) {
       glUniform3iv(location, num, ptr);
     } else {
-      GLint *ptr2 = cloneData(ptr, num * sizeof(GLfloat));
+      GLint *ptr2 = cloneData(ptr, num * 3 * sizeof(GLfloat));
       blockUiSoft([=]() {
         glUniform3iv(location, num, ptr2);
         free(ptr2);
       });
     }
   } else {
-    GLint *ptr=getArrayData<GLint>(info[1],&num);
+    GLint *ptr=getArrayData<GLint>(info[1], &num);
     num /= 3;
     if (isUiThread) {
       glUniform3iv(location, num, ptr);
     } else {
-      GLint *ptr2 = cloneData(ptr, num * sizeof(GLfloat));
+      GLint *ptr2 = cloneData(ptr, num * 3 * sizeof(GLfloat));
       blockUiSoft([=]() {
         glUniform3iv(location, num, ptr2);
         free(ptr2);
@@ -521,7 +521,7 @@ NAN_METHOD(Uniform4iv) {
   Nan::HandleScope scope;
 
   int location = info[0]->Int32Value();
-  int num=0;
+  int num;
   if (info[1]->IsArray()) {
     Local<Array> array = Local<Array>::Cast(info[1]);
     unsigned int length = array->Length();
@@ -529,24 +529,24 @@ NAN_METHOD(Uniform4iv) {
     for (unsigned int i = 0; i < length; i++) {
       int32Array->Set(i, array->Get(i));
     }
-    GLint *ptr = getArrayData<GLint>(int32Array,&num);
+    GLint *ptr = getArrayData<GLint>(int32Array, &num);
     num /= 4;
     if (isUiThread) {
       glUniform4iv(location, num, ptr);
     } else {
-      GLint *ptr2 = cloneData(ptr, num * sizeof(GLfloat));
+      GLint *ptr2 = cloneData(ptr, num * 4 * sizeof(GLfloat));
       blockUiSoft([=]() {
         glUniform4iv(location, num, ptr2);
         free(ptr2);
       });
     }
   } else {
-    GLint *ptr=getArrayData<GLint>(info[1],&num);
+    GLint *ptr = getArrayData<GLint>(info[1], &num);
     num /= 4;
     if (isUiThread) {
       glUniform4iv(location, num, ptr);
     } else {
-      GLint *ptr2 = cloneData(ptr, num * sizeof(GLfloat));
+      GLint *ptr2 = cloneData(ptr, num * 4 * sizeof(GLfloat));
       blockUiSoft([=]() {
         glUniform4iv(location, num, ptr2);
         free(ptr2);
@@ -654,8 +654,8 @@ NAN_METHOD(UniformMatrix2fv) {
   GLint location = info[0]->Int32Value();
   GLboolean transpose = info[1]->BooleanValue();
 
+  GLfloat *data;
   GLsizei count;
-  GLfloat* data;
   // GLfloat* data=getArrayData<GLfloat>(info[2],&count);
 
   if (info[2]->IsArray()) {
@@ -677,7 +677,7 @@ NAN_METHOD(UniformMatrix2fv) {
     if (isUiThread) {
       glUniformMatrix2fv(location, count, transpose, data);
     } else {
-      GLfloat* data2 = cloneData(data, count * sizeof(GLfloat));
+      GLfloat *data2 = cloneData(data, count * 4 * sizeof(GLfloat));
       blockUiSoft([=]() {
         glUniformMatrix2fv(location, count, transpose, data2);
         free(data2);
@@ -694,8 +694,8 @@ NAN_METHOD(UniformMatrix3fv) {
   GLint location = info[0]->Int32Value();
   GLboolean transpose = info[1]->BooleanValue();
 
+  GLfloat *data;
   GLsizei count;
-  GLfloat* data;
   // GLfloat* data=getArrayData<GLfloat>(info[2],&count);
 
   if (info[2]->IsArray()) {
@@ -705,9 +705,9 @@ NAN_METHOD(UniformMatrix3fv) {
     for (unsigned int i = 0; i < length; i++) {
       float32Array->Set(i, array->Get(i));
     }
-    data=getArrayData<GLfloat>(float32Array,&count);
+    data = getArrayData<GLfloat>(float32Array, &count);
   } else {
-    data=getArrayData<GLfloat>(info[2],&count);
+    data = getArrayData<GLfloat>(info[2], &count);
   }
 
   if (count < 9) {
@@ -717,7 +717,7 @@ NAN_METHOD(UniformMatrix3fv) {
     if (isUiThread) {
       glUniformMatrix3fv(location, count, transpose, data);
     } else {
-      GLfloat* data2 = cloneData(data, count * sizeof(GLfloat));
+      GLfloat *data2 = cloneData(data, count * 9 * sizeof(GLfloat));
       blockUiSoft([=]() {
         glUniformMatrix3fv(location, count, transpose, data2);
         free(data2);
@@ -757,7 +757,7 @@ NAN_METHOD(UniformMatrix4fv) {
     if (isUiThread) {
       glUniformMatrix4fv(location, count, transpose, data);
     } else {
-      GLfloat* data2 = cloneData(data, count * sizeof(GLfloat));
+      GLfloat *data2 = cloneData(data, count * 16 * sizeof(GLfloat));
       blockUiSoft([=]() {
         glUniformMatrix4fv(location, count, transpose, data2);
         free(data2);
@@ -789,15 +789,16 @@ NAN_METHOD(GetAttribLocation) {
 
   int program = info[0]->Int32Value();
   String::Utf8Value name(info[1]);
-  const char *pName = *name;
   GLint result;
 
   if (isUiThread) {
-    result = glGetAttribLocation(program, pName);
+    result = glGetAttribLocation(program, *name);
   } else {
     volatile GLint localResult;
+    char *name2 = cloneData(*name, name.length() + 1);
     blockUiHard([&]() {
-      localResult = glGetAttribLocation(program, pName);
+      localResult = glGetAttribLocation(program, name2);
+      free(name2);
     });
     result = localResult;
   }
@@ -867,17 +868,18 @@ NAN_METHOD(ShaderSource) {
 
   int id = info[0]->Int32Value();
   String::Utf8Value code(info[1]);
-
   GLint length = code.length();
 
   if (isUiThread) {
     const char* codes[] = {*code};
-    glShaderSource(id, 1, codes, &length);
+    const GLint lengths[] = {length};
+    glShaderSource(id, 1, codes, lengths);
   } else {
     char *codePtr2 = cloneData(*code, length + 1);
     blockUiSoft([=]() {
       const char* codes[] = {codePtr2};
-      glShaderSource(id, 1, codes, &length);
+      const GLint lengths[] = {length};
+      glShaderSource(id, 1, codes, lengths);
       free(codePtr2);
     });
   }
@@ -1111,15 +1113,16 @@ NAN_METHOD(GetUniformLocation) {
 
   int program = info[0]->Int32Value();
   v8::String::Utf8Value name(info[1]);
-  const char *pName = *name;
   GLint location;
 
   if (isUiThread) {
-    location = glGetUniformLocation(program, pName);
+    location = glGetUniformLocation(program, *name);
   } else {
+    char *name2 = cloneData(*name, name.length() + 1);
     volatile GLint localLocation;
     blockUiHard([&]() {
-      localLocation = glGetUniformLocation(program, pName);
+      localLocation = glGetUniformLocation(program, name2);
+      free(name2);
     });
     location = localLocation;
   }
@@ -1560,7 +1563,7 @@ NAN_METHOD(BufferSubData) {
 
   int element_size = 1;
   Local<ArrayBufferView> arr = Local<ArrayBufferView>::Cast(obj);
-  int size = arr->ByteLength()* element_size;
+  int size = arr->ByteLength() * element_size;
   char *data = (char *)arr->Buffer()->GetContents().Data() + arr->ByteOffset();
 
   if (isUiThread) {
@@ -1568,7 +1571,7 @@ NAN_METHOD(BufferSubData) {
   } else {
     char *data2 = cloneData(data, size);
     blockUiSoft([=]() {
-      glBufferSubData(target, offset, size, data);
+      glBufferSubData(target, offset, size, data2);
       free(data2);
     });
   }
@@ -1867,7 +1870,7 @@ NAN_METHOD(VertexAttrib2fv) {
   } else {
     GLfloat *data2 = cloneData(data, num * sizeof(GLfloat));
     blockUiSoft([=]() {
-      glVertexAttrib2fv(indx, data);
+      glVertexAttrib2fv(indx, data2);
       free(data2);
     });
   }
@@ -1890,9 +1893,9 @@ NAN_METHOD(VertexAttrib3fv) {
     for (unsigned int i = 0; i < length; i++) {
       float32Array->Set(i, array->Get(i));
     }
-    data=getArrayData<GLfloat>(float32Array, &num);
+    data = getArrayData<GLfloat>(float32Array, &num);
   } else {
-    data=getArrayData<GLfloat>(info[1], &num);
+    data = getArrayData<GLfloat>(info[1], &num);
   }
 
   if (isUiThread) {
@@ -1900,7 +1903,7 @@ NAN_METHOD(VertexAttrib3fv) {
   } else {
     GLfloat *data2 = cloneData(data, num * sizeof(GLfloat));
     blockUiSoft([=]() {
-      glVertexAttrib3fv(indx, data);
+      glVertexAttrib3fv(indx, data2);
       free(data2);
     });
   }
@@ -1933,7 +1936,7 @@ NAN_METHOD(VertexAttrib4fv) {
   } else {
     GLfloat *data2 = cloneData(data, num * sizeof(GLfloat));
     blockUiSoft([=]() {
-      glVertexAttrib4fv(indx, data);
+      glVertexAttrib4fv(indx, data2);
       free(data2);
     });
   }
@@ -2061,10 +2064,10 @@ NAN_METHOD(CopyTexImage2D) {
   GLint border = info[7]->Int32Value();
 
   if (isUiThread) {
-    glCopyTexImage2D( target, level, internalformat, x, y, width, height, border);
+    glCopyTexImage2D(target, level, internalformat, x, y, width, height, border);
   } else {
     blockUiSoft([=]() {
-      glCopyTexImage2D( target, level, internalformat, x, y, width, height, border);
+      glCopyTexImage2D(target, level, internalformat, x, y, width, height, border);
     });
   }
 
@@ -2084,10 +2087,10 @@ NAN_METHOD(CopyTexSubImage2D) {
   GLsizei height = info[7]->Int32Value();
 
   if (isUiThread) {
-    glCopyTexSubImage2D( target, level, xoffset, yoffset, x, y, width, height);
+    glCopyTexSubImage2D(target, level, xoffset, yoffset, x, y, width, height);
   } else {
     blockUiSoft([=]() {
-      glCopyTexSubImage2D( target, level, xoffset, yoffset, x, y, width, height);
+      glCopyTexSubImage2D(target, level, xoffset, yoffset, x, y, width, height);
     });
   }
 
