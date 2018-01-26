@@ -2989,13 +2989,15 @@ NAN_METHOD(GetParameter) {
   case GL_EXTENSIONS:
   {
     // return a string
-    char * volatile params;
+    char *params;
     if (isUiThread) {
       params = (char *)glGetString(name);
     } else {
+      char * volatile localParams;
       blockUiHard([&]() {
-        params = (char *)glGetString(name);
+        localParams = (char *)glGetString(name);
       });
+      params = localParams;
     }
     
     if (params != NULL) {
