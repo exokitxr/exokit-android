@@ -267,7 +267,7 @@ NAN_METHOD(Uniform1fv) {
       GLfloat *ptr2 = cloneData(ptr, num * sizeof(GLfloat));
       blockUiSoft([=]() {
         glUniform1fv(location, num, ptr2);
-        delete ptr2;
+        free(ptr2);
       });
     }
   } else {
@@ -278,7 +278,7 @@ NAN_METHOD(Uniform1fv) {
       GLfloat *ptr2 = cloneData(ptr, num * sizeof(GLfloat));
       blockUiSoft([=]() {
         glUniform1fv(location, num, ptr2);
-        delete ptr2;
+        free(ptr2);
       });
     }
   }
@@ -305,7 +305,7 @@ NAN_METHOD(Uniform2fv) {
       GLfloat *ptr2 = cloneData(ptr, num * sizeof(GLfloat));
       blockUiSoft([=]() {
         glUniform2fv(location, num, ptr2);
-        delete ptr2;
+        free(ptr2);
       });
     }
   } else {
@@ -317,7 +317,7 @@ NAN_METHOD(Uniform2fv) {
       GLfloat *ptr2 = cloneData(ptr, num * sizeof(GLfloat));
       blockUiSoft([=]() {
         glUniform2fv(location, num, ptr2);
-        delete ptr2;
+        free(ptr2);
       });
     }
   }
@@ -344,7 +344,7 @@ NAN_METHOD(Uniform3fv) {
       GLfloat *ptr2 = cloneData(ptr, num * sizeof(GLfloat));
       blockUiSoft([=]() {
         glUniform3fv(location, num, ptr2);
-        delete ptr2;
+        free(ptr2);
       });
     }
   } else {
@@ -356,7 +356,7 @@ NAN_METHOD(Uniform3fv) {
       GLfloat *ptr2 = cloneData(ptr, num * sizeof(GLfloat));
       blockUiSoft([=]() {
         glUniform3fv(location, num, ptr2);
-        delete ptr2;
+        free(ptr2);
       });
     }
   }
@@ -383,7 +383,7 @@ NAN_METHOD(Uniform4fv) {
       GLfloat *ptr2 = cloneData(ptr, num * sizeof(GLfloat));
       blockUiSoft([=]() {
         glUniform4fv(location, num, ptr2);
-        delete ptr2;
+        free(ptr2);
       });
     }
   } else {
@@ -395,7 +395,7 @@ NAN_METHOD(Uniform4fv) {
       GLfloat *ptr2 = cloneData(ptr, num * sizeof(GLfloat));
       blockUiSoft([=]() {
         glUniform4fv(location, num, ptr2);
-        delete ptr2;
+        free(ptr2);
       });
     }
   }
@@ -421,7 +421,7 @@ NAN_METHOD(Uniform1iv) {
       GLint *ptr2 = cloneData(ptr, num * sizeof(GLfloat));
       blockUiSoft([=]() {
         glUniform1iv(location, num, ptr2);
-        delete ptr2;
+        free(ptr2);
       });
     }
   } else {
@@ -432,7 +432,7 @@ NAN_METHOD(Uniform1iv) {
       GLint *ptr2 = cloneData(ptr, num * sizeof(GLfloat));
       blockUiSoft([=]() {
         glUniform1iv(location, num, ptr2);
-        delete ptr2;
+        free(ptr2);
       });
     }
   }
@@ -459,7 +459,7 @@ NAN_METHOD(Uniform2iv) {
       GLint *ptr2 = cloneData(ptr, num * sizeof(GLfloat));
       blockUiSoft([=]() {
         glUniform2iv(location, num, ptr2);
-        delete ptr2;
+        free(ptr2);
       });
     }
   } else {
@@ -471,7 +471,7 @@ NAN_METHOD(Uniform2iv) {
       GLint *ptr2 = cloneData(ptr, num * sizeof(GLfloat));
       blockUiSoft([=]() {
         glUniform2iv(location, num, ptr2);
-        delete ptr2;
+        free(ptr2);
       });
     }
   }
@@ -498,7 +498,7 @@ NAN_METHOD(Uniform3iv) {
       GLint *ptr2 = cloneData(ptr, num * sizeof(GLfloat));
       blockUiSoft([=]() {
         glUniform3iv(location, num, ptr2);
-        delete ptr2;
+        free(ptr2);
       });
     }
   } else {
@@ -510,7 +510,7 @@ NAN_METHOD(Uniform3iv) {
       GLint *ptr2 = cloneData(ptr, num * sizeof(GLfloat));
       blockUiSoft([=]() {
         glUniform3iv(location, num, ptr2);
-        delete ptr2;
+        free(ptr2);
       });
     }
   }
@@ -537,7 +537,7 @@ NAN_METHOD(Uniform4iv) {
       GLint *ptr2 = cloneData(ptr, num * sizeof(GLfloat));
       blockUiSoft([=]() {
         glUniform4iv(location, num, ptr2);
-        delete ptr2;
+        free(ptr2);
       });
     }
   } else {
@@ -549,7 +549,7 @@ NAN_METHOD(Uniform4iv) {
       GLint *ptr2 = cloneData(ptr, num * sizeof(GLfloat));
       blockUiSoft([=]() {
         glUniform4iv(location, num, ptr2);
-        delete ptr2;
+        free(ptr2);
       });
     }
   }
@@ -586,7 +586,7 @@ NAN_METHOD(BindAttribLocation) {
     char *name2 = cloneData(*name, name.length() + 1);
     blockUiSoft([=]() {
       glBindAttribLocation(program, index, name2);
-      delete name2;
+      free(name2);
     });
   }
 
@@ -678,7 +678,7 @@ NAN_METHOD(UniformMatrix2fv) {
       GLfloat* data2 = cloneData(data, count * sizeof(GLfloat));
       blockUiSoft([=]() {
         glUniformMatrix2fv(location, count, transpose, data2);
-        delete data2;
+        free(data2);
       });
     }
 
@@ -718,7 +718,7 @@ NAN_METHOD(UniformMatrix3fv) {
       GLfloat* data2 = cloneData(data, count * sizeof(GLfloat));
       blockUiSoft([=]() {
         glUniformMatrix3fv(location, count, transpose, data2);
-        delete data2;
+        free(data2);
       });
     }
 
@@ -758,7 +758,7 @@ NAN_METHOD(UniformMatrix4fv) {
       GLfloat* data2 = cloneData(data, count * sizeof(GLfloat));
       blockUiSoft([=]() {
         glUniformMatrix4fv(location, count, transpose, data2);
-        delete data2;
+        free(data2);
       });
     }
 
@@ -872,7 +872,7 @@ NAN_METHOD(ShaderSource) {
     blockUiSoft([=]() {
       const char* codes[] = {codePtr2};
       glShaderSource(id, 1, codes, &length);
-      delete codePtr2;
+      free(codePtr2);
     });
   }
 
@@ -1288,7 +1288,7 @@ NAN_METHOD(TexImage2D) {
     char *pixelsV2 = cloneData(pixelsV, num);
     blockUiSoft([=]() {
       glTexImage2D(targetV, levelV, internalformatV, widthV, heightV, borderV, formatV, typeV, pixelsV2);
-      delete pixelsV2;
+      free(pixelsV2);
     });
   }
 
@@ -1480,7 +1480,7 @@ NAN_METHOD(BufferData) {
       char *data2 = cloneData(data, size);
       blockUiSoft([=]() {
         glBufferData(target, size, data2, usage);
-        delete data2;
+        free(data2);
       });
     }
   } else if(info[1]->IsNumber()) {
@@ -1517,7 +1517,7 @@ NAN_METHOD(BufferSubData) {
     char *data2 = cloneData(data, size);
     blockUiSoft([=]() {
       glBufferSubData(target, offset, size, data);
-      delete data2;
+      free(data2);
     });
   }
 
@@ -1783,7 +1783,7 @@ NAN_METHOD(VertexAttrib1fv) {
     GLfloat *data2 = cloneData(data, num * sizeof(GLfloat));
     blockUiSoft([=]() {
       glVertexAttrib1fv(indx, data2);
-      delete data2;
+      free(data2);
     });
   }
 
@@ -1816,7 +1816,7 @@ NAN_METHOD(VertexAttrib2fv) {
     GLfloat *data2 = cloneData(data, num * sizeof(GLfloat));
     blockUiSoft([=]() {
       glVertexAttrib2fv(indx, data);
-      delete data2;
+      free(data2);
     });
   }
 
@@ -1849,7 +1849,7 @@ NAN_METHOD(VertexAttrib3fv) {
     GLfloat *data2 = cloneData(data, num * sizeof(GLfloat));
     blockUiSoft([=]() {
       glVertexAttrib3fv(indx, data);
-      delete data2;
+      free(data2);
     });
   }
 
@@ -1882,7 +1882,7 @@ NAN_METHOD(VertexAttrib4fv) {
     GLfloat *data2 = cloneData(data, num * sizeof(GLfloat));
     blockUiSoft([=]() {
       glVertexAttrib4fv(indx, data);
-      delete data2;
+      free(data2);
     });
   }
 
@@ -2686,7 +2686,7 @@ NAN_METHOD(TexSubImage2D) {
     char *pixels2 = cloneData(pixels, num);
     blockUiSoft([=]() {
       glTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type, pixels2);
-      delete pixels2;
+      free(pixels2);
     });
   }
 

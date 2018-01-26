@@ -641,9 +641,9 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_onNewFrame
     Local<Value> argv[] = {headMatrixFloat32Array, headQuaternionFloat32Array, centerFloat32Array};
     callFunction("onNewFrame", sizeof(argv)/sizeof(argv[0]), argv);
 
-    delete headViewMatrixElements2;
-    delete headQuaternionElements2;
-    delete centerArrayElements2;
+    free(headViewMatrixElements2);
+    free(headQuaternionElements2);
+    free(centerArrayElements2);
   });
 }
 
@@ -672,8 +672,8 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_onDrawEye
     Local<Value> argv[] = {eyeViewMatrixFloat32Array, eyePerspectiveMatrixFloat32Array};
     callFunction("onDrawEye", sizeof(argv)/sizeof(argv[0]), argv);
 
-    delete eyeViewMatrixElements2;
-    delete eyePerspectiveMatrixElements2;
+    free(eyeViewMatrixElements2);
+    free(eyePerspectiveMatrixElements2);
   });
 }
 
@@ -713,9 +713,9 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_onDrawFrame
     Local<Value> argv[] = {viewFloat32Array, projectionFloat32Array, centerFloat32Array};
     callFunction("onDrawFrame", sizeof(argv)/sizeof(argv[0]), argv);
 
-    delete viewMatrixElements2;
-    delete projectionMatrixElements2;
-    delete centerArrayElements2;
+    free(viewMatrixElements2);
+    free(projectionMatrixElements2);
+    free(centerArrayElements2);
 
     frameOutstanding = false;
   });
