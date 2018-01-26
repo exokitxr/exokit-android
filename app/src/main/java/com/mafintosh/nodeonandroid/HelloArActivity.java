@@ -76,7 +76,7 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
     private Snackbar mMessageSnackbar;
     private DisplayRotationHelper mDisplayRotationHelper;
     private NodeService service;
-    private ArrayList<Runnable> runnables;
+    private ArrayList<Runnable> isRunningRunnables;
 
     private final BackgroundRenderer mBackgroundRenderer = new BackgroundRenderer();
     /* private final ObjectRenderer mVirtualObject = new ObjectRenderer();
@@ -176,7 +176,7 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
         service = new NodeService(this);
         new Thread(service).start();
 
-        runnables = new ArrayList<Runnable>();
+        isRunningRunnables = new ArrayList<Runnable>();
     }
 
     @Override
@@ -281,7 +281,7 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
         if (service.isRunning()) {
           service.onSurfaceCreated();
         } else {
-          runnables.add(() -> {
+          isRunningRunnables.add(() -> {
             service.onSurfaceCreated();
           });
         }
@@ -296,7 +296,7 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
         if (service.isRunning()) {
           service.onSurfaceChanged(width, height);
         } else {
-          runnables.add(() -> {
+          isRunningRunnables.add(() -> {
             service.onSurfaceChanged(width, height);
           });
         }
@@ -355,10 +355,13 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
             } */
 
             if (service.isRunning()) {
-              for (int i = 0; i < runnables.size(); i++) {
-                runnables.get(i).run();
+              int numIsRunningRunnables = isRunningRunnables.size();
+              if (numIsRunningRunnables > 0) {
+                for (int i = 0; i < numIsRunningRunnables; i++) {
+                  isRunningRunnables.get(i).run();
+                }
+                isRunningRunnables.clear();
               }
-              runnables.clear();
 
               // Get projection matrix.
               float[] projmtx = new float[16];
