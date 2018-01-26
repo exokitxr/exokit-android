@@ -9,39 +9,81 @@ const libPath = process.argv[2];
 process.argv[0] = process.execPath = path.join(libPath, 'node.so');
 process.env['LD_LIBRARY_PATH'] = libPath;
 
-// const b = require('child_process').execFileSync(process.execPath, ['-e', 'console.log("sub node log");']);
-// console.log(b.toString());
-
 // ENVIRONMENT
 
-const browserPoly = require('browser-poly');
-const THREE = require('three-zeo');
+const exokit = require('exokit');
+// const THREE = require('three-zeo');
 
-const {window} = browserPoly();
-const {document, fetch} = window;
+const {VERSION} = nativeGl;
+
+/* nativeGl = {};
+nativeGl.VERSION = VERSION; */
+/* nativeGl.enable = () => {};
+nativeGl.disable = () => {};
+nativeGl.clear = () => {};
+nativeGl.getExtension = () => null;
+nativeGl.getParameter = id => {
+  if (id === VERSION) {
+    return 'WebGL 1';
+  } else {
+    return {};
+  }
+};
+nativeGl.createTexture = () => {};
+nativeGl.bindTexture = () => {};
+nativeGl.texParameteri = () => {};
+nativeGl.texImage2D = () => {};
+nativeGl.clearColor = () => {};
+nativeGl.clearDepth = () => {};
+nativeGl.clearStencil = () => {};
+nativeGl.depthFunc = () => {};
+nativeGl.frontFace = () => {};
+nativeGl.cullFace = () => {};
+nativeGl.blendEquationSeparate = () => {};
+nativeGl.blendFuncSeparate = () => {};
+nativeGl.blendEquation = () => {};
+nativeGl.blendFunc = () => {};
+const _viewport = nativeGl.viewport;
+nativeGl.viewport = function() {
+  console.log('call viewport', arguments, new Error().stack);
+  _viewport.apply(this, arguments);
+}; */
+
+/* const {window} = exokit();
+const {document, fetch} = window; */
+
+const windows = [];
+let innerWidth = 1280;
+let innerHeight = 1024;
 
 // CALLBACKS
 
 global.onSurfaceCreated = () => {
-  console.log('js onSurfaceCreated');
+  // console.log('js onSurfaceCreated');
 
-  if (!animating) {
+  /* if (!animating) {
     animating = true;
 
     _startAnimation();
-  }
+  } */
 };
 global.onSurfaceChanged = (width, height) => {
-  console.log('js onSurfaceChanged', {width, height});
+ //  console.log('js onSurfaceChanged', {width, height});
 
   // gl.viewport(0, 0, width, height);
 
-  window.innerWidth = width;
-  window.innerHeight = height;
+  innerWidth = width;
+  innerHeight = height;
 
-  renderer.setSize(width, height);
-  /* camera.aspect = width / height;
-  camera.updateProjectionMatrix(); */
+  for (let i = 0; i < windows.length; i++) {
+    const window = windows[i];
+
+    window.innerWidth = innerWidth;
+    window.innerHeight = innerHeight;
+    window.emit('resize');
+  }
+
+  // renderer.setSize(width, height);
 };
 
 // VR
@@ -53,40 +95,43 @@ global.onDrawEye = (eyeViewMatrixFloat32Array, eyePerspectiveMatrixFloat32Array)
 };
 
 // AR
-const localMatrix = new THREE.Matrix4();
+// const localMatrix = new THREE.Matrix4();
 global.onDrawFrame = (viewMatrixFloat32Array, projectionMatrixFloat32Array, centerFloat32Array) => {
-  camera.matrixWorldInverse.fromArray(viewMatrixFloat32Array);
+  /* camera.matrixWorldInverse.fromArray(viewMatrixFloat32Array);
   camera.matrixWorld.getInverse(camera.matrixWorldInverse)
     .premultiply(localMatrix.makeTranslation(-centerFloat32Array[0], -centerFloat32Array[1], -centerFloat32Array[2]));
   camera.matrixWorldInverse.getInverse(camera.matrixWorld);
 
-  camera.projectionMatrix.fromArray(projectionMatrixFloat32Array);
+  camera.projectionMatrix.fromArray(projectionMatrixFloat32Array); */
 
-  window.tickAnimationFrame();
+  for (let i = 0; i < windows.length; i++) {
+    windows[i].tickAnimationFrame();
+  }
 };
 
 // MAIN
 
-const skinJs = require('skin-js');
+/* const skinJs = require('skin-js');
 const skinJsPath = path.dirname(require.resolve('skin-vr'));
-const skin = skinJs(THREE);
+const skin = skinJs(THREE); */
 
-/* const appUrl = 'http://192.168.0.13:8000/';
-fetch(appUrl)
-  .then(res => res.text())
-  .then(htmlString => {
-    const htmlWindow = browserPoly(htmlString, {
-      url: appUrl,
-      // referrer: "https://example.com/",
-      contentType: 'text/html',
-      runScripts: 'dangerously',
-    }).window;
-    htmlWindow.addEventListener('error', err => {
+const appUrl = 'http://192.168.0.13:8000/';
+exokit.fetch(appUrl, {
+  url: appUrl,
+})
+  .then(site => {
+    console.log('node site loaded');
+
+    const {window} = site;
+    window.innerWidth = innerWidth;
+    window.innerHeight = innerHeight;
+    windows.push(window);
+    window.addEventListener('error', err => {
       console.warn('got error', err.error.stack);
     });
-  }); */
+  });
 
-const canvas = document.createElement('canvas');
+/* const canvas = document.createElement('canvas');
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 const gl = canvas.getContext('webgl');
@@ -131,17 +176,6 @@ const _startAnimation = () => {
   directionalLight.updateMatrixWorld();
   scene.add(directionalLight);
 
-  /* const boxMesh = (() => {
-    const geometry = new THREE.BoxBufferGeometry(0.1, 0.1, 0.1);
-    const material = new THREE.MeshPhongMaterial({
-      color: 0xff8000,
-      // side: THREE.DoubleSide,
-    });
-    return new THREE.Mesh(geometry, material);
-  })();
-  boxMesh.updateMatrixWorld();
-  scene.add(boxMesh); */
-
   const _requestImage = src => new Promise((accept, reject) => {
     const img = new Image();
     img.onload = () => {
@@ -170,23 +204,14 @@ const _startAnimation = () => {
   })();
   scene.add(skinMesh);
 
-  // const startTime = Date.now();
-
   const _recurse = () => {
     renderer.state.reset();
-
-    /* const factor = ((startTime - Date.now()) % 2000) / 2000;
-    camera.position.set(0, 1, 2)
-      .applyQuaternion(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), factor * Math.PI * 2));
-    camera.lookAt(new THREE.Vector3(0, 0, 0)); */
-
-    // console.log('view matrix', camera.matrixWorld.toArray().join(','), camera.matrixWorldInverse.toArray().join(','));
 
     renderer.render(scene, camera);
 
     window.requestAnimationFrame(_recurse);
   };
   _recurse();
-};
+}; */
 
 console.log('node boot html end');
