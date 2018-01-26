@@ -30,6 +30,8 @@
 #include <node.h>
 #include "webgl.h"
 #include "bindings.h"
+#include "semaphore.h"
+#include "util.h"
 
 using namespace v8;
 
@@ -427,36 +429,58 @@ void __getImageDimensions(const v8::FunctionCallbackInfo<v8::Value>& args) {
 	args.GetReturnValue().Set(jsretval);
 } */
 
-std::deque<std::function<void ()>> scopeFns;
+std::deque<std::function<void ()>> serviceUiThreadFns;
 bool isUiThread = false;
+bool frameOutstanding = false;
 std::deque<std::function<void ()>> uiThreadFns;
-
-void blockUiSoft() {
-  uiThreadFns.clear();
+bool blockedOnUiThread = false;
+std::mutex uiThreadMutex;
+std::mutex uiWorkMutex;
+std::semaphore uiThreadWorkSemaphore;
+std::condition uiThreadBlockCondition;
+void blockUiSoft(std::function<void()> fn) {
+  std::unique_lock<decltype(uiThreadMutex)> lock(uiThreadMutex);
+  uiThreadFns.push_back(fn);
+  uiThreadWorkSemaphore.notify();
 }
-void blockUiHard() {
-  uiThreadFns.clear();
+void blockUiHard(std::function<void()> fn) {
+  {
+    std::unique_lock<decltype(uiThreadMutex)> lock(uiThreadMutex);
+    uiThreadFns.push_back(fn);
+    blockedOnUiThread = true;
+    uiThreadWorkSemaphore.notify();
+  }
 
-  Nan::ThrowError("Hard not on main thread");
+  {
+    v8::Unlocker unlocker(service->GetIsolate());
+    uiThreadBlockCondition.block();
+  }
+
+  {
+    std::unique_lock<decltype(uiThreadMutex)> lock(uiThreadMutex);
+    blockedOnUiThread = false;
+    uiThreadBlockCondition.close();
+  }
 }
 
-/* void scope(std::function<void ()> fn) {
-  scopeFn = fn;
+void queueServiceUiThread(std::function<void ()> fn) {
+  // in ui thread
+  serviceUiThreadFns.push_back(fn);
 
-  service->Scope([]() {
-    scopeFn();
-  });
-} */
-void interruptScope(std::function<void ()> fn) {
-  scopeFns.push_back(fn);
+  service->Queue([]() {
+    // in node service thread
+    blockUiHard([]() {
+      // in ui thread
+      isUiThread = true;
 
-  service->InterruptScope([]() {
-    isUiThread = true;
+      service->Scope([]() {
+        // in isolate
+        serviceUiThreadFns.front()();
+        serviceUiThreadFns.pop_front();
+      });
 
-    scopeFns.front()();
-    scopeFns.pop_front();
-
-    isUiThread = false;
+      isUiThread = false;
+    });
   });
 }
 
@@ -559,7 +583,7 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_onSurfaceCre
 (JNIEnv *env, jclass clas) {
 	LOGI("JNI onSurfaceCreated");
 
-  interruptScope([&]() {
+  queueServiceUiThread([=]() {
     Local<Value> argv[] = {};
     callFunction("onSurfaceCreated", sizeof(argv)/sizeof(argv[0]), argv);
   });
@@ -572,7 +596,7 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_onSurfaceCha
 (JNIEnv *env, jclass clas, jint width, jint height) {
 	LOGI("JNI onSurfaceChanged");
 
-  interruptScope([&]() {
+  queueServiceUiThread([=]() {
     Isolate *isolate = service->GetIsolate();
 
     Handle<Number> js_width = v8::Integer::New(isolate, width);
@@ -586,82 +610,115 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_onSurfaceCha
 
 JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_onNewFrame
 (JNIEnv *env, jclass clas, jfloatArray headViewMatrix, jfloatArray headQuaternion, jfloatArray centerArray) {
-  jfloat* headViewMatrixElements = env->GetFloatArrayElements(headViewMatrix, 0);
-  jfloat* headQuaternionElements = env->GetFloatArrayElements(headQuaternion, 0);
-  jfloat* centerArrayElements = env->GetFloatArrayElements(centerArray, 0);
+  jfloat *headViewMatrixElements = env->GetFloatArrayElements(headViewMatrix, 0);
+  jsize numHeadViewMatrixElements = env->GetArrayLength(headViewMatrix);
+  jfloat *headViewMatrixElements2 = cloneData(headViewMatrixElements, numHeadViewMatrixElements * sizeof(jfloat));
+  env->ReleaseFloatArrayElements(headViewMatrix, headViewMatrixElements, 0);
 
-  interruptScope([&]() {
+  jfloat *headQuaternionElements = env->GetFloatArrayElements(headQuaternion, 0);
+  jsize numHeadQuaternionElements = env->GetArrayLength(headQuaternion);
+  jfloat *headQuaternionElements2 = cloneData(headQuaternionElements, numHeadQuaternionElements * sizeof(jfloat));
+  env->ReleaseFloatArrayElements(headQuaternion, headQuaternionElements, 0);
+
+  jfloat *centerArrayElements = env->GetFloatArrayElements(centerArray, 0);
+  jsize numCenterArrayElements = env->GetArrayLength(centerArray);
+  jfloat *centerArrayElements2 = cloneData(centerArrayElements, numCenterArrayElements * sizeof(jfloat));
+  env->ReleaseFloatArrayElements(centerArray, centerArrayElements, 0);
+
+  queueServiceUiThread([=]() {
     Local<Float32Array> headMatrixFloat32Array = Float32Array::New(ArrayBuffer::New(service->GetIsolate(), 16 * 4), 0, 16);
     for (int i = 0; i < 16; i++) {
-      headMatrixFloat32Array->Set(i, Number::New(service->GetIsolate(), headViewMatrixElements[i]));
+      headMatrixFloat32Array->Set(i, Number::New(service->GetIsolate(), headViewMatrixElements2[i]));
     }
     Local<Float32Array> headQuaternionFloat32Array = Float32Array::New(ArrayBuffer::New(service->GetIsolate(), 4 * 4), 0, 4);
     for (int i = 0; i < 4; i++) {
-      headQuaternionFloat32Array->Set(i, Number::New(service->GetIsolate(), headQuaternionElements[i]));
+      headQuaternionFloat32Array->Set(i, Number::New(service->GetIsolate(), headQuaternionElements2[i]));
     }
     Local<Float32Array> centerFloat32Array = Float32Array::New(ArrayBuffer::New(service->GetIsolate(), 3 * 4), 0, 3);
     for (int i = 0; i < 3; i++) {
-      centerFloat32Array->Set(i, Number::New(service->GetIsolate(), centerArrayElements[i]));
+      centerFloat32Array->Set(i, Number::New(service->GetIsolate(), centerArrayElements2[i]));
     }
     Local<Value> argv[] = {headMatrixFloat32Array, headQuaternionFloat32Array, centerFloat32Array};
-    callFunction("onDrawFrame", sizeof(argv)/sizeof(argv[0]), argv);
-  });
+    callFunction("onNewFrame", sizeof(argv)/sizeof(argv[0]), argv);
 
-  env->ReleaseFloatArrayElements(headViewMatrix, headViewMatrixElements, 0);
-  env->ReleaseFloatArrayElements(headQuaternion, headQuaternionElements, 0);
-  env->ReleaseFloatArrayElements(centerArray, centerArrayElements, 0);
+    delete headViewMatrixElements2;
+    delete headQuaternionElements2;
+    delete centerArrayElements2;
+  });
 }
 
 
 JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_onDrawEye
 (JNIEnv *env, jclass clasj, jfloatArray eyeViewMatrix, jfloatArray eyePerspectiveMatrix) {
-  jfloat* eyeViewMatrixElements = env->GetFloatArrayElements(eyeViewMatrix, 0);
-  jfloat* eyePerspectiveMatrixElements = env->GetFloatArrayElements(eyePerspectiveMatrix, 0);
+  jfloat *eyeViewMatrixElements = env->GetFloatArrayElements(eyeViewMatrix, 0);
+  jsize numEyeViewMatrixElements = env->GetArrayLength(eyeViewMatrix);
+  jfloat *eyeViewMatrixElements2 = cloneData(eyeViewMatrixElements, numEyeViewMatrixElements * sizeof(jfloat));
+  env->ReleaseFloatArrayElements(eyeViewMatrix, eyeViewMatrixElements, 0);
 
-  interruptScope([&]() {
+  jfloat *eyePerspectiveMatrixElements = env->GetFloatArrayElements(eyePerspectiveMatrix, 0);
+  jsize numEyePerspectiveMatrixElements = env->GetArrayLength(eyePerspectiveMatrix);
+  jfloat *eyePerspectiveMatrixElements2 = cloneData(eyePerspectiveMatrixElements, numEyePerspectiveMatrixElements * sizeof(jfloat));
+  env->ReleaseFloatArrayElements(eyePerspectiveMatrix, eyePerspectiveMatrixElements, 0);
+
+  queueServiceUiThread([=]() {
     Local<Float32Array> eyeViewMatrixFloat32Array = Float32Array::New(ArrayBuffer::New(service->GetIsolate(), 16 * 4), 0, 16);
     for (int i = 0; i < 16; i++) {
-      eyeViewMatrixFloat32Array->Set(i, Number::New(service->GetIsolate(), eyeViewMatrixElements[i]));
+      eyeViewMatrixFloat32Array->Set(i, Number::New(service->GetIsolate(), eyeViewMatrixElements2[i]));
     }
     Local<Float32Array> eyePerspectiveMatrixFloat32Array = Float32Array::New(ArrayBuffer::New(service->GetIsolate(), 4 * 4), 0, 4);
     for (int i = 0; i < 4; i++) {
-      eyePerspectiveMatrixFloat32Array->Set(i, Number::New(service->GetIsolate(), eyePerspectiveMatrixElements[i]));
+      eyePerspectiveMatrixFloat32Array->Set(i, Number::New(service->GetIsolate(), eyePerspectiveMatrixElements2[i]));
     }
     Local<Value> argv[] = {eyeViewMatrixFloat32Array, eyePerspectiveMatrixFloat32Array};
     callFunction("onDrawEye", sizeof(argv)/sizeof(argv[0]), argv);
-  });
 
-  env->ReleaseFloatArrayElements(eyeViewMatrix, eyeViewMatrixElements, 0);
-  env->ReleaseFloatArrayElements(eyePerspectiveMatrix, eyePerspectiveMatrixElements, 0);
+    delete eyeViewMatrixElements2;
+    delete eyePerspectiveMatrixElements2;
+  });
 }
 
 
 JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_onDrawFrame
 (JNIEnv *env, jclass clas, jfloatArray viewMatrix, jfloatArray projectionMatrix, jfloatArray centerArray) {
-  jfloat* viewMatrixElements = env->GetFloatArrayElements(viewMatrix, 0);
-  jfloat* projectionMatrixElements = env->GetFloatArrayElements(projectionMatrix, 0);
-  jfloat* centerArrayElements = env->GetFloatArrayElements(centerArray, 0);
+  frameOutstanding = true;
 
-  interruptScope([&]() {
+  jfloat *viewMatrixElements = env->GetFloatArrayElements(viewMatrix, 0);
+  jsize numViewMatrixElements = env->GetArrayLength(viewMatrix);
+  jfloat *viewMatrixElements2 = cloneData(viewMatrixElements, numViewMatrixElements * sizeof(jfloat));
+  env->ReleaseFloatArrayElements(viewMatrix, viewMatrixElements, 0);
+
+  jfloat *projectionMatrixElements = env->GetFloatArrayElements(projectionMatrix, 0);
+  jsize numProjectionMatrixElements = env->GetArrayLength(projectionMatrix);
+  jfloat *projectionMatrixElements2 = cloneData(projectionMatrixElements, numProjectionMatrixElements * sizeof(jfloat));
+  env->ReleaseFloatArrayElements(projectionMatrix, projectionMatrixElements, 0);
+
+  jfloat *centerArrayElements = env->GetFloatArrayElements(centerArray, 0);
+  jsize numCenterArrayElements = env->GetArrayLength(centerArray);
+  jfloat *centerArrayElements2 = cloneData(centerArrayElements, numCenterArrayElements * sizeof(jfloat));
+  env->ReleaseFloatArrayElements(centerArray, centerArrayElements, 0);
+
+  queueServiceUiThread([=]() {
     Local<Float32Array> viewFloat32Array = Float32Array::New(ArrayBuffer::New(service->GetIsolate(), 16 * 4), 0, 16);
     for (int i = 0; i < 16; i++) {
-      viewFloat32Array->Set(i, Number::New(service->GetIsolate(), viewMatrixElements[i]));
+      viewFloat32Array->Set(i, Number::New(service->GetIsolate(), viewMatrixElements2[i]));
     }
     Local<Float32Array> projectionFloat32Array = Float32Array::New(ArrayBuffer::New(service->GetIsolate(), 16 * 4), 0, 16);
     for (int i = 0; i < 16; i++) {
-      projectionFloat32Array->Set(i, Number::New(service->GetIsolate(), projectionMatrixElements[i]));
+      projectionFloat32Array->Set(i, Number::New(service->GetIsolate(), projectionMatrixElements2[i]));
     }
     Local<Float32Array> centerFloat32Array = Float32Array::New(ArrayBuffer::New(service->GetIsolate(), 3 * 4), 0, 3);
     for (int i = 0; i < 3; i++) {
-      centerFloat32Array->Set(i, Number::New(service->GetIsolate(), centerArrayElements[i]));
+      centerFloat32Array->Set(i, Number::New(service->GetIsolate(), centerArrayElements2[i]));
     }
     Local<Value> argv[] = {viewFloat32Array, projectionFloat32Array, centerFloat32Array};
     callFunction("onDrawFrame", sizeof(argv)/sizeof(argv[0]), argv);
-  });
 
-  env->ReleaseFloatArrayElements(viewMatrix, viewMatrixElements, 0);
-  env->ReleaseFloatArrayElements(projectionMatrix, projectionMatrixElements, 0);
-  env->ReleaseFloatArrayElements(centerArray, centerArrayElements, 0);
+    delete viewMatrixElements2;
+    delete projectionMatrixElements2;
+    delete centerArrayElements2;
+
+    frameOutstanding = false;
+  });
 }
 
 /* // NOTE: must be called from the render thread. Multiple threads accessing
@@ -764,14 +821,12 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_start
   // node::Start(3, args);
   // service = new node::NodeService(3, args);
 
-  isUiThread = true;
   service = new node::NodeService(sizeof(args)/sizeof(args[0]), args, [](node::NodeService *service) {
     Isolate *isolate = service->GetIsolate();
     Local<Object> global = service->GetContext()->Global();
     global->Set(v8::String::NewFromUtf8(isolate, "nativeGl"), makeGl(service));
     global->Set(v8::String::NewFromUtf8(isolate, "Image"), makeImage(service));
   });
-  isUiThread = false;
 }
 
 JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_tick
@@ -782,6 +837,48 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_tick
 JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_loop
 (JNIEnv *env, jobject thiz) {
   service->Loop();
+}
+
+JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_waitForUiWork
+(JNIEnv *env, jobject thiz) {
+  uiThreadWorkSemaphore.block();
+}
+
+JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_flushUiWork
+(JNIEnv *env, jobject thiz) {
+  std::unique_lock<decltype(uiWorkMutex)> lock(uiWorkMutex);
+
+  for (;;) {
+    std::function<void ()> uiThreadFn;
+    bool wasBlocked = false;
+    {
+      std::unique_lock<decltype(uiThreadMutex)> lock(uiThreadMutex);
+      if (uiThreadFns.size() > 0) {
+        uiThreadFn = uiThreadFns.front();
+        uiThreadFns.pop_front();
+      } else {
+        wasBlocked = blockedOnUiThread;
+      }
+    }
+    if (uiThreadFn) {
+      uiThreadFn();
+
+      uiThreadWorkSemaphore.eat();
+    } else {
+      if (wasBlocked) {
+        uiThreadBlockCondition.open();
+      }
+
+      break;
+    }
+  }
+}
+
+JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_flushUiWorkUntilFrameDone
+(JNIEnv *env, jobject thiz) {
+  while (frameOutstanding) {
+    Java_com_mafintosh_nodeonandroid_NodeService_flushUiWork(env, thiz);
+  }
 }
 
 

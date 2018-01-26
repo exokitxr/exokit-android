@@ -228,7 +228,7 @@ class NodeService {
   NODE_EXTERN NodeService(int argc, char** argv, void (*initEnv)(NodeService *service));
   NODE_EXTERN ~NodeService();
   NODE_EXTERN void Scope(void (*fn)());
-  NODE_EXTERN void InterruptScope(void (*fn)());
+  NODE_EXTERN void Queue(void (*fn)());
   NODE_EXTERN bool Tick(unsigned int timeout);
   NODE_EXTERN void Loop();
 
