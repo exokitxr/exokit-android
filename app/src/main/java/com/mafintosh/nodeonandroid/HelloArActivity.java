@@ -251,7 +251,7 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
 
     @Override
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
-        GLES30.glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+        // GLES30.glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 
         // Create the texture and pass it to ARCore session to be filled during update().
         mBackgroundRenderer.createOnGlThread(this);
