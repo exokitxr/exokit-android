@@ -20,6 +20,12 @@ public class NodeService implements Runnable {
     private Context context;
     private boolean running;
 
+    static {
+      System.loadLibrary("node");
+      System.loadLibrary("freeimage");
+      System.loadLibrary("nodebinding");
+    }
+
     public NodeService(Context ctx) {
       context = ctx;
       running = false;
@@ -31,14 +37,6 @@ public class NodeService implements Runnable {
       {
         TimingLogger timings = new TimingLogger(TAG, "node service init");
 
-        timings.addSplit("load libraries");
-
-        System.loadLibrary("node");
-        System.loadLibrary("freeimage");
-        System.loadLibrary("nodebinding");
-
-        timings.addSplit("copy assets");
-
         String cache = context.getCacheDir().getAbsolutePath();
         String nodePath = cache + "/node";
         String corePath = cache + "/node_modules";
@@ -46,13 +44,18 @@ public class NodeService implements Runnable {
         copyAssets(am, "node_modules", corePath);
         copyAssets(am, "node", nodePath);
 
-        timings.addSplit("start node");
+        Log.i(TAG, "copied assets");
+        timings.addSplit("copied assets");
 
         start(nativeLibraryDir + "/node.so", nodePath + "/html5.js", nativeLibraryDir);
 
-        timings.addSplit("set running");
+        Log.i(TAG, "started node");
+        timings.addSplit("started node");
 
         setRunning();
+
+        Log.i(TAG, "setted running");
+        timings.addSplit("setted running");
 
         timings.dumpToLog();
       }
@@ -72,6 +75,9 @@ public class NodeService implements Runnable {
     private native void start(String binString, String scriptString, String libPath);
     // public native void tick(int timeout);
     private native void loop();
+    public native void waitForUiWork();
+    public native void flushUiWork();
+    public native void flushUiWorkUntilFrameDone();
 
     // GL
     public native void onSurfaceCreated();
