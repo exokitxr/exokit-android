@@ -6,8 +6,6 @@
  */
 
 #include "bindings.h"
-#include "webgl.h"
-#include "image.h"
 
 // Used to be a macro, hence the uppercase name.
 #define JS_GL_SET_CONSTANT(name, constant) target->Set(JS_STR( name ), JS_INT(constant))
@@ -16,18 +14,11 @@
 
 #define JS_GL_CONSTANT(name) JS_GL_SET_CONSTANT(#name, GL_ ## name)
 
-Local<Object> makeGl(node::NodeService *service) {
-  Isolate *isolate = service->GetIsolate();
+NAN_METHOD(newGl) {
+  Nan::HandleScope scope;
 
-  v8::EscapableHandleScope scope(isolate);
+  Local<Object> target(info.This());
 
-  Local<Object> target = Object::New(isolate);
-
-  /* atexit(webgl::AtExit);
-  atexit(Image::AtExit); */
-
-  // Nan::SetMethod(target,"Init",webgl::Init);
- 
   Nan::SetMethod(target, "uniform1f", webgl::Uniform1f);
   Nan::SetMethod(target, "uniform2f", webgl::Uniform2f);
   Nan::SetMethod(target, "uniform3f", webgl::Uniform3f);
@@ -639,13 +630,60 @@ Local<Object> makeGl(node::NodeService *service) {
   JS_GL_SET_CONSTANT("PIXEL_PACK_BUFFER_BINDING" , 0x88ED);
   JS_GL_SET_CONSTANT("PIXEL_UNPACK_BUFFER_BINDING", 0x88EF);
 
-  return scope.Escape(target);
+  info.GetReturnValue().Set(info.This());
 }
 
-Local<Object> makeImage(node::NodeService *service) {
+Local<Object> makeGl(node::NodeService *service) {
   Isolate *isolate = service->GetIsolate();
 
   v8::EscapableHandleScope scope(isolate);
 
-  return scope.Escape(Image::Initialize(isolate));
+  // constructor
+  Local<FunctionTemplate> ctor = Nan::New<FunctionTemplate>(newGl);
+  ctor->SetClassName(JS_STR("WebGLContext"));
+
+  // prototype
+  Local<ObjectTemplate> proto = ctor->PrototypeTemplate();
+
+  return scope.Escape(ctor->GetFunction());
+}
+
+Local<Object> makeImage(node::NodeService *service, canvas::ContextFactory *canvasContextFactory) {
+  Isolate *isolate = service->GetIsolate();
+
+  v8::EscapableHandleScope scope(isolate);
+
+  return scope.Escape(Image::Initialize(isolate, canvasContextFactory));
+}
+
+Local<Object> makeImageData(node::NodeService *service) {
+  Isolate *isolate = service->GetIsolate();
+
+  v8::EscapableHandleScope scope(isolate);
+
+  return scope.Escape(ImageData::Initialize(isolate));
+}
+
+Local<Object> makeImageBitmap(node::NodeService *service) {
+  Isolate *isolate = service->GetIsolate();
+
+  v8::EscapableHandleScope scope(isolate);
+
+  return scope.Escape(ImageBitmap::Initialize(isolate));
+}
+
+Local<Object> makeCanvasRenderingContext2D(node::NodeService *service, canvas::ContextFactory *canvasContextFactory) {
+  Isolate *isolate = service->GetIsolate();
+
+  v8::EscapableHandleScope scope(isolate);
+
+  return scope.Escape(CanvasRenderingContext2D::Initialize(isolate, canvasContextFactory));
+}
+
+Local<Object> makePath2D(node::NodeService *service) {
+  Isolate *isolate = service->GetIsolate();
+
+  v8::EscapableHandleScope scope(isolate);
+
+  return scope.Escape(Path2D::Initialize(isolate));
 }

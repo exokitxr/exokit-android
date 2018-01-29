@@ -1,10 +1,9 @@
-#ifndef IMAGE_H_
-#define IMAGE_H_
+#ifndef IMAGEDATA_H_
+#define IMAGEDATA_H_
 
 #include <v8.h>
 #include <nan/nan.h>
 #include <Context.h>
-#include <Image.h>
 #include <ImageData.h>
 
 using namespace v8;
@@ -17,32 +16,26 @@ class CanvasRenderingContext2D;
 #define JS_FLOAT(val) Nan::New<v8::Number>(val)
 #define JS_BOOL(val) Nan::New<v8::Boolean>(val)
 
-class Image : public ObjectWrap {
+class ImageData : public ObjectWrap {
 public:
-  static Handle<Object> Initialize(Isolate *isolate, canvas::ContextFactory *canvasContextFactory);
+  static Handle<Object> Initialize(Isolate *isolate);
   int GetWidth();
   int GetHeight();
-  void *GetData();
-  bool Load(const unsigned char *buffer, size_t size);
+  unsigned char *GetData();
 
 protected:
   static NAN_METHOD(New);
   static NAN_GETTER(WidthGetter);
   static NAN_GETTER(HeightGetter);
   static NAN_GETTER(DataGetter);
-  static NAN_METHOD(LoadMethod);
 
-  Image();
-  virtual ~Image();
+  ImageData(unsigned int width, unsigned int height);
+  virtual ~ImageData();
 
 private:
-  static canvas::ContextFactory *canvasContextFactory;
-
-  canvas::Image *image;
+  canvas::ImageData *imageData;
 
   friend class CanvasRenderingContext2D;
-  friend class ImageData;
-  friend class ImageBitmap;
 };
 
 #include "canvas.h"

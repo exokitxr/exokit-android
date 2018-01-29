@@ -722,9 +722,13 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_startNode__L
 } */
 
 
+std::function<void (node::NodeService *nodeService)> nodeServiceInitFunction;
 JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_start
-(JNIEnv *env, jobject thiz, jstring binPath, jstring jsPath, jstring libpath) {
+(JNIEnv *env, jobject thiz, jstring binPath, jstring jsPath, jstring libpath, jobject assetManager) {
   redirectStdioToLog();
+
+  AAssetManager *aAssetManager = AAssetManager_fromJava(env, assetManager);
+  canvas::AndroidContextFactory *canvasContextFactory = new canvas::AndroidContextFactory(aAssetManager, 1);
 
   const char *binPathString = env->GetStringUTFChars(binPath, NULL);
   const char *jsPathString = env->GetStringUTFChars(jsPath, NULL);
@@ -748,12 +752,20 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_start
   // node::Start(3, args);
   // service = new node::NodeService(3, args);
 
-  service = new node::NodeService(sizeof(args)/sizeof(args[0]), args, [](node::NodeService *service) {
+  nodeServiceInitFunction = [&](node::NodeService *service) {
     Isolate *isolate = service->GetIsolate();
     Local<Object> global = service->GetContext()->Global();
     global->Set(v8::String::NewFromUtf8(isolate, "nativeGl"), makeGl(service));
-    global->Set(v8::String::NewFromUtf8(isolate, "Image"), makeImage(service));
+    global->Set(v8::String::NewFromUtf8(isolate, "nativeImage"), makeImage(service, canvasContextFactory));
+    global->Set(v8::String::NewFromUtf8(isolate, "nativeCanvasRenderingContext2D"), makeCanvasRenderingContext2D(service, canvasContextFactory));
+    global->Set(v8::String::NewFromUtf8(isolate, "nativePath2D"), makePath2D(service));
+  };
+  service = new node::NodeService(sizeof(args)/sizeof(args[0]), args, [](node::NodeService *service) {
+    nodeServiceInitFunction(service);
   });
+
+  std::function<void (node::NodeService *nodeService)> nopFunction;
+  nodeServiceInitFunction = nopFunction;
 }
 
 JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_tick

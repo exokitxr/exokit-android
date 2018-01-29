@@ -21,7 +21,6 @@ public class NodeService {
 
     static {
       System.loadLibrary("node");
-      System.loadLibrary("freeimage");
       System.loadLibrary("nodebinding");
     }
 
@@ -45,7 +44,7 @@ public class NodeService {
         Log.i(TAG, "copied assets");
         timings.addSplit("copied assets");
 
-        start(nativeLibraryDir + "/node.so", nodePath + "/html5.js", nativeLibraryDir);
+        start(nativeLibraryDir + "/node.so", nodePath + "/html5.js", nativeLibraryDir, am);
 
         Log.i(TAG, "started node");
         timings.addSplit("started node");
@@ -55,7 +54,7 @@ public class NodeService {
     }
 
     // uv
-    private native void start(String binString, String scriptString, String libPath);
+    private native void start(String binString, String scriptString, String libPath, AssetManager am);
     public native void tick(int timeout);
 
     // GL

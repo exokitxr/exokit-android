@@ -1,48 +1,42 @@
-#ifndef IMAGE_H_
-#define IMAGE_H_
+#ifndef IMAGEBITMAP_H_
+#define IMAGEBITMAP_H_
 
 #include <v8.h>
 #include <nan/nan.h>
 #include <Context.h>
-#include <Image.h>
 #include <ImageData.h>
 
 using namespace v8;
 using namespace node;
 
 class CanvasRenderingContext2D;
+class Image;
 
 #define JS_STR(...) Nan::New<v8::String>(__VA_ARGS__).ToLocalChecked()
 #define JS_INT(val) Nan::New<v8::Integer>(val)
 #define JS_FLOAT(val) Nan::New<v8::Number>(val)
 #define JS_BOOL(val) Nan::New<v8::Boolean>(val)
 
-class Image : public ObjectWrap {
+class ImageBitmap : public ObjectWrap {
 public:
-  static Handle<Object> Initialize(Isolate *isolate, canvas::ContextFactory *canvasContextFactory);
+  static Handle<Object> Initialize(Isolate *isolate);
   int GetWidth();
   int GetHeight();
-  void *GetData();
-  bool Load(const unsigned char *buffer, size_t size);
 
 protected:
   static NAN_METHOD(New);
   static NAN_GETTER(WidthGetter);
   static NAN_GETTER(HeightGetter);
   static NAN_GETTER(DataGetter);
-  static NAN_METHOD(LoadMethod);
+  static NAN_METHOD(CreateImageBitmap);
 
-  Image();
-  virtual ~Image();
+  ImageBitmap(Image *image);
+  virtual ~ImageBitmap();
 
 private:
-  static canvas::ContextFactory *canvasContextFactory;
-
-  canvas::Image *image;
+  canvas::ImageData *imageData;
 
   friend class CanvasRenderingContext2D;
-  friend class ImageData;
-  friend class ImageBitmap;
 };
 
 #include "canvas.h"

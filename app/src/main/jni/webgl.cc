@@ -76,12 +76,12 @@ inline void *getImageData(Local<Value> arg, int *num = NULL) {
     Local<Object> obj = Local<Object>::Cast(arg);
     if (obj->IsObject()) {
       if (obj->IsArrayBufferView()) {
-        pixels = getArrayData<BYTE>(obj, num);
+        pixels = getArrayData<unsigned char>(obj, num);
       } else {
         Local<String> dataString = String::NewFromUtf8(isolate, "data", NewStringType::kInternalized).ToLocalChecked();
         Local<Value> data = obj->Get(dataString);
         if (data->BooleanValue()) {
-          pixels = getArrayData<BYTE>(data, num);
+          pixels = getArrayData<unsigned char>(data, num);
         } else {
           Nan::ThrowError("Bad texture argument");
           // pixels = node::Buffer::Data(Nan::Get(obj, JS_STR("data")).ToLocalChecked());
@@ -880,10 +880,10 @@ NAN_METHOD(TexImage2D) {
         internalformat->TypeOf(isolate)->StrictEquals(numberString),
         width->TypeOf(isolate)->StrictEquals(numberString),
         height->TypeOf(isolate)->StrictEquals(numberString),
-        border->IsNull(),
-        !border->IsNull() && border->TypeOf(isolate)->StrictEquals(objectString),
-        !border->IsNull() && border->TypeOf(isolate)->StrictEquals(objectString) && border->ToObject()->Get(widthString)->TypeOf(isolate)->StrictEquals(numberString),
-        !border->IsNull() && border->TypeOf(isolate)->StrictEquals(objectString) && border->ToObject()->Get(heightString)->TypeOf(isolate)->StrictEquals(numberString)
+        border->IsNull(), // 0
+        !border->IsNull() && border->TypeOf(isolate)->StrictEquals(objectString), // 1
+        !border->IsNull() && border->TypeOf(isolate)->StrictEquals(objectString) && border->ToObject()->Get(widthString)->TypeOf(isolate)->StrictEquals(numberString), // 0
+        !border->IsNull() && border->TypeOf(isolate)->StrictEquals(objectString) && border->ToObject()->Get(heightString)->TypeOf(isolate)->StrictEquals(numberString) // 0
       );
 
       Nan::ThrowError("Expected texImage2D(number target, number level, number internalformat, number format, number type, Image pixels)");

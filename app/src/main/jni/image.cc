@@ -1,35 +1,13 @@
 #include "image.h"
-// #include <cstdlib>
-#include <vector>
 
 using namespace v8;
 using namespace node;
 using namespace std;
 
-static vector<Image*> images;
-
-static void registerImage(Image *obj) {
-  images.push_back(obj);
-}
-
-
-static void unregisterImage(Image* obj) {
-  vector<Image*>::iterator it = images.begin();
-  while(it != images.end()) {
-    if(*it==obj) {
-      images.erase(it);
-      break;
-    }
-    it++;
-  }
-}
-
-
 // Persistent<Function> Image::constructor_template;
+canvas::ContextFactory *Image::canvasContextFactory;
 
-Handle<Object> Image::Initialize(Isolate *isolate) {
-  FreeImage_Initialise(true);
-
+Handle<Object> Image::Initialize(Isolate *isolate, canvas::ContextFactory *canvasContextFactory) {
   v8::EscapableHandleScope scope(isolate);
 
   // constructor
@@ -38,61 +16,37 @@ Handle<Object> Image::Initialize(Isolate *isolate) {
   ctor->SetClassName(JS_STR("Image"));
 
   // prototype
-  Nan::SetPrototypeMethod(ctor, "save",save);// NODE_SET_PROTOTYPE_METHOD(ctor, "save", save);
+  // Nan::SetPrototypeMethod(ctor, "save",save);// NODE_SET_PROTOTYPE_METHOD(ctor, "save", save);
   Local<ObjectTemplate> proto = ctor->PrototypeTemplate();
 
   Nan::SetAccessor(proto,JS_STR("width"), WidthGetter);
   Nan::SetAccessor(proto,JS_STR("height"), HeightGetter);
-  // Nan::SetAccessor(proto,JS_STR("pitch"), PitchGetter);
-  Nan::SetAccessor(proto,JS_STR("src"), SrcGetter, SrcSetter);
+  Nan::SetAccessor(proto,JS_STR("data"), DataGetter);
+  Nan::SetMethod(proto,"load", LoadMethod);
+  // Nan::SetAccessor(proto,JS_STR("src"), SrcGetter, SrcSetter);
   // Nan::Set(target, JS_STR("Image"), ctor->GetFunction());
 
   // constructor_template.Reset(Isolate::GetCurrent(), ctor->GetFunction());
 
+  Image::canvasContextFactory = canvasContextFactory;
+
   return scope.Escape(ctor->GetFunction());
 }
 
-int Image::GetWidth () {
-  return FreeImage_GetWidth(image_bmp);
+int Image::GetWidth() {
+  return image->getData().getWidth();
 }
 
-int Image::GetHeight () {
-  return FreeImage_GetHeight(image_bmp);
+int Image::GetHeight() {
+  return image->getData().getHeight();
 }
 
-int Image::GetPitch () {
-  return FreeImage_GetPitch(image_bmp);
+void *Image::GetData() {
+  return (void *)image->getData().getData();
 }
 
-void *Image::GetData () {
-  BYTE *pixels = FreeImage_GetBits(image_bmp);
-
-  // FreeImage stores data in BGR
-  // Convert from BGR to RGB
-  int sz=FreeImage_GetWidth(image_bmp) * FreeImage_GetHeight(image_bmp);
-  for(int i = 0; i < sz; i++)
-  {
-    int i4=i<<2;
-    BYTE temp = pixels[i4 + 0];
-    pixels[i4 + 0] = pixels[i4 + 2];
-    pixels[i4 + 2] = temp;
-  }
-
-  return pixels;
-}
-
-void Image::Load (const char *filename) {
-  this->filename = (char *)filename;
-
-  if (image_bmp) {
-    FreeImage_Unload(image_bmp);
-  }
-
-  FREE_IMAGE_FORMAT format = FreeImage_GetFileType(filename, 0);
-
-  FIBITMAP *tmp = FreeImage_Load(format, filename, 0);
-  image_bmp = FreeImage_ConvertTo32Bits(tmp);
-  FreeImage_Unload(tmp);
+bool Image::Load(const unsigned char *buffer, size_t size) {
+  return image->decode(buffer, size);
 }
 
 NAN_METHOD(Image::New) {
@@ -100,7 +54,6 @@ NAN_METHOD(Image::New) {
 
   Image *image = new Image();
   image->Wrap(info.This());
-  registerImage(image);
   info.GetReturnValue().Set(info.This());
 }
 
@@ -120,153 +73,35 @@ NAN_GETTER(Image::HeightGetter) {
   info.GetReturnValue().Set(JS_INT(image->GetHeight()));
 }
 
-NAN_GETTER(Image::PitchGetter) {
+NAN_GETTER(Image::DataGetter) {
   Nan::HandleScope scope;
 
   Image *image = ObjectWrap::Unwrap<Image>(info.This());
+  unsigned int width = image->GetWidth();
+  unsigned int height = image->GetHeight();
+  Local<ArrayBuffer> arrayBuffer = ArrayBuffer::New(Isolate::GetCurrent(), (void *)image->image->getData().getData(), width * height * 4);
+  Local<Uint8ClampedArray> uint8ClampedArray = Uint8ClampedArray::New(arrayBuffer, 0, arrayBuffer->ByteLength());
 
-  info.GetReturnValue().Set(JS_INT(image->GetPitch()));
+  info.GetReturnValue().Set(uint8ClampedArray);
 }
 
-NAN_GETTER(Image::SrcGetter) {
+NAN_METHOD(Image::LoadMethod) {
   Nan::HandleScope scope;
 
   Image *image = ObjectWrap::Unwrap<Image>(info.This());
+  Local<ArrayBuffer> arrayBuffer = Local<ArrayBuffer>::Cast(info[0]);
+  v8::ArrayBuffer::Contents contents = arrayBuffer->GetContents();
+  unsigned char *data = (unsigned char *)contents.Data();
+  size_t size = contents.ByteLength();
 
-  info.GetReturnValue().Set(JS_STR(image->filename));
+  bool result = image->Load(data, size);
+
+  info.GetReturnValue().Set(JS_BOOL(result));
 }
 
-NAN_SETTER(Image::SrcSetter) {
-  Nan::HandleScope scope;
-  Nan::MaybeLocal<v8::Object> buffer;
-
-  Image *image = ObjectWrap::Unwrap<Image>(info.This());
-  String::Utf8Value filename_s(value->ToString());
-  image->Load(*filename_s);
-
-  // adjust internal fields
-  size_t num_pixels = FreeImage_GetWidth(image->image_bmp) * FreeImage_GetHeight(image->image_bmp);
-  BYTE *pixels = FreeImage_GetBits(image->image_bmp);
-  size_t num_bytes = num_pixels * 4;
-
-  // FreeImage stores data in BGR
-  // Convert from BGR to RGB
-  for(size_t i = 0; i < num_pixels; i++)
-  {
-    size_t i4=i<<2;
-    BYTE temp = pixels[i4 + 0];
-    pixels[i4 + 0] = pixels[i4 + 2];
-    pixels[i4 + 2] = temp;
-  }
-
-  buffer = Nan::NewBuffer((int)num_bytes);
-
-  std::memcpy(node::Buffer::Data(buffer.ToLocalChecked()),pixels, (int)num_bytes);
-
-  Nan::Set(info.This(), JS_STR("data"), buffer.ToLocalChecked());
-
-  Nan::MaybeLocal<Value> onload = Nan::Get(info.This(), JS_STR("onload"));//info.This()->Get(Nan::New<String>("emit"));
-  if (!onload.IsEmpty()) {
-    Local<Value> onloadLocal = onload.ToLocalChecked();
-
-    if (onloadLocal->IsFunction()) {
-      Local<Function> onloadLocalFn = onloadLocal.As<Function>();
-
-      TryCatch tc;
-
-      Handle<Value> argv[] = {};
-      onloadLocalFn->Call(info.This(), 0, argv);
-
-      if (tc.HasCaught()) {
-        FatalException(info.GetIsolate(),tc);
-      }
-    }
-  }
-
-  // emit event
-  /* Nan::MaybeLocal<Value> emit_v = Nan::Get(info.This(), JS_STR("emit"));//info.This()->Get(Nan::New<String>("emit"));
-  assert(emit_v.ToLocalChecked()->IsFunction());
-  Local<Function> emit_f = emit_v.ToLocalChecked().As<Function>();
-
-  Handle<Value> argv[2] = {
-    JS_STR("load"), // event name
-    value  // argument
-  };
-
-  TryCatch tc;
-
-  emit_f->Call(info.This(), 2, argv);
-
-  if (tc.HasCaught())
-    FatalException(info.GetIsolate(),tc); */
+Image::Image () {
+  image = Image::canvasContextFactory->createImage().release();
 }
-
-NAN_METHOD(Image::save) {
-  Nan::HandleScope scope;
-  String::Utf8Value filename(info[0]->ToString());
-
-  FREE_IMAGE_FORMAT format = FreeImage_GetFIFFromFilename(*filename);
-
-  void *buffer = node::Buffer::Data(info[1]);
-
-  uint32_t width=info[2]->ToUint32()->Value();
-  uint32_t height=info[3]->ToUint32()->Value();
-
-  uint32_t pitch=width*4, bpp=32;
-  uint32_t redMask=0xFF000000, greenMask=0x00FF0000, blueMask=0x0000FF00;
-
-  if(info.Length()>4) pitch=info[4]->ToUint32()->Value();
-  if(info.Length()>5) bpp=info[5]->ToUint32()->Value();
-  if(info.Length()>6) redMask=info[6]->ToUint32()->Value();
-  if(info.Length()>7) greenMask=info[7]->ToUint32()->Value();
-  if(info.Length()>8) blueMask=info[8]->ToUint32()->Value();
-
-  FIBITMAP *image = FreeImage_ConvertFromRawBits(
-      (BYTE*)buffer,
-      width, height, pitch, bpp,
-      redMask, greenMask, blueMask);
-
-  if(format==FIF_JPEG && bpp!=24) {
-    FIBITMAP *old=image;
-    image=FreeImage_ConvertTo24Bits(image);
-    FreeImage_Unload(old);
-  }
-  bool ret=FreeImage_Save(format, image, *filename)==1;
-  FreeImage_Unload(image);
-  info.GetReturnValue().Set(Nan::New<Boolean>(ret));
-}
-
 Image::~Image () {
-  if (image_bmp) {
-    #ifdef LOGGING
-    cout<<"  Deleting image"<<endl;
-    #endif
-    FreeImage_Unload(image_bmp);
-  }
-  unregisterImage(this);
-}
-
-void Image::AtExit() {
-  #ifdef LOGGING
-  cout<<"Image AtExit()"<<endl;
-  #endif
-  vector<Image*>::iterator it = images.begin();
-  while(it != images.end()) {
-    Image *img=*it;
-    //v8::Persistent<v8::Value> value = img->handle_;
-    //v8::Object* obj = v8::Object::Cast(*value);
-    //BYTE* ptr = (BYTE*) obj->GetIndexedPropertiesExternalArrayData();
-    //value.ClearWeak();
-    //value.Dispose();
-    if (img->image_bmp) {
-      #ifdef LOGGING
-      cout<<"  Deleting image"<<endl;
-      #endif
-      FreeImage_Unload(img->image_bmp);
-      img->image_bmp=NULL;
-    }
-
-    it++;
-  }
-  FreeImage_DeInitialise();
+  delete image;
 }
