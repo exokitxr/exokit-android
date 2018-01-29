@@ -10,9 +10,10 @@
 using namespace std;
 using namespace canvas;
 
-void
+bool
 Image::decode(const unsigned char * buffer, size_t size) {
   data = loadFromMemory(buffer, size);
+  return (bool)data;
 }
 
 std::unique_ptr<ImageData>
@@ -20,7 +21,8 @@ Image::loadFromMemory(const unsigned char * buffer, size_t size) {
   int w, h, channels;
   auto img_buffer = stbi_load_from_memory(buffer, size, &w, &h, &channels, 0);
   if (!img_buffer) {
-    throw ImageLoadingException(stbi_failure_reason());
+    // throw ImageLoadingException(stbi_failure_reason());
+    return nullptr;
   }
   // cerr << "Image.cpp: loaded image, size = " << size << ", b = " << (void*)img_buffer << ", w = " << w << ", h = " << h << ", ch = " << channels << endl;
   assert(w && h && channels);    

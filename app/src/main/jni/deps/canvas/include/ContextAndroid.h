@@ -9,6 +9,8 @@
 #include <android/asset_manager.h>
 #include <android/asset_manager_jni.h>
 
+#include "../src/stb_image.h"
+
 namespace canvas {
 class AndroidCache {
   public:
@@ -669,6 +671,7 @@ class AndroidContextFactory: public ContextFactory {
 public:
   AndroidContextFactory(AAssetManager * _asset_manager, float _displayScale) :
     ContextFactory(_displayScale), asset_manager(_asset_manager) {
+    stbi_set_flip_vertically_on_load(true);
   }
 
   std::unique_ptr<Context> createContext(unsigned int width, unsigned int height, unsigned int num_channels) override {

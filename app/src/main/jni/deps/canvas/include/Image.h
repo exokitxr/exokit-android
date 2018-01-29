@@ -20,7 +20,7 @@ namespace canvas {
 
     virtual ~Image() = default;
 
-    void decode(const unsigned char * buffer, size_t size);
+    bool decode(const unsigned char * buffer, size_t size);
     void scale(unsigned int target_width, unsigned int target_height) {
       if (!filename.empty() && !data.get()) {
 	loadFile();
