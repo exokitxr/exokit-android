@@ -82,6 +82,9 @@ void queueServiceUiThread(std::function<void ()> &&fn) {
   service->Scope([]() {
     serviceUiThreadFn();
   });
+
+  std::function<void ()> nopFunctoon;
+  serviceUiThreadFn = nopFunctoon;
 }
 
 // long readAsset(const char *filename, char **output);
