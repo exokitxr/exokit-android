@@ -12,7 +12,7 @@ process.env['LD_LIBRARY_PATH'] = libPath;
 // ENVIRONMENT
 
 const exokit = require('exokit');
-// const THREE = require('three-zeo');
+const {THREE} = exokit;
 
 /* const {VERSION} = nativeGl;
 
@@ -32,7 +32,11 @@ nativeGl.getParameter = id => {
 nativeGl.createTexture = () => {};
 nativeGl.bindTexture = () => {};
 nativeGl.texParameteri = () => {};
-nativeGl.texImage2D = () => {};
+const _texImage2D = nativeGl.texImage2D;
+nativeGl.texImage2D = function() {
+  console.log('got teximage2d');
+  _texImage2D.apply(this, arguments);
+};
 nativeGl.clearColor = () => {};
 nativeGl.clearDepth = () => {};
 nativeGl.clearStencil = () => {};
@@ -49,41 +53,17 @@ nativeGl.viewport = function() {
   _viewport.apply(this, arguments);
 }; */
 
-/* const {window} = exokit();
-const {document, fetch} = window; */
-
-const windows = [];
-let innerWidth = 1280;
-let innerHeight = 1024;
-
 // CALLBACKS
 
-/* global.onSurfaceCreated = () => {
-  // console.log('js onSurfaceCreated');
-
-  if (!animating) {
-    animating = true;
-
-    _startAnimation();
-  }
-}; */
 global.onResize = (width, height) => {
-  //  console.log('js onSurfaceChanged', {width, height});
-
-  // gl.viewport(0, 0, width, height);
-
   innerWidth = width;
   innerHeight = height;
 
-  for (let i = 0; i < windows.length; i++) {
-    const window = windows[i];
-
+  if (window) {
     window.innerWidth = innerWidth;
     window.innerHeight = innerHeight;
     window.emit('resize');
   }
-
-  // renderer.setSize(width, height);
 };
 
 // VR
@@ -95,123 +75,47 @@ global.onDrawEye = (eyeViewMatrixFloat32Array, eyePerspectiveMatrixFloat32Array)
 };
 
 // AR
-// const localMatrix = new THREE.Matrix4();
+const localMatrix = new THREE.Matrix4();
+const localMatrix2 = new THREE.Matrix4();
+const localMatrix3 = new THREE.Matrix4();
 global.onDrawFrame = (viewMatrixFloat32Array, projectionMatrixFloat32Array, centerFloat32Array) => {
-  /* camera.matrixWorldInverse.fromArray(viewMatrixFloat32Array);
-  camera.matrixWorld.getInverse(camera.matrixWorldInverse)
-    .premultiply(localMatrix.makeTranslation(-centerFloat32Array[0], -centerFloat32Array[1], -centerFloat32Array[2]));
-  camera.matrixWorldInverse.getInverse(camera.matrixWorld);
+  if (window) {
+    const matrixWorldInverse = localMatrix.fromArray(viewMatrixFloat32Array);
+    const matrixWorld = localMatrix2.getInverse(matrixWorldInverse)
+      .premultiply(
+        localMatrix3.makeTranslation(-centerFloat32Array[0], -centerFloat32Array[1], -centerFloat32Array[2])
+      );
+    matrixWorld.toArray(viewMatrixFloat32Array);
 
-  camera.projectionMatrix.fromArray(projectionMatrixFloat32Array); */
-
-  for (let i = 0; i < windows.length; i++) {
-    windows[i].tickAnimationFrame();
+    window.alignFrame(viewMatrixFloat32Array, projectionMatrixFloat32Array);
+    window.tickAnimationFrame();
   }
 };
 
 // MAIN
 
-/* const skinJs = require('skin-js');
-const skinJsPath = path.dirname(require.resolve('skin-vr'));
-const skin = skinJs(THREE); */
+let window = null;
+let innerWidth = 1280;
+let innerHeight = 1024;
 
-const appUrl = 'http://192.168.0.13:8000/';
-exokit.fetch(appUrl, {
-  url: appUrl,
-})
+exokit.fetch('http://192.168.0.13:8000/')
   .then(site => {
     console.log('node site loaded');
 
-    const {window} = site;
+    window = site.window;
     window.innerWidth = innerWidth;
     window.innerHeight = innerHeight;
-    windows.push(window);
+    window.navigator.setVRMode('ar');
     window.addEventListener('error', err => {
       console.warn('got error', err.error.stack);
     });
   });
 
-/* const canvas = document.createElement('canvas');
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
-const gl = canvas.getContext('webgl');
-let renderer = null;
-let camera = null;
-
-let animating = false;
-const _startAnimation = () => {
-  console.log('node html start animation');
-
-  renderer = new THREE.WebGLRenderer({
-    canvas,
-    context: gl,
-    antialias: true,
-    alpha: true,
-    preserveDrawingBuffer: true,
-  });
-  renderer.autoClear = false;
-  // console.log('disable', gl.DEPTH_TEST);
-  // gl.disable(gl.DEPTH_TEST);
-  // console.log('disable', gl.CULL_FACE);
-  // gl.disable(gl.CULL_FACE);
-  // renderer.setSize(canvas.width, canvas.height);
-  renderer.setClearColor(0x000000, 0);
-  // renderer.setClearColor(0xFF0000, 0.5);
-
-  const scene = new THREE.Scene();
-  scene.autoUpdate = false;
-
-  camera = new THREE.PerspectiveCamera(90, canvas.width / canvas.height, 0.1, 100);
-  camera.position.set(2, 2, 2);
-  camera.updateMatrixWorld();
-  camera.lookAt(new THREE.Vector3(0, 0, 0));
-  camera.matrixAutoUpdate = false;
-  scene.add(camera);
-
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-  scene.add(ambientLight);
-
-  const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-  directionalLight.position.set(3, 3, 3);
-  directionalLight.updateMatrixWorld();
-  scene.add(directionalLight);
-
-  const _requestImage = src => new Promise((accept, reject) => {
-    const img = new Image();
-    img.onload = () => {
-      console.log('image onload', img.data.length);
-
-      accept(img);
-    };
-    img.onerror = err => {
-      console.log('image onerror', err);
-
-      reject(err);
-    };
-    img.src = src;
-  });
-
-  const skinMesh = (() => {
-    const object = new THREE.Object3D();
-
-    _requestImage(path.join(skinJsPath, 'lib', 'img', 'female.png'))
-      .then(skinImg => {
-        const mesh = skin(skinImg);
-        object.add(mesh);
-      });
-
-    return object;
-  })();
-  scene.add(skinMesh);
-
-  const _recurse = () => {
-    renderer.state.reset();
-
-    renderer.render(scene, camera);
-
-    window.requestAnimationFrame(_recurse);
-  };
-  _recurse();
-}; */
+process.on('uncaughtException', err => {
+  console.warn(err.stack);
+});
+process.on('unhandledRejection', err => {
+  console.warn(err.stack);
+});
 
 console.log('node boot html end');
