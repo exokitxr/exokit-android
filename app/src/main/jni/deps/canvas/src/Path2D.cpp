@@ -88,6 +88,58 @@ static inline float determinant(float x1, float y1, float x2, float y2) {
   return x1 * y2 - x2 * y1;
 }
 
+#define MU_PATH_RECURSION_LIMIT 8
+#define MU_PATH_DISTANCE_EPSILON 1.0f
+#define MU_PATH_COLLINEARITY_EPSILON FLT_EPSILON
+#define MU_PATH_MIN_STEPS_FOR_CIRCLE 20.0f
+#define MU_PATH_MAX_STEPS_FOR_CIRCLE 64.0f
+
+void Path2D::quadraticCurveTo(float cpx, float cpy, float x, float y, float scale) {
+  float distanceTolerance = MU_PATH_DISTANCE_EPSILON / scale;
+  distanceTolerance *= distanceTolerance;
+
+  recursiveQuadratic(current_point.x, current_point.y, cpx, cpy, x, y, 0, distanceTolerance);
+}
+
+void Path2D::recursiveQuadratic(float x1, float y1, float x2, float y2, float x3, float y3, int level, float distanceTolerance) {
+  // Based on http://www.antigrain.com/research/adaptive_bezier/index.html
+
+  // Calculate all the mid-points of the line segments
+  float x12 = (x1 + x2) / 2;
+  float y12 = (y1 + y2) / 2;
+  float x23 = (x2 + x3) / 2;
+  float y23 = (y2 + y3) / 2;
+  float x123 = (x12 + x23) / 2;
+  float y123 = (y12 + y23) / 2;
+
+  float dx = x3 - x1;
+  float dy = y3 - y1;
+  float d = fabsf(((x2 - x3) * dy - (y2 - y3) * dx));
+
+  if (d > MU_PATH_COLLINEARITY_EPSILON) {
+    // Regular care
+    if (d * d <= distanceTolerance * (dx * dx + dy * dy)) {
+      lineTo(Point(x123, y123));
+      return;
+    }
+  }
+  else {
+    // Collinear case
+    dx = x123 - (x1 + x3) / 2;
+    dy = y123 - (y1 + y3) / 2;
+    if (dx * dx + dy * dy <= distanceTolerance) {
+      lineTo(Point(x123, y123));
+      return;
+    }
+  }
+
+  if (level <= MU_PATH_RECURSION_LIMIT) {
+    // Continue subdivision
+    recursiveQuadratic(x1, y1, x12, y12, x123, y123, level + 1, distanceTolerance);
+    recursiveQuadratic(x123, y123, x23, y23, x3, y3, level + 1, distanceTolerance);
+  }
+}
+
 #if 0
 // returns vector cross product of vectors p1p2 and p1p3 using Cramer's rule
 static inline float crossProduct(const glm::vec2 & p1, const glm::vec2 & p2, const glm::vec2 & p3) {

@@ -38,6 +38,8 @@ namespace canvas {
     }
     void arc(const Point & p, double radius, double sa, double ea, bool anticlockwise);
     void arcTo(const Point & p1, const Point & p2, double radius);
+    void quadraticCurveTo(float cpx, float cpy, float x, float y, float scale);
+    void recursiveQuadratic(float x1, float y1, float x2, float y2, float x3, float y3, int level, float distanceTolerance);
 
     const std::vector<PathComponent> & getData() const { return data; }
 

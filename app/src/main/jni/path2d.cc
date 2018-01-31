@@ -24,6 +24,7 @@ Handle<Object> Path2D::Initialize(Isolate *isolate) {
   Nan::SetMethod(proto,"closePath", ClosePath);
   Nan::SetMethod(proto,"arc", Arc);
   Nan::SetMethod(proto,"arcTo", ArcTo);
+  Nan::SetMethod(proto,"quadraticCurveTo", QuadraticCurveTo);
   Nan::SetMethod(proto,"clear", Clear);
   // Nan::SetAccessor(proto,JS_STR("src"), SrcGetter, SrcSetter);
   // Nan::Set(target, JS_STR("Image"), ctor->GetFunction());
@@ -47,6 +48,9 @@ void Path2D::Arc(double x, double y, double radius, double startAngle, double en
 }
 void Path2D::ArcTo(double x1, double y1, double x2, double y2, double radius) {
   path2d->arcTo(canvas::Point(x1, y1), canvas::Point(x2, y2), radius);
+}
+void Path2D::QuadraticCurveTo(double cpx, double cpy, double x, double y) {
+  path2d->quadraticCurveTo(cpx, cpy, x, y, 1);
 }
 void Path2D::Clear() {
   path2d->clear();
@@ -114,6 +118,18 @@ NAN_METHOD(Path2D::ArcTo) {
   double radius = info[4]->NumberValue();
 
   path2d->ArcTo(x1, y1, x2, y2, radius);
+}
+
+NAN_METHOD(Path2D::QuadraticCurveTo) {
+  Nan::HandleScope scope;
+
+  Path2D *path2d = ObjectWrap::Unwrap<Path2D>(info.This());
+  double cpx = info[0]->NumberValue();
+  double cpy = info[1]->NumberValue();
+  double x = info[2]->NumberValue();
+  double y = info[3]->NumberValue();
+
+  path2d->QuadraticCurveTo(cpx, cpy, x, y);
 }
 
 NAN_METHOD(Path2D::Clear) {

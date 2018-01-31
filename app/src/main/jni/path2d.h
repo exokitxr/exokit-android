@@ -25,6 +25,7 @@ public:
   void ClosePath();
   void Arc(double x, double y, double radius, double startAngle, double endAngle, double anticlockwise);
   void ArcTo(double x1, double y1, double x2, double y2, double radius);
+  void QuadraticCurveTo(double cpx, double cpy, double x, double y);
   void Clear();
 
 protected:
@@ -34,6 +35,7 @@ protected:
   static NAN_METHOD(ClosePath);
   static NAN_METHOD(Arc);
   static NAN_METHOD(ArcTo);
+  static NAN_METHOD(QuadraticCurveTo);
   static NAN_METHOD(Clear);
 
   Path2D();
