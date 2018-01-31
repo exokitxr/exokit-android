@@ -30,7 +30,7 @@ Image::loadFromMemory(const unsigned char * buffer, size_t size) {
     // cerr << "Image.cpp: loaded image, size = " << size << ", b = " << (void*)imgDataBuffer << ", w = " << w << ", h = " << h << ", ch = " << channels << endl;
     assert(w && h && channels);
 
-    std::unique_ptr<ImageData> data = std::unique_ptr<ImageData>(new ImageData(imgDataBuffer, w, h, channels));
+    std::unique_ptr<ImageData> data = std::unique_ptr<ImageData>(new ImageData(imgDataBuffer, w, h, 4));
 
     stbi_image_free(imgDataBuffer);
 
@@ -45,11 +45,10 @@ Image::loadFromMemory(const unsigned char * buffer, size_t size) {
       if (svgImage->width > 0 && svgImage->height > 0 && svgImage->shapes != nullptr) {
         int w = svgImage->width;
         int h = svgImage->height;
-        int channels = 4;
         unsigned char *imgDataBuffer = (unsigned char *)malloc(w * h * 4);
-        nsvgRasterize(svgRasterizer, svgImage, 0, 0, 1, imgDataBuffer, w, h, w * channels);
+        nsvgRasterize(svgRasterizer, svgImage, 0, 0, 1, imgDataBuffer, w, h, w * 4);
 
-        std::unique_ptr<ImageData> data = std::unique_ptr<ImageData>(new ImageData(imgDataBuffer, w, h, channels));
+        std::unique_ptr<ImageData> data = std::unique_ptr<ImageData>(new ImageData(imgDataBuffer, w, h, 4));
 
         free(svgImage);
 
