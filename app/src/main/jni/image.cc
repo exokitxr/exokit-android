@@ -2,7 +2,7 @@
 
 using namespace v8;
 using namespace node;
-using namespace std;
+// using namespace std;
 
 // Persistent<Function> Image::constructor_template;
 canvas::ContextFactory *Image::canvasContextFactory;
@@ -33,16 +33,20 @@ Handle<Object> Image::Initialize(Isolate *isolate, canvas::ContextFactory *canva
   return scope.Escape(ctor->GetFunction());
 }
 
-int Image::GetWidth() {
+unsigned int Image::GetWidth() {
   return image->getData().getWidth();
 }
 
-int Image::GetHeight() {
+unsigned int Image::GetHeight() {
   return image->getData().getHeight();
 }
 
-void *Image::GetData() {
-  return (void *)image->getData().getData();
+unsigned int Image::GetNumChannels() {
+  return image->getData().getNumChannels();
+}
+
+unsigned char *Image::GetData() {
+  return image->getData().getData();
 }
 
 bool Image::Load(const unsigned char *buffer, size_t size) {
@@ -79,7 +83,11 @@ NAN_GETTER(Image::DataGetter) {
   Image *image = ObjectWrap::Unwrap<Image>(info.This());
   unsigned int width = image->GetWidth();
   unsigned int height = image->GetHeight();
-  Local<ArrayBuffer> arrayBuffer = ArrayBuffer::New(Isolate::GetCurrent(), (void *)image->image->getData().getData(), width * height * 4);
+  // unsigned int numChannels = image->GetNumChannels();
+  Local<ArrayBuffer> arrayBuffer = ArrayBuffer::New(Isolate::GetCurrent(), image->GetData(), width * height * 4);
+  // Local<ArrayBuffer> arrayBuffer = ArrayBuffer::New(Isolate::GetCurrent(), width * height * numChannels);
+  // memcpy(arrayBuffer->GetContents().Data(), image->GetData(), width * height * numChannels);
+  // std::cout << "image data getter " << (void *)arrayBuffer->GetContents().Data() << " : " << (void *)image->GetData() << " : " << width << " : " << height << " : " << numChannels << "\n";
   Local<Uint8ClampedArray> uint8ClampedArray = Uint8ClampedArray::New(arrayBuffer, 0, arrayBuffer->ByteLength());
 
   info.GetReturnValue().Set(uint8ClampedArray);

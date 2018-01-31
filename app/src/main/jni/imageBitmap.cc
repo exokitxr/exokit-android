@@ -1,10 +1,8 @@
 #include "imageBitmap.h"
-// #include <vector>
-// #include <Image.h>
 
 using namespace v8;
 using namespace node;
-using namespace std;
+// using namespace std;
 
 Handle<Object> ImageBitmap::Initialize(Isolate *isolate) {
   v8::EscapableHandleScope scope(isolate);
@@ -20,6 +18,7 @@ Handle<Object> ImageBitmap::Initialize(Isolate *isolate) {
 
   Nan::SetAccessor(proto,JS_STR("width"), WidthGetter);
   Nan::SetAccessor(proto,JS_STR("height"), HeightGetter);
+  Nan::SetAccessor(proto,JS_STR("data"), DataGetter);
 
   ctor->Set(JS_STR("createImageBitmap"), Nan::New<Function>(CreateImageBitmap));
 
@@ -31,12 +30,20 @@ Handle<Object> ImageBitmap::Initialize(Isolate *isolate) {
   return scope.Escape(ctor->GetFunction());
 }
 
-int ImageBitmap::GetWidth() {
+unsigned int ImageBitmap::GetWidth() {
   return imageData->getWidth();
 }
 
-int ImageBitmap::GetHeight() {
+unsigned int ImageBitmap::GetHeight() {
   return imageData->getHeight();
+}
+
+unsigned int ImageBitmap::GetNumChannels() {
+  return imageData->getNumChannels();
+}
+
+unsigned char *ImageBitmap::GetData() {
+  return imageData->getData();
 }
 
 NAN_METHOD(ImageBitmap::New) {
@@ -71,7 +78,9 @@ NAN_GETTER(ImageBitmap::DataGetter) {
   ImageBitmap *imageBitmap = ObjectWrap::Unwrap<ImageBitmap>(info.This());
   unsigned int width = imageBitmap->GetWidth();
   unsigned int height = imageBitmap->GetHeight();
-  Local<ArrayBuffer> arrayBuffer = ArrayBuffer::New(Isolate::GetCurrent(), imageBitmap->imageData->getData(), width * height * 4);
+  // unsigned int numChannels = imageBitmap->GetNumChannels();
+  // std::cout << "imagebitmap data getter " << (void *)imageBitmap->GetData() << " : " << width << " : " << height << " : " << numChannels << "\n";
+  Local<ArrayBuffer> arrayBuffer = ArrayBuffer::New(Isolate::GetCurrent(), imageBitmap->GetData(), width * height * 4);
   Local<Uint8ClampedArray> uint8ClampedArray = Uint8ClampedArray::New(arrayBuffer, 0, arrayBuffer->ByteLength());
 
   info.GetReturnValue().Set(uint8ClampedArray);

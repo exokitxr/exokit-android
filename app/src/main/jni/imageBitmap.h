@@ -20,8 +20,10 @@ class Image;
 class ImageBitmap : public ObjectWrap {
 public:
   static Handle<Object> Initialize(Isolate *isolate);
-  int GetWidth();
-  int GetHeight();
+  unsigned int GetWidth();
+  unsigned int GetHeight();
+  unsigned int GetNumChannels();
+  unsigned char *GetData();
 
 protected:
   static NAN_METHOD(New);

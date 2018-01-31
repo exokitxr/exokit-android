@@ -1,10 +1,8 @@
 #include "imageData.h"
-// #include <vector>
-// #include <Image.h>
 
 using namespace v8;
 using namespace node;
-using namespace std;
+// using namespace std;
 
 Handle<Object> ImageData::Initialize(Isolate *isolate) {
   v8::EscapableHandleScope scope(isolate);
@@ -29,12 +27,16 @@ Handle<Object> ImageData::Initialize(Isolate *isolate) {
   return scope.Escape(ctor->GetFunction());
 }
 
-int ImageData::GetWidth() {
+unsigned int ImageData::GetWidth() {
   return imageData->getWidth();
 }
 
-int ImageData::GetHeight() {
+unsigned int ImageData::GetHeight() {
   return imageData->getHeight();
+}
+
+unsigned int ImageData::GetNumChannels() {
+  return imageData->getNumChannels();
 }
 
 unsigned char *ImageData::GetData() {
@@ -74,7 +76,9 @@ NAN_GETTER(ImageData::DataGetter) {
   ImageData *imageData = ObjectWrap::Unwrap<ImageData>(info.This());
   unsigned int width = imageData->GetWidth();
   unsigned int height = imageData->GetHeight();
-  Local<ArrayBuffer> arrayBuffer = ArrayBuffer::New(Isolate::GetCurrent(), imageData->imageData->getData(), width * height * 4);
+  // unsigned int numChannels = imageData->GetNumChannels();
+  // std::cout << "imagedata data getter " << (void *)imageData->GetData() << " : " << width << " : " << height << " : " << numChannels << "\n";
+  Local<ArrayBuffer> arrayBuffer = ArrayBuffer::New(Isolate::GetCurrent(), imageData->GetData(), width * height * 4);
   Local<Uint8ClampedArray> uint8ClampedArray = Uint8ClampedArray::New(arrayBuffer, 0, arrayBuffer->ByteLength());
 
   info.GetReturnValue().Set(uint8ClampedArray);

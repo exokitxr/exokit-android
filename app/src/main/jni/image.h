@@ -20,9 +20,10 @@ class CanvasRenderingContext2D;
 class Image : public ObjectWrap {
 public:
   static Handle<Object> Initialize(Isolate *isolate, canvas::ContextFactory *canvasContextFactory);
-  int GetWidth();
-  int GetHeight();
-  void *GetData();
+  unsigned int GetWidth();
+  unsigned int GetHeight();
+  unsigned int GetNumChannels();
+  unsigned char *GetData();
   bool Load(const unsigned char *buffer, size_t size);
 
 protected:

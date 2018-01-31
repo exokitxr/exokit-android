@@ -32,7 +32,7 @@ namespace canvas {
       }
     }
 
-    const ImageData & getData() {
+    ImageData & getData() {
       if (!filename.empty() && !data.get()) {
 	loadFile();
       }
