@@ -2,13 +2,19 @@
 
 #include <ImageLoadingException.h>
 
+#include <nanosvg.h>
+#include <nanosvgrast.h>
+
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
 #include <cassert>
+#include <iostream>
 
 using namespace std;
 using namespace canvas;
+
+static NSVGrasterizer *svgRasterizer = nsvgCreateRasterizer();
 
 bool
 Image::decode(const unsigned char * buffer, size_t size) {
@@ -19,19 +25,50 @@ Image::decode(const unsigned char * buffer, size_t size) {
 std::unique_ptr<ImageData>
 Image::loadFromMemory(const unsigned char * buffer, size_t size) {
   int w, h, channels;
-  auto img_buffer = stbi_load_from_memory(buffer, size, &w, &h, &channels, 0);
-  if (!img_buffer) {
-    // throw ImageLoadingException(stbi_failure_reason());
-    return nullptr;
-  }
-  // cerr << "Image.cpp: loaded image, size = " << size << ", b = " << (void*)img_buffer << ", w = " << w << ", h = " << h << ", ch = " << channels << endl;
-  assert(w && h && channels);    
+  unsigned char *imgDataBuffer = stbi_load_from_memory(buffer, size, &w, &h, &channels, 0);
+  if (imgDataBuffer) {
+    // cerr << "Image.cpp: loaded image, size = " << size << ", b = " << (void*)imgDataBuffer << ", w = " << w << ", h = " << h << ", ch = " << channels << endl;
+    assert(w && h && channels);
 
-  std::unique_ptr<ImageData> data = std::unique_ptr<ImageData>(new ImageData((unsigned char *)img_buffer, w, h, channels));
-  
-  stbi_image_free(img_buffer);
-  
-  return data;
+    std::unique_ptr<ImageData> data = std::unique_ptr<ImageData>(new ImageData(imgDataBuffer, w, h, channels));
+
+    stbi_image_free(imgDataBuffer);
+
+    return data;
+  } else {
+    unique_ptr<char[]> svgString(new char[size + 1]);
+    memcpy(svgString.get(), buffer, size);
+    svgString[size] = 0;
+
+    NSVGimage *svgImage = nsvgParse(svgString.get(), "px", 96);
+    if (svgImage != nullptr) {
+      if (svgImage->width > 0 && svgImage->height > 0 && svgImage->shapes != nullptr) {
+        int w = svgImage->width;
+        int h = svgImage->height;
+        int channels = 4;
+        unsigned char *imgDataBuffer = (unsigned char *)malloc(w * h * 4);
+        nsvgRasterize(svgRasterizer, svgImage, 0, 0, 1, imgDataBuffer, w, h, w * channels);
+
+        std::unique_ptr<ImageData> data = std::unique_ptr<ImageData>(new ImageData(imgDataBuffer, w, h, channels));
+
+        free(svgImage);
+
+        std::cout << "image decode ok" << "\n";
+
+        return data;
+      } else {
+        free(svgImage);
+
+        std::cout << "image decode fail 1" << "\n";
+
+        return nullptr;
+      }
+    } else {
+      std::cout << "image decode fail 2" << "\n";
+      // throw ImageLoadingException(stbi_failure_reason());
+      return nullptr;
+    }
+  }
 }
 
 std::unique_ptr<ImageData>

@@ -12,6 +12,7 @@ file(GLOB app_src_files
   "src/main/jni/path2d.cc"
   "src/main/jni/bindings.cc"
   "src/main/jni/deps/canvas/src/*.cpp"
+  "src/main/jni/deps/nanosvg/src/*.cpp"
 )
 
 add_library( nodebinding SHARED ${app_src_files} )
