@@ -25,7 +25,7 @@ Image::decode(const unsigned char * buffer, size_t size) {
 std::unique_ptr<ImageData>
 Image::loadFromMemory(const unsigned char * buffer, size_t size) {
   int w, h, channels;
-  unsigned char *imgDataBuffer = stbi_load_from_memory(buffer, size, &w, &h, &channels, 0);
+  unsigned char *imgDataBuffer = stbi_load_from_memory(buffer, size, &w, &h, &channels, 4);
   if (imgDataBuffer) {
     // cerr << "Image.cpp: loaded image, size = " << size << ", b = " << (void*)imgDataBuffer << ", w = " << w << ", h = " << h << ", ch = " << channels << endl;
     assert(w && h && channels);
