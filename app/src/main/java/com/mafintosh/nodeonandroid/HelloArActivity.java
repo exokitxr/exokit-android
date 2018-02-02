@@ -16,6 +16,7 @@
 
 package com.mafintosh.nodeonandroid;
 
+// import android.opengl.GLES11Ext;
 import android.opengl.GLES30;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
@@ -88,6 +89,8 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
 
     // Temporary matrix allocated here to reduce number of allocations for each frame.
     // private final float[] mAnchorMatrix = new float[16];
+
+    private int mTextureId;
 
     // Tap handling and UI.
     private final ArrayBlockingQueue<MotionEvent> mQueuedSingleTaps = new ArrayBlockingQueue<>(16);
@@ -260,6 +263,17 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
           mSession.setCameraTextureName(mBackgroundRenderer.getTextureId());
         }
 
+        /* int[] textures = new int[1];
+        GLES30.glGenTextures(1, textures, 0);
+        mTextureId = textures[0];
+        int textureTarget = GLES11Ext.GL_TEXTURE_EXTERNAL_OES;
+        GLES30.glBindTexture(textureTarget, mTextureId);
+        GLES30.glTexParameteri(textureTarget, GLES30.GL_TEXTURE_WRAP_S, GLES30.GL_CLAMP_TO_EDGE);
+        GLES30.glTexParameteri(textureTarget, GLES30.GL_TEXTURE_WRAP_T, GLES30.GL_CLAMP_TO_EDGE);
+        GLES30.glTexParameteri(textureTarget, GLES30.GL_TEXTURE_MIN_FILTER, GLES30.GL_NEAREST);
+        GLES30.glTexParameteri(textureTarget, GLES30.GL_TEXTURE_MAG_FILTER, GLES30.GL_NEAREST); */
+        mTextureId = mBackgroundRenderer.getTextureId();
+
         /* // Prepare the other rendering objects.
         try {
             mVirtualObject.createOnGlThread(this, "andy.obj", "andy.png");
@@ -287,7 +301,7 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
         // GLES30.glViewport(0, 0, width, height);
 
         if (!serviceInitialized) {
-          service.init();
+          service.init("http://192.168.0.13:8000/?e=hmd", "ar", mTextureId);
           // service.onSurfaceCreated();
           serviceInitialized = true;
         }

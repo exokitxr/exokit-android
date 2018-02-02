@@ -28,7 +28,7 @@ public class NodeService {
       context = ctx;
     }
 
-    public void init() {
+    public void init(String url, String vrMode, int vrTexture) {
       String nativeLibraryDir = context.getApplicationInfo().nativeLibraryDir;
 
       {
@@ -44,7 +44,7 @@ public class NodeService {
         Log.i(TAG, "copied assets");
         timings.addSplit("copied assets");
 
-        start(nativeLibraryDir + "/node.so", nodePath + "/html5.js", nativeLibraryDir, am);
+        start(nativeLibraryDir + "/node.so", nodePath + "/html5.js", nativeLibraryDir, am, url, vrMode, vrTexture);
 
         Log.i(TAG, "started node");
         timings.addSplit("started node");
@@ -54,7 +54,7 @@ public class NodeService {
     }
 
     // uv
-    private native void start(String binString, String scriptString, String libPath, AssetManager am);
+    private native void start(String binString, String scriptString, String libPath, AssetManager am, String url, String vrMode, int vrTexture);
     public native void tick(int timeout);
 
     // GL

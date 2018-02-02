@@ -6,6 +6,9 @@ const path = require('path');
 
 // correct exec path autodetection
 const libPath = process.argv[2];
+const url = process.argv[3];
+const vrMode = process.argv[4];
+const vrTexture = parseInt(process.argv[5], 10);
 process.argv[0] = process.execPath = path.join(libPath, 'node.so');
 process.env['LD_LIBRARY_PATH'] = libPath;
 
@@ -98,14 +101,15 @@ let window = null;
 let innerWidth = 1280;
 let innerHeight = 1024;
 
-exokit.fetch('http://192.168.0.13:8000/?e=hmd')
+exokit.fetch(url)
   .then(site => {
     console.log('node site loaded');
 
     window = site.window;
     window.innerWidth = innerWidth;
     window.innerHeight = innerHeight;
-    window.navigator.setVRMode('ar');
+    window.navigator.setVRMode(vrMode);
+    window.navigator.setVRTexture(textureId);
     window.addEventListener('error', err => {
       console.warn('got error', err.error.stack);
     });

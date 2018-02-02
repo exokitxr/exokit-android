@@ -4,6 +4,7 @@
 #include <cstring>
 #include <unistd.h>
 #include <stdlib.h>
+#include <sstream>
 #include <thread>
 #include <functional>
 
@@ -727,7 +728,7 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_startNode__L
 
 std::function<void (node::NodeService *nodeService)> nodeServiceInitFunction;
 JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_start
-(JNIEnv *env, jobject thiz, jstring binPath, jstring jsPath, jstring libpath, jobject assetManager) {
+(JNIEnv *env, jobject thiz, jstring binPath, jstring jsPath, jstring libpath, jobject assetManager, jstring url, jstring vrMode, jint vrTexture) {
   redirectStdioToLog();
 
   /* AAssetManager *aAssetManager = AAssetManager_fromJava(env, assetManager);
@@ -738,6 +739,12 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_start
   const char *binPathString = env->GetStringUTFChars(binPath, NULL);
   const char *jsPathString = env->GetStringUTFChars(jsPath, NULL);
   const char *libPathString = env->GetStringUTFChars(libpath, NULL);
+  const char *urlString = env->GetStringUTFChars(url, NULL);
+  const char *vrModeString = env->GetStringUTFChars(vrMode, NULL);
+  std::stringstream vrTextureStringStream;
+  vrTextureStringStream << vrTexture;
+  const char *vrTextureString = vrTextureStringStream.str().c_str();
+
   char argsString[4096];
   int i = 0;
 
@@ -753,7 +760,19 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_start
   strncpy(libPathArg, libPathString, sizeof(argsString) - i);
   i += strlen(libPathString) + 1;
 
-  char *args[] = {binPathArg, jsPathArg, libPathArg};
+  char *urlArg = argsString + i;
+  strncpy(urlArg, urlString, sizeof(argsString) - i);
+  i += strlen(urlString) + 1;
+
+  char *vrModeArg = argsString + i;
+  strncpy(vrModeArg, vrModeString, sizeof(argsString) - i);
+  i += strlen(vrModeString) + 1;
+
+  char *vrTextureArg = argsString + i;
+  strncpy(vrTextureArg, vrTextureString, sizeof(argsString) - i);
+  i += strlen(vrTextureString) + 1;
+
+  char *args[] = {binPathArg, jsPathArg, libPathArg, urlArg, vrModeArg, vrTextureArg};
   // node::Start(3, args);
   // service = new node::NodeService(3, args);
 
