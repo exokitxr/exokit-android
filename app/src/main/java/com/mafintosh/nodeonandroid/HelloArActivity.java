@@ -16,7 +16,7 @@
 
 package com.mafintosh.nodeonandroid;
 
-// import android.opengl.GLES11Ext;
+import android.opengl.GLES11Ext;
 import android.opengl.GLES30;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
@@ -42,11 +42,11 @@ import com.google.ar.core.PointCloud;
 import com.google.ar.core.Session;
 import com.google.ar.core.Trackable;
 import com.google.ar.core.Trackable.TrackingState;
-import com.mafintosh.nodeonandroid.rendering.BackgroundRenderer;
+/* import com.mafintosh.nodeonandroid.rendering.BackgroundRenderer;
 import com.mafintosh.nodeonandroid.rendering.ObjectRenderer;
 import com.mafintosh.nodeonandroid.rendering.ObjectRenderer.BlendMode;
 import com.mafintosh.nodeonandroid.rendering.PlaneRenderer;
-import com.mafintosh.nodeonandroid.rendering.PointCloudRenderer;
+import com.mafintosh.nodeonandroid.rendering.PointCloudRenderer; */
 import com.google.ar.core.exceptions.UnavailableApkTooOldException;
 import com.google.ar.core.exceptions.UnavailableArcoreNotInstalledException;
 import com.google.ar.core.exceptions.UnavailableSdkTooOldException;
@@ -81,8 +81,8 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
     boolean serviceInitialized;
     long lastFrameTime;
 
-    private final BackgroundRenderer mBackgroundRenderer = new BackgroundRenderer();
-    /* private final ObjectRenderer mVirtualObject = new ObjectRenderer();
+    /* private final BackgroundRenderer mBackgroundRenderer = new BackgroundRenderer();
+    private final ObjectRenderer mVirtualObject = new ObjectRenderer();
     private final ObjectRenderer mVirtualObjectShadow = new ObjectRenderer();
     private final PlaneRenderer mPlaneRenderer = new PlaneRenderer();
     private final PointCloudRenderer mPointCloud = new PointCloudRenderer(); */
@@ -101,7 +101,7 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        Log.i(TAG, "JNI on create");
+        // Log.i(TAG, "JNI on create");
 
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         getWindow().getDecorView().setSystemUiVisibility(
@@ -257,13 +257,13 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
         // GLES30.glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 
-        // Create the texture and pass it to ARCore session to be filled during update().
+        /* // Create the texture and pass it to ARCore session to be filled during update().
         mBackgroundRenderer.createOnGlThread(this);
         if (mSession != null) {
           mSession.setCameraTextureName(mBackgroundRenderer.getTextureId());
-        }
+        } */
 
-        /* int[] textures = new int[1];
+        int[] textures = new int[1];
         GLES30.glGenTextures(1, textures, 0);
         mTextureId = textures[0];
         int textureTarget = GLES11Ext.GL_TEXTURE_EXTERNAL_OES;
@@ -271,8 +271,10 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
         GLES30.glTexParameteri(textureTarget, GLES30.GL_TEXTURE_WRAP_S, GLES30.GL_CLAMP_TO_EDGE);
         GLES30.glTexParameteri(textureTarget, GLES30.GL_TEXTURE_WRAP_T, GLES30.GL_CLAMP_TO_EDGE);
         GLES30.glTexParameteri(textureTarget, GLES30.GL_TEXTURE_MIN_FILTER, GLES30.GL_NEAREST);
-        GLES30.glTexParameteri(textureTarget, GLES30.GL_TEXTURE_MAG_FILTER, GLES30.GL_NEAREST); */
-        mTextureId = mBackgroundRenderer.getTextureId();
+        GLES30.glTexParameteri(textureTarget, GLES30.GL_TEXTURE_MAG_FILTER, GLES30.GL_NEAREST);
+        GLES30.glBindTexture(textureTarget, 0);
+
+        mSession.setCameraTextureName(mTextureId);
 
         /* // Prepare the other rendering objects.
         try {
@@ -310,13 +312,13 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
 
     @Override
     public void onDrawFrame(GL10 gl) {
-        // Reset state after JS rendering
+        /* // Reset state after JS rendering
         GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, 0);
         GLES30.glBindBuffer(GLES30.GL_ELEMENT_ARRAY_BUFFER, 0);
         GLES30.glDisable(GLES30.GL_CULL_FACE);
 
         // Clear screen to notify driver it should not load any pixels from previous frame.
-        GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT | GLES30.GL_DEPTH_BUFFER_BIT);
+        GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT | GLES30.GL_DEPTH_BUFFER_BIT); */
 
         if (mSession == null) {
             return;
@@ -352,10 +354,10 @@ public class HelloArActivity extends AppCompatActivity implements GLSurfaceView.
                 }
             }
 
-            // Draw background.
+            /* // Draw background.
             mBackgroundRenderer.draw(frame);
 
-            /* // If not tracking, don't draw 3d objects.
+            // If not tracking, don't draw 3d objects.
             if (camera.getTrackingState() == TrackingState.PAUSED) {
                 return;
             } */
