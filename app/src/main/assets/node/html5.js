@@ -98,7 +98,7 @@ let window = null;
 let innerWidth = 1280;
 let innerHeight = 1024;
 
-exokit.fetch('http://192.168.0.13:8000/')
+exokit.fetch('http://192.168.0.13:8000/?e=hmd')
   .then(site => {
     console.log('node site loaded');
 
