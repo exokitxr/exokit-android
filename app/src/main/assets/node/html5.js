@@ -109,7 +109,7 @@ exokit.fetch(url)
     window.innerWidth = innerWidth;
     window.innerHeight = innerHeight;
     window.navigator.setVRMode(vrMode);
-    window.navigator.setVRTexture(textureId);
+    window.navigator.setVRTexture(vrTexture);
     window.addEventListener('error', err => {
       console.warn('got error', err.error.stack);
     });
