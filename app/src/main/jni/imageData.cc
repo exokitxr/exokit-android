@@ -76,8 +76,6 @@ NAN_GETTER(ImageData::DataGetter) {
   ImageData *imageData = ObjectWrap::Unwrap<ImageData>(info.This());
   unsigned int width = imageData->GetWidth();
   unsigned int height = imageData->GetHeight();
-  // unsigned int numChannels = imageData->GetNumChannels();
-  // std::cout << "imagedata data getter " << (void *)imageData->GetData() << " : " << width << " : " << height << " : " << numChannels << "\n";
   Local<ArrayBuffer> arrayBuffer = ArrayBuffer::New(Isolate::GetCurrent(), imageData->GetData(), width * height * 4);
   Local<Uint8ClampedArray> uint8ClampedArray = Uint8ClampedArray::New(arrayBuffer, 0, arrayBuffer->ByteLength());
 

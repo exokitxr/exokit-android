@@ -1,10 +1,8 @@
 #include "path2d.h"
-// #include <vector>
-// #include <Image.h>
 
 using namespace v8;
 using namespace node;
-using namespace std;
+// using namespace std;
 
 Handle<Object> Path2D::Initialize(Isolate *isolate) {
   v8::EscapableHandleScope scope(isolate);

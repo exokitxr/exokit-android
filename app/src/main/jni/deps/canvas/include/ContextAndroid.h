@@ -79,7 +79,7 @@ class AndroidCache {
   jmethodID stringByteConstructor;
   jmethodID linearGradientConstructor;
 
-  jclass frameClass;
+  // jclass frameClass;
   jclass typefaceClass;
   jclass rectFClass;
   jclass rectClass;
@@ -588,7 +588,6 @@ public:
 
   jobject getBitmap() { return bitmap; }
 
- protected:
   void * lockMemory(bool write_access = false) override {
     __android_log_print(ANDROID_LOG_VERBOSE, "Sometrik", "lockMemory called");
 
@@ -606,6 +605,7 @@ public:
     AndroidBitmap_unlockPixels(env, bitmap);
   }
 
+ protected:
   jobject createBitmapConfig(unsigned int num_channels);
   jobject imageToBitmap(const ImageData & _img);
   jobject imageToBitmapRGBA8(const ImageData & img);

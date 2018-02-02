@@ -730,8 +730,10 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_start
 (JNIEnv *env, jobject thiz, jstring binPath, jstring jsPath, jstring libpath, jobject assetManager) {
   redirectStdioToLog();
 
-  AAssetManager *aAssetManager = AAssetManager_fromJava(env, assetManager);
-  canvas::AndroidContextFactory *canvasContextFactory = new canvas::AndroidContextFactory(aAssetManager, 1);
+  /* AAssetManager *aAssetManager = AAssetManager_fromJava(env, assetManager);
+  canvas::AndroidContextFactory *canvasContextFactory = new canvas::AndroidContextFactory(aAssetManager, 1); */
+  canvas::AndroidContextFactory::initialize(env, assetManager);
+  canvas::AndroidContextFactory *canvasContextFactory = new canvas::AndroidContextFactory(nullptr, 1);
 
   const char *binPathString = env->GetStringUTFChars(binPath, NULL);
   const char *jsPathString = env->GetStringUTFChars(jsPath, NULL);
@@ -758,10 +760,24 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_start
   nodeServiceInitFunction = [&](node::NodeService *service) {
     Isolate *isolate = service->GetIsolate();
     Local<Object> global = service->GetContext()->Global();
-    global->Set(v8::String::NewFromUtf8(isolate, "nativeGl"), makeGl(service));
-    global->Set(v8::String::NewFromUtf8(isolate, "nativeImage"), makeImage(service, canvasContextFactory));
-    global->Set(v8::String::NewFromUtf8(isolate, "nativeCanvasRenderingContext2D"), makeCanvasRenderingContext2D(service, canvasContextFactory));
-    global->Set(v8::String::NewFromUtf8(isolate, "nativePath2D"), makePath2D(service));
+
+    Local<Value> gl = makeGl(service);
+    global->Set(v8::String::NewFromUtf8(isolate, "nativeGl"), gl);
+
+    Local<Value> image = makeImage(service, canvasContextFactory);
+    global->Set(v8::String::NewFromUtf8(isolate, "nativeImage"), image);
+
+    Local<Value> imageData = makeImageData(service);
+    global->Set(v8::String::NewFromUtf8(isolate, "nativeImageData"), imageData);
+
+    Local<Value> imageBitmap = makeImageBitmap(service);
+    global->Set(v8::String::NewFromUtf8(isolate, "nativeImageBitmap"), imageBitmap);
+
+    Local<Value> canvas = makeCanvasRenderingContext2D(service, canvasContextFactory, imageData);
+    global->Set(v8::String::NewFromUtf8(isolate, "nativeCanvasRenderingContext2D"), canvas);
+
+    Local<Value> path2d = makePath2D(service);
+    global->Set(v8::String::NewFromUtf8(isolate, "nativePath2D"), path2d);
   };
   service = new node::NodeService(sizeof(args)/sizeof(args[0]), args, [](node::NodeService *service) {
     nodeServiceInitFunction(service);

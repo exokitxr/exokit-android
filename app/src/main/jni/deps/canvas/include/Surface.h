@@ -90,7 +90,7 @@ namespace canvas {
     unsigned int getActualHeight() const { return actual_height; }
     unsigned int getNumChannels() const { return num_channels; }
     
-  protected:
+  // protected:
     virtual void * lockMemory(bool write_access = false) = 0;
     virtual void releaseMemory() = 0;
 

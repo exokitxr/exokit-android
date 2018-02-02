@@ -2,11 +2,11 @@
 
 using namespace v8;
 using namespace node;
-using namespace std;
+// using namespace std;
 
 canvas::ContextFactory *CanvasRenderingContext2D::canvasContextFactory;
 
-Handle<Object> CanvasRenderingContext2D::Initialize(Isolate *isolate, canvas::ContextFactory *canvasContextFactory) {
+Handle<Object> CanvasRenderingContext2D::Initialize(Isolate *isolate, canvas::ContextFactory *canvasContextFactory, Local<Value> imageDataCons) {
   v8::EscapableHandleScope scope(isolate);
 
   // constructor
@@ -21,6 +21,7 @@ Handle<Object> CanvasRenderingContext2D::Initialize(Isolate *isolate, canvas::Co
 
   Nan::SetAccessor(proto,JS_STR("width"), WidthGetter);
   Nan::SetAccessor(proto,JS_STR("height"), HeightGetter);
+  Nan::SetAccessor(proto,JS_STR("data"), DataGetter);
   Nan::SetAccessor(proto,JS_STR("lineWidth"), LineWidthGetter, LineWidthSetter);
   Nan::SetAccessor(proto,JS_STR("fillStyle"), FillStyleGetter, FillStyleSetter);
   Nan::SetAccessor(proto,JS_STR("strokeStyle"), StrokeStyleGetter, StrokeStyleSetter);
@@ -47,25 +48,34 @@ Handle<Object> CanvasRenderingContext2D::Initialize(Isolate *isolate, canvas::Co
   Nan::SetMethod(proto,"clearRect", ClearRect);
   Nan::SetMethod(proto,"fillText", FillText);
   Nan::SetMethod(proto,"strokeText", StrokeText);
+  Nan::SetMethod(proto,"resize", Resize);
   Nan::SetMethod(proto,"drawImage", DrawImage);
   Nan::SetMethod(proto,"createImageData", CreateImageData);
   Nan::SetMethod(proto,"getImageData", GetImageData);
+  Nan::SetMethod(proto,"putImageData", PutImageData);
   // Nan::SetAccessor(proto,JS_STR("src"), SrcGetter, SrcSetter);
   // Nan::Set(target, JS_STR("Image"), ctor->GetFunction());
 
   // constructor_template.Reset(Isolate::GetCurrent(), ctor->GetFunction());
 
+  Local<Function> ctorFn = ctor->GetFunction();
+  ctorFn->Set(JS_STR("ImageData"), imageDataCons);
+
   CanvasRenderingContext2D::canvasContextFactory = canvasContextFactory;
 
-  return scope.Escape(ctor->GetFunction());
+  return scope.Escape(ctorFn);
 }
 
-int CanvasRenderingContext2D::GetWidth() {
+unsigned int CanvasRenderingContext2D::GetWidth() {
   return context->getWidth();
 }
 
-int CanvasRenderingContext2D::GetHeight() {
+unsigned int CanvasRenderingContext2D::GetHeight() {
   return context->getHeight();
+}
+
+unsigned int CanvasRenderingContext2D::GetNumChannels() {
+  return context->getDefaultSurface().getNumChannels();
 }
 
 void CanvasRenderingContext2D::Scale(double x, double y) {
@@ -168,20 +178,17 @@ void CanvasRenderingContext2D::StrokeText(const std::string &text, double x, dou
   context->strokeText(text, x, y);
 }
 
-void CanvasRenderingContext2D::DrawImage(const CanvasRenderingContext2D &otherContext, double x, double y, double w, double h) {
-  context->drawImage(*otherContext.context, x, y, w, h);
+void CanvasRenderingContext2D::Resize(unsigned int w, unsigned int h) {
+  context->resize(w, h);
 }
 
-void CanvasRenderingContext2D::DrawImage(const Image &image, double x, double y, double w, double h) {
-  context->drawImage(*image.image, x, y, w, h);
-}
-
-void CanvasRenderingContext2D::DrawImage(const ImageData &imageData, double x, double y, double w, double h) {
-  context->drawImage(*imageData.imageData, x, y, w, h);
-}
-
-void CanvasRenderingContext2D::DrawImage(const ImageBitmap &imageBitmap, double x, double y, double w, double h) {
-  context->drawImage(*imageBitmap.imageData, x, y, w, h);
+void CanvasRenderingContext2D::DrawImage(const canvas::ImageData &imageData, int sx, int sy, unsigned int sw, unsigned int sh, int dx, int dy, unsigned int dw, unsigned int dh) {
+  if (sx != 0 || sy != 0 || sw != imageData.getWidth() || sh != imageData.getHeight()) {
+    std::unique_ptr<canvas::ImageData> scaledImageDataPtr(imageData.crop(sx, sy, sw, sh));
+    context->drawImage(*scaledImageDataPtr, dx, dy, dw, dh);
+  } else {
+    context->drawImage(imageData, dx, dy, dw, dh);
+  }
 }
 
 void CanvasRenderingContext2D::Save() {
@@ -216,6 +223,31 @@ NAN_GETTER(CanvasRenderingContext2D::HeightGetter) {
   CanvasRenderingContext2D *context = ObjectWrap::Unwrap<CanvasRenderingContext2D>(info.This());
 
   info.GetReturnValue().Set(JS_INT(context->GetHeight()));
+}
+
+NAN_GETTER(CanvasRenderingContext2D::DataGetter) {
+  Nan::HandleScope scope;
+
+  CanvasRenderingContext2D *context = ObjectWrap::Unwrap<CanvasRenderingContext2D>(info.This());
+  canvas::Surface &surface = context->context->getDefaultSurface();
+  // std::unique_ptr<canvas::Image> img(surface.createImage(1));
+
+  unsigned int width = context->GetWidth();
+  unsigned int height = context->GetHeight();
+  unsigned int numChannels = context->GetNumChannels();
+  if (numChannels == 4) {
+    unsigned char *data = (unsigned char *)surface.lockMemory(false);
+
+    Local<ArrayBuffer> arrayBuffer = ArrayBuffer::New(Isolate::GetCurrent(), width * height * 4);
+    memcpy(arrayBuffer->GetContents().Data(), data, arrayBuffer->ByteLength());
+    Local<Uint8ClampedArray> uint8ClampedArray = Uint8ClampedArray::New(arrayBuffer, 0, arrayBuffer->ByteLength());
+
+    surface.releaseMemory();
+
+    info.GetReturnValue().Set(uint8ClampedArray);
+  } else {
+    Nan::ThrowError("CanvasRenderingContext2D invalid number of channels");
+  }
 }
 
 NAN_GETTER(CanvasRenderingContext2D::LineWidthGetter) {
@@ -533,42 +565,138 @@ NAN_METHOD(CanvasRenderingContext2D::StrokeText) {
   // info.GetReturnValue().Set(JS_INT(image->GetHeight()));
 }
 
+NAN_METHOD(CanvasRenderingContext2D::Resize) {
+  Nan::HandleScope scope;
+
+  CanvasRenderingContext2D *context = ObjectWrap::Unwrap<CanvasRenderingContext2D>(info.This());
+  unsigned int w = info[0]->Uint32Value();
+  unsigned int h = info[1]->Uint32Value();
+
+  context->Resize(w, h);
+
+  // info.GetReturnValue().Set(JS_INT(image->GetHeight()));
+}
+
 NAN_METHOD(CanvasRenderingContext2D::DrawImage) {
   Nan::HandleScope scope;
 
   CanvasRenderingContext2D *context = ObjectWrap::Unwrap<CanvasRenderingContext2D>(info.This());
   if (info[0]->ToObject()->Get(JS_STR("constructor"))->ToObject()->Get(JS_STR("name"))->StrictEquals(JS_STR("CanvasRenderingContext2D"))) {
     CanvasRenderingContext2D *otherContext = ObjectWrap::Unwrap<CanvasRenderingContext2D>(Local<Object>::Cast(info[0]));
-    double x = info[1]->NumberValue();
-    double y = info[2]->NumberValue();
-    double w = info[3]->NumberValue();
-    double h = info[4]->NumberValue();
+    canvas::Surface &surface = otherContext->context->getDefaultSurface();
+    std::unique_ptr<canvas::Image> image = surface.createImage(1);
+    canvas::ImageData &imageData = image->getData();
 
-    context->DrawImage(*otherContext, x, y, w, h);
+    int x = info[1]->Int32Value();
+    int y = info[2]->Int32Value();
+    if (info.Length() > 3) {
+      if (info.Length() > 5) {
+        unsigned int sw = info[3]->Uint32Value();
+        unsigned int sh = info[4]->Uint32Value();
+        unsigned int dw = info[5]->Uint32Value();
+        unsigned int dh = info[6]->Uint32Value();
+
+        context->DrawImage(imageData, 0, 0, sw, sh, x, y, dw, dh);
+      } else {
+        unsigned int dw = info[3]->Uint32Value();
+        unsigned int dh = info[4]->Uint32Value();
+        unsigned int sw = imageData.getWidth();
+        unsigned int sh = imageData.getHeight();
+
+        context->DrawImage(imageData, 0, 0, sw, sh, x, y, dw, dh);
+      }
+    } else {
+      unsigned int sw = imageData.getWidth();
+      unsigned int sh = imageData.getHeight();
+      unsigned int dw = sw;
+      unsigned int dh = sh;
+
+      context->DrawImage(imageData, 0, 0, sw, sh, x, y, dw, dh);
+    }
   } else if (info[0]->ToObject()->Get(JS_STR("constructor"))->ToObject()->Get(JS_STR("name"))->StrictEquals(JS_STR("HTMLImageElement"))) {
     Image *image = ObjectWrap::Unwrap<Image>(Local<Object>::Cast(info[0]));
-    double x = info[1]->NumberValue();
-    double y = info[2]->NumberValue();
-    double w = info[3]->NumberValue();
-    double h = info[4]->NumberValue();
+    int x = info[1]->Int32Value();
+    int y = info[2]->Int32Value();
+    if (info.Length() > 3) {
+      if (info.Length() > 5) {
+        unsigned int sw = info[3]->Uint32Value();
+        unsigned int sh = info[4]->Uint32Value();
+        unsigned int dw = info[5]->Uint32Value();
+        unsigned int dh = info[6]->Uint32Value();
 
-    context->DrawImage(*image, x, y, w, h);
+        context->DrawImage(image->image->getData(), 0, 0, sw, sh, x, y, dw, dh);
+      } else {
+        unsigned int dw = info[3]->Uint32Value();
+        unsigned int dh = info[4]->Uint32Value();
+        unsigned int sw = image->GetWidth();
+        unsigned int sh = image->GetHeight();
+
+        context->DrawImage(image->image->getData(), 0, 0, sw, sh, x, y, dw, dh);
+      }
+    } else {
+      unsigned int sw = image->GetWidth();
+      unsigned int sh = image->GetHeight();
+      unsigned int dw = sw;
+      unsigned int dh = sh;
+
+      context->DrawImage(image->image->getData(), 0, 0, sw, sh, x, y, dw, dh);
+    }
   } else if (info[0]->ToObject()->Get(JS_STR("constructor"))->ToObject()->Get(JS_STR("name"))->StrictEquals(JS_STR("ImageData"))) {
     ImageData *imageData = ObjectWrap::Unwrap<ImageData>(Local<Object>::Cast(info[0]));
-    double x = info[1]->NumberValue();
-    double y = info[2]->NumberValue();
-    double w = info[3]->NumberValue();
-    double h = info[4]->NumberValue();
+    int x = info[1]->Int32Value();
+    int y = info[2]->Int32Value();
+    if (info.Length() > 3) {
+      if (info.Length() > 5) {
+        unsigned int sw = info[3]->Uint32Value();
+        unsigned int sh = info[4]->Uint32Value();
+        unsigned int dw = info[5]->Uint32Value();
+        unsigned int dh = info[6]->Uint32Value();
 
-    context->DrawImage(*imageData, x, y, w, h);
+        context->DrawImage(*imageData->imageData, 0, 0, sw, sh, x, y, dw, dh);
+      } else {
+        unsigned int dw = info[3]->Uint32Value();
+        unsigned int dh = info[4]->Uint32Value();
+        unsigned int sw = imageData->GetWidth();
+        unsigned int sh = imageData->GetHeight();
+
+        context->DrawImage(*imageData->imageData, 0, 0, sw, sh, x, y, dw, dh);
+      }
+    } else {
+      unsigned int sw = imageData->GetWidth();
+      unsigned int sh = imageData->GetHeight();
+      unsigned int dw = sw;
+      unsigned int dh = sh;
+
+      context->DrawImage(*imageData->imageData, 0, 0, sw, sh, x, y, dw, dh);
+    }
   } else if (info[0]->ToObject()->Get(JS_STR("constructor"))->ToObject()->Get(JS_STR("name"))->StrictEquals(JS_STR("ImageBitmap"))) {
-    ImageData *imageBitmap = ObjectWrap::Unwrap<ImageData>(Local<Object>::Cast(info[0]));
-    double x = info[1]->NumberValue();
-    double y = info[2]->NumberValue();
-    double w = info[3]->NumberValue();
-    double h = info[4]->NumberValue();
+    ImageBitmap *imageBitmap = ObjectWrap::Unwrap<ImageBitmap>(Local<Object>::Cast(info[0]));
+    int x = info[1]->Int32Value();
+    int y = info[2]->Int32Value();
+    if (info.Length() > 3) {
+      if (info.Length() > 5) {
+        unsigned int sw = info[3]->Uint32Value();
+        unsigned int sh = info[4]->Uint32Value();
+        unsigned int dw = info[5]->Uint32Value();
+        unsigned int dh = info[6]->Uint32Value();
 
-    context->DrawImage(*imageBitmap, x, y, w, h);
+        context->DrawImage(*imageBitmap->imageData, 0, 0, sw, sh, x, y, dw, dh);
+      } else {
+        unsigned int dw = info[3]->Uint32Value();
+        unsigned int dh = info[4]->Uint32Value();
+        unsigned int sw = imageBitmap->GetWidth();
+        unsigned int sh = imageBitmap->GetHeight();
+
+        context->DrawImage(*imageBitmap->imageData, 0, 0, sw, sh, x, y, dw, dh);
+      }
+    } else {
+      unsigned int sw = imageBitmap->GetWidth();
+      unsigned int sh = imageBitmap->GetHeight();
+      unsigned int dw = sw;
+      unsigned int dh = sh;
+
+      context->DrawImage(*imageBitmap->imageData, 0, 0, sw, sh, x, y, dw, dh);
+    }
   }
 }
 
@@ -579,15 +707,17 @@ NAN_METHOD(CanvasRenderingContext2D::CreateImageData) {
   double w = info[0]->NumberValue();
   double h = info[1]->NumberValue();
 
-  Isolate *isolate = Isolate::GetCurrent();
+  /* Isolate *isolate = Isolate::GetCurrent();
   Local<Context> isolateContext = isolate->GetCurrentContext();
-  Local<Object> global = isolateContext->Global();
-  Local<Function> imageDataConstructor = Local<Function>::Cast(global->Get(JS_STR("ImageData")));
+  Local<Object> global = isolateContext->Global(); */
+  Local<Function> imageDataCons = Local<Function>::Cast(
+    Local<Object>::Cast(info.This())->Get(JS_STR("constructor"))->ToObject()->Get(JS_STR("ImageData"))
+  );
   Local<Value> argv[] = {
-    Number::New(isolate, w),
-    Number::New(isolate, h),
+    Number::New(Isolate::GetCurrent(), w),
+    Number::New(Isolate::GetCurrent(), h),
   };
-  Local<Object> imageDataObj = imageDataConstructor->NewInstance(sizeof(argv) / sizeof(argv[0]), argv);
+  Local<Object> imageDataObj = imageDataCons->NewInstance(sizeof(argv) / sizeof(argv[0]), argv);
 
   info.GetReturnValue().Set(imageDataObj);
 }
@@ -608,15 +738,17 @@ NAN_METHOD(CanvasRenderingContext2D::GetImageData) {
   size_t srcWidth = imgData.getWidth();
   size_t srcHeight = imgData.getHeight();
 
-  Isolate *isolate = Isolate::GetCurrent();
+  /* Isolate *isolate = Isolate::GetCurrent();
   Local<Context> isolateContext = isolate->GetCurrentContext();
-  Local<Object> global = isolateContext->Global();
-  Local<Function> imageDataConstructor = Local<Function>::Cast(global->Get(JS_STR("ImageData")));
+  Local<Object> global = isolateContext->Global(); */
+  Local<Function> imageDataCons = Local<Function>::Cast(
+    Local<Object>::Cast(info.This())->Get(JS_STR("constructor"))->ToObject()->Get(JS_STR("ImageData"))
+  );
   Local<Value> argv[] = {
-    Number::New(isolate, w),
-    Number::New(isolate, h),
+    Number::New(Isolate::GetCurrent(), w),
+    Number::New(Isolate::GetCurrent(), h),
   };
-  Local<Object> imageDataObj = imageDataConstructor->NewInstance(sizeof(argv) / sizeof(argv[0]), argv);
+  Local<Object> imageDataObj = imageDataCons->NewInstance(sizeof(argv) / sizeof(argv[0]), argv);
   ImageData *imageData = ObjectWrap::Unwrap<ImageData>(imageDataObj);
   unsigned char *dstData = imageData->imageData->getData();
   for (size_t i = 0; i < h; i++) {
@@ -624,6 +756,33 @@ NAN_METHOD(CanvasRenderingContext2D::GetImageData) {
   }
 
   info.GetReturnValue().Set(imageDataObj);
+}
+
+NAN_METHOD(CanvasRenderingContext2D::PutImageData) {
+  Nan::HandleScope scope;
+
+  CanvasRenderingContext2D *context = ObjectWrap::Unwrap<CanvasRenderingContext2D>(Local<Object>::Cast(info.This()));
+  ImageData *imageData = ObjectWrap::Unwrap<ImageData>(Local<Object>::Cast(info[0]));
+  int x = info[1]->Int32Value();
+  int y = info[2]->Int32Value();
+
+  if (info.Length() > 3) {
+    int dirtyX = info[3]->Int32Value();
+    int dirtyY = info[4]->Int32Value();
+    unsigned int dirtyWidth = info[5]->Uint32Value();
+    unsigned int dirtyHeight = info[6]->Uint32Value();
+    unsigned int dw = imageData->GetWidth();
+    unsigned int dh = imageData->GetHeight();
+
+    context->DrawImage(*imageData->imageData, dirtyX, dirtyY, dirtyWidth, dirtyHeight, x, y, dw, dh);
+  } else {
+    unsigned int sw = imageData->GetWidth();
+    unsigned int sh = imageData->GetHeight();
+    unsigned int dw = sw;
+    unsigned int dh = sh;
+
+    context->DrawImage(*imageData->imageData, 0, 0, sw, sh, x, y, dw, dh);
+  }
 }
 
 NAN_METHOD(CanvasRenderingContext2D::Save) {

@@ -12,6 +12,27 @@ using namespace canvas;
 ImageData ImageData::nullImage;
 
 std::unique_ptr<ImageData>
+ImageData::crop(int x, int y, unsigned short w, unsigned short h) const {
+  const unsigned short fullWidth = getWidth();
+  const unsigned short fullHeight = getHeight();
+
+  x = std::min<unsigned short>(x, fullWidth);
+  y = std::min<unsigned short>(y, fullHeight);
+
+  const size_t target_size = calculateSize(w, h, num_channels);
+
+  std::unique_ptr<unsigned char[]> output_data(new unsigned char[target_size]);
+  memset(output_data.get(), 0, target_size);
+
+  const unsigned short lineWidth = std::min<unsigned short>(w, fullWidth - x);
+  for (int i = y; i < (y + h) && i < fullHeight; i++) {
+    memcpy(output_data.get() + ((i - y) * lineWidth * num_channels), data.get() + (i * fullWidth * num_channels) + (x * num_channels), lineWidth * num_channels);
+  }
+
+  return unique_ptr<ImageData>(new ImageData(output_data.get(), w, h, num_channels));
+}
+
+std::unique_ptr<ImageData>
 ImageData::scale(unsigned short target_width, unsigned short target_height) const {
   size_t target_size = calculateSize(target_width, target_height, num_channels);
 

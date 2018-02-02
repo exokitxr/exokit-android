@@ -672,12 +672,12 @@ Local<Object> makeImageBitmap(node::NodeService *service) {
   return scope.Escape(ImageBitmap::Initialize(isolate));
 }
 
-Local<Object> makeCanvasRenderingContext2D(node::NodeService *service, canvas::ContextFactory *canvasContextFactory) {
+Local<Object> makeCanvasRenderingContext2D(node::NodeService *service, canvas::ContextFactory *canvasContextFactory, Local<Value> imageDataCons) {
   Isolate *isolate = service->GetIsolate();
 
   v8::EscapableHandleScope scope(isolate);
 
-  return scope.Escape(CanvasRenderingContext2D::Initialize(isolate, canvasContextFactory));
+  return scope.Escape(CanvasRenderingContext2D::Initialize(isolate, canvasContextFactory, imageDataCons));
 }
 
 Local<Object> makePath2D(node::NodeService *service) {

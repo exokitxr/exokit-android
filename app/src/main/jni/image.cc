@@ -83,11 +83,7 @@ NAN_GETTER(Image::DataGetter) {
   Image *image = ObjectWrap::Unwrap<Image>(info.This());
   unsigned int width = image->GetWidth();
   unsigned int height = image->GetHeight();
-  // unsigned int numChannels = image->GetNumChannels();
   Local<ArrayBuffer> arrayBuffer = ArrayBuffer::New(Isolate::GetCurrent(), image->GetData(), width * height * 4);
-  // Local<ArrayBuffer> arrayBuffer = ArrayBuffer::New(Isolate::GetCurrent(), width * height * numChannels);
-  // memcpy(arrayBuffer->GetContents().Data(), image->GetData(), width * height * numChannels);
-  // std::cout << "image data getter " << (void *)arrayBuffer->GetContents().Data() << " : " << (void *)image->GetData() << " : " << width << " : " << height << " : " << numChannels << "\n";
   Local<Uint8ClampedArray> uint8ClampedArray = Uint8ClampedArray::New(arrayBuffer, 0, arrayBuffer->ByteLength());
 
   info.GetReturnValue().Set(uint8ClampedArray);

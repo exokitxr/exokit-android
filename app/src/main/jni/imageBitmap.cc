@@ -20,14 +20,19 @@ Handle<Object> ImageBitmap::Initialize(Isolate *isolate) {
   Nan::SetAccessor(proto,JS_STR("height"), HeightGetter);
   Nan::SetAccessor(proto,JS_STR("data"), DataGetter);
 
-  ctor->Set(JS_STR("createImageBitmap"), Nan::New<Function>(CreateImageBitmap));
+  Local<Function> ctorFn = ctor->GetFunction();
+
+  Local<Function> createImageBitmapFn = Nan::New<Function>(CreateImageBitmap);
+  createImageBitmapFn->Set(JS_STR("ImageBitmap"), ctorFn);
+
+  ctorFn->Set(JS_STR("createImageBitmap"), createImageBitmapFn);
 
   // Nan::SetAccessor(proto,JS_STR("src"), SrcGetter, SrcSetter);
   // Nan::Set(target, JS_STR("Image"), ctor->GetFunction());
 
   // constructor_template.Reset(Isolate::GetCurrent(), ctor->GetFunction());
 
-  return scope.Escape(ctor->GetFunction());
+  return scope.Escape(ctorFn);
 }
 
 unsigned int ImageBitmap::GetWidth() {
@@ -78,8 +83,6 @@ NAN_GETTER(ImageBitmap::DataGetter) {
   ImageBitmap *imageBitmap = ObjectWrap::Unwrap<ImageBitmap>(info.This());
   unsigned int width = imageBitmap->GetWidth();
   unsigned int height = imageBitmap->GetHeight();
-  // unsigned int numChannels = imageBitmap->GetNumChannels();
-  // std::cout << "imagebitmap data getter " << (void *)imageBitmap->GetData() << " : " << width << " : " << height << " : " << numChannels << "\n";
   Local<ArrayBuffer> arrayBuffer = ArrayBuffer::New(Isolate::GetCurrent(), imageBitmap->GetData(), width * height * 4);
   Local<Uint8ClampedArray> uint8ClampedArray = Uint8ClampedArray::New(arrayBuffer, 0, arrayBuffer->ByteLength());
 
@@ -89,12 +92,12 @@ NAN_GETTER(ImageBitmap::DataGetter) {
 NAN_METHOD(ImageBitmap::CreateImageBitmap) {
   Nan::HandleScope scope;
 
-  CanvasRenderingContext2D *context = ObjectWrap::Unwrap<CanvasRenderingContext2D>(Local<Object>::Cast(info.This()));
+  Local<String> typeof = info.Callee()->TypeOf(Isolate::GetCurrent());
+  String::Utf8Value typeofString(typeof);
 
-  Isolate *isolate = Isolate::GetCurrent();
-  Local<Context> isolateContext = isolate->GetCurrentContext();
-  Local<Object> global = isolateContext->Global();
-  Local<Function> imageBitmapConstructor = Local<Function>::Cast(global->Get(JS_STR("ImageBitmap")));
+  Local<Function> imageBitmapConstructor = Local<Function>::Cast(info.Callee()->Get(JS_STR("ImageBitmap")));
+  Local<String> typeof2 = imageBitmapConstructor->TypeOf(Isolate::GetCurrent());
+  String::Utf8Value typeofString2(typeof);
   Local<Value> argv[] = {
     info[0],
   };

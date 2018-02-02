@@ -11,7 +11,7 @@ AndroidCache::AndroidCache(JNIEnv * myEnv, jobject _assetManager) {
 
   assetManager = myEnv->NewGlobalRef(_assetManager);
 
-  frameClass = (jclass) myEnv->NewGlobalRef(myEnv->FindClass("com/sometrik/framework/FrameWork"));
+  // frameClass = (jclass) myEnv->NewGlobalRef(myEnv->FindClass("com/sometrik/framework/FrameWork"));
   typefaceClass = (jclass) myEnv->NewGlobalRef(myEnv->FindClass("android/graphics/Typeface"));
   canvasClass = (jclass) myEnv->NewGlobalRef(myEnv->FindClass("android/graphics/Canvas"));
   assetManagerClass = (jclass) myEnv->NewGlobalRef(myEnv->FindClass("android/content/res/AssetManager"));

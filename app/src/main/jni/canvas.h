@@ -22,9 +22,10 @@ class Path2D;
 
 class CanvasRenderingContext2D : public ObjectWrap {
 public:
-  static Handle<Object> Initialize(Isolate *isolate, canvas::ContextFactory *canvasContextFactory);
-  int GetWidth();
-  int GetHeight();
+  static Handle<Object> Initialize(Isolate *isolate, canvas::ContextFactory *canvasContextFactory, Local<Value> imageDataCons);
+  unsigned int GetWidth();
+  unsigned int GetHeight();
+  unsigned int GetNumChannels();
   void Scale(double x, double y);
   void Rotate(double angle);
   void Translate(double x, double y);
@@ -50,10 +51,8 @@ public:
   void ClearRect(double x, double y, double w, double h);
   void FillText(const std::string &text, double x, double y);
   void StrokeText(const std::string &text, double x, double y);
-  void DrawImage(const CanvasRenderingContext2D &otherContext, double x, double y, double w, double h);
-  void DrawImage(const Image &image, double x, double y, double w, double h);
-  void DrawImage(const ImageData &imageData, double x, double y, double w, double h);
-  void DrawImage(const ImageBitmap &imageBitmap, double x, double y, double w, double h);
+  void Resize(unsigned int w, unsigned int h);
+  void DrawImage(const canvas::ImageData &imageData, int sx, int sy, unsigned int sw, unsigned int sh, int dx, int dy, unsigned int dw, unsigned int dh);
   void Save();
   void Restore();
 
@@ -61,6 +60,7 @@ protected:
   static NAN_METHOD(New);
   static NAN_GETTER(WidthGetter);
   static NAN_GETTER(HeightGetter);
+  static NAN_GETTER(DataGetter);
   static NAN_GETTER(LineWidthGetter);
   static NAN_SETTER(LineWidthSetter);
   static NAN_GETTER(FillStyleGetter);
@@ -90,9 +90,11 @@ protected:
   static NAN_METHOD(ClearRect);
   static NAN_METHOD(FillText);
   static NAN_METHOD(StrokeText);
+  static NAN_METHOD(Resize);
   static NAN_METHOD(DrawImage);
   static NAN_METHOD(CreateImageData);
   static NAN_METHOD(GetImageData);
+  static NAN_METHOD(PutImageData);
   static NAN_METHOD(Save);
   static NAN_METHOD(Restore);
 
