@@ -9,7 +9,7 @@
 #include "stb_image.h"
 
 #include <cassert>
-#include <iostream>
+// #include <iostream>
 
 using namespace std;
 using namespace canvas;
@@ -52,18 +52,18 @@ Image::loadFromMemory(const unsigned char * buffer, size_t size) {
 
         free(svgImage);
 
-        std::cout << "image decode ok" << "\n";
+        // std::cout << "image decode ok" << "\n";
 
         return data;
       } else {
         free(svgImage);
 
-        std::cout << "image decode fail 1" << "\n";
+        // std::cout << "image decode fail 1" << "\n";
 
         return nullptr;
       }
     } else {
-      std::cout << "image decode fail 2" << "\n";
+      // std::cout << "image decode fail 2" << "\n";
       // throw ImageLoadingException(stbi_failure_reason());
       return nullptr;
     }
