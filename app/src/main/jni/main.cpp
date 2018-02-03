@@ -28,8 +28,6 @@
 
 #include <libplatform/libplatform.h>
 #include <v8.h>
-#include <node.h>
-#include <webgl.h>
 #include <bindings.h>
 
 using namespace v8;
