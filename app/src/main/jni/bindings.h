@@ -3,12 +3,12 @@
 
 #include <v8.h>
 #include <node.h>
+#include <image.h>
+#include <imageData.h>
+#include <imageBitmap.h>
+#include <canvas.h>
+#include <path2d.h>
 #include "webgl.h"
-#include "image.h"
-#include "imageData.h"
-#include "imageBitmap.h"
-#include "canvas.h"
-#include "path2d.h"
 
 v8::Local<v8::Object> makeGl(node::NodeService *service);
 v8::Local<v8::Object> makeImage(node::NodeService *service, canvas::ContextFactory *canvasContextFactory);

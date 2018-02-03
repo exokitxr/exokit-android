@@ -8,8 +8,6 @@
 #ifndef WEBGL_H_
 #define WEBGL_H_
 
-#include "image.h"
-#include "canvas.h"
 #include <nan/nan.h>
 #include <GLES3/gl3.h>
 #include <GLES3/gl3ext.h>

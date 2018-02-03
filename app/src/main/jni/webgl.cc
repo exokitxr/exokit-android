@@ -1,13 +1,11 @@
 #include <cstring>
 #include <vector>
-#include <iostream>
+// #include <iostream>
 
 #include "webgl.h"
 #include <node.h>
 #include <node_buffer.h>
-// #include <GL/glew.h>
-// #include "GLES2/gl2platform.h"
-// #include "GLES2/gl2ext.h"
+#include <defines.h>
 
 #include <EGL/egl.h>
 // at least some defs from gl1 are needed

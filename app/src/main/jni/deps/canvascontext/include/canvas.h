@@ -3,6 +3,7 @@
 
 #include <v8.h>
 #include <nan/nan.h>
+#include <defines.h>
 #include <ContextAndroid.h>
 #include <Image.h>
 #include <ImageData.h>
@@ -14,11 +15,6 @@ class Image;
 class ImageData;
 class ImageBitmap;
 class Path2D;
-
-#define JS_STR(...) Nan::New<v8::String>(__VA_ARGS__).ToLocalChecked()
-#define JS_INT(val) Nan::New<v8::Integer>(val)
-#define JS_FLOAT(val) Nan::New<v8::Number>(val)
-#define JS_BOOL(val) Nan::New<v8::Boolean>(val)
 
 class CanvasRenderingContext2D : public ObjectWrap {
 public:
