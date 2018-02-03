@@ -4,7 +4,7 @@ add_compile_options(-std=c++14 -pthread)
 
 file(GLOB app_src_files
   "src/main/jni/main.cpp"
-  "src/main/jni/bindings.cc"
+  "src/main/jni/deps/bindings/src/*.cc"
   "src/main/jni/deps/canvas/src/*.cpp"
   "src/main/jni/deps/nanosvg/src/*.cpp"
   "src/main/jni/deps/canvascontext/src/*.cc"
@@ -16,6 +16,7 @@ add_library( nodebinding SHARED ${app_src_files} )
 include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/jni/include )
 include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/jni/deps/node )
 include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/jni/deps/native_app_glue )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/jni/deps/bindings/include )
 include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/jni/deps/canvas/include )
 include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/jni/deps/nanosvg/include )
 include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/jni/deps/canvascontext/include )
