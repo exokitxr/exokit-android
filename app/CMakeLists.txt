@@ -13,9 +13,9 @@ file(GLOB app_src_files
 
 add_library( nodebinding SHARED ${app_src_files} )
 
-include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/include/node )
-include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/include/native_app_glue )
 include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/jni/include )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/jni/deps/node )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/jni/deps/native_app_glue )
 include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/jni/deps/canvas/include )
 include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/jni/deps/nanosvg/include )
 include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/jni/deps/canvascontext/include )
