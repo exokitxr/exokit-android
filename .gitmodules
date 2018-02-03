@@ -1,0 +1,3 @@
+[submodule "app/src/main/jni/deps"]
+	path = app/src/main/jni/deps
+	url = https://github.com/modulesio/exokit-bindings
