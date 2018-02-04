@@ -9,6 +9,7 @@ file(GLOB app_src_files
   "src/main/jni/deps/nanosvg/src/*.cpp"
   "src/main/jni/deps/canvascontext/src/*.cc"
   "src/main/jni/deps/webglcontext/src/*.cc"
+  "src/main/jni/deps/platform/android/src/*.cpp"
 )
 
 add_library( nodebinding SHARED ${app_src_files} )
@@ -22,6 +23,7 @@ include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/jni/deps/canvas/include
 include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/jni/deps/nanosvg/include )
 include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/jni/deps/canvascontext/include )
 include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/jni/deps/webglcontext/include )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/jni/deps/platform/android/include )
 
 add_library( nodelib SHARED IMPORTED )
 set_target_properties( nodelib PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/jniLibs/${ANDROID_ABI}/libnode.so )

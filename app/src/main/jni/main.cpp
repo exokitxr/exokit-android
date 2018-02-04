@@ -29,7 +29,7 @@
 #include <libplatform/libplatform.h>
 #include <v8.h>
 #include <bindings/include/bindings.h>
-#include <canvas/include/ContextAndroid.h>
+#include <platform/android/include/ContextAndroid.h>
 
 using namespace v8;
 
