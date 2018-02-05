@@ -90,7 +90,7 @@ global.onDrawFrame = (viewMatrixFloat32Array, projectionMatrixFloat32Array, cent
       );
     matrixWorld.toArray(viewMatrixFloat32Array);
 
-    window.alignFrame(viewMatrixFloat32Array, projectionMatrixFloat32Array);
+    window.updateArFrame(viewMatrixFloat32Array, projectionMatrixFloat32Array);
     window.tickAnimationFrame();
   }
 };
