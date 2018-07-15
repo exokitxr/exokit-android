@@ -2,6 +2,6 @@
   "name": "exokit-android-example",
   "version": "0.0.1",
   "scripts": {
-    "build": "../cli/bin.js app -o ../build/app.apk -b /usr/local/bin"
+    "build": "../bin.js app -o ../build/app.apk -b /usr/local/bin"
   }
 }
