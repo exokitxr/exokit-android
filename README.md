@@ -70,6 +70,7 @@ server.listen(0, function () {
 ```
 
 To bundle up the Node.js app into an apk file use the command line tool
+NOTE: Not currently working, use npm run build in example/
 
 ```
 node-on-android ./my-app -o my-app.apk -b ./path/to/android/build/tools
