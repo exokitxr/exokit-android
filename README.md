@@ -135,9 +135,7 @@ There is an example app ready to try in the `example/` directory.
 First ensure that the dependencies are installed:
 
 ```
-cd cli/
 npm i
-cd ..
 ```
 
 You will also need to change the `-b` argument in build command in `example/package.json` if you don't have symlinks to `zipalign` and `apksigner` in `/usr/local/bin`.
@@ -150,7 +148,7 @@ npm run build
 To send it to your phone, enable adb debug mode on your android device, connect it over USB and run:
 
 ```
-adb install build/example.apk
+adb install build/app.apk
 ```
 
 The app will show up in your app list as "Node On Android". You can also launch it using:
