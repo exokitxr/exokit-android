@@ -13,12 +13,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/node-on-mobile/node-on-android.git"
+    "url": "https://github.com/webmixedreality/exokit-android.git"
   },
   "author": "Avaer Kazmer <a@modules.io>",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/modulesio/exokit-android/issues"
+    "url": "https://github.com/webmixedreality/exokit-android/issues"
   },
-  "homepage": "https://github.com/modulesio/exokit-android#readme"
+  "homepage": "https://github.com/webmixedreality/exokit-android#readme"
 }
