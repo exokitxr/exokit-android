@@ -1,7 +1,7 @@
 {
   "name": "exokit-android",
-  "version": "0.0.2",
-  "description": "Make Node.JS apps for Android",
+  "version": "0.0.1",
+  "description": "Javascript web browser for the post-screen world",
   "main": "index.js",
   "dependencies": {
     "minimist": "^1.2.0",
@@ -15,10 +15,10 @@
     "type": "git",
     "url": "https://github.com/node-on-mobile/node-on-android.git"
   },
-  "author": "Mathias Buus (@mafintosh)",
-  "license": "MIT",
+  "author": "Avaer Kazmer <a@modules.io>",
+  "license": "ISC",
   "bugs": {
-    "url": "https://github.com/node-on-mobile/node-on-android/issues"
+    "url": "https://github.com/modulesio/exokit-android/issues"
   },
-  "homepage": "https://github.com/node-on-mobile/node-on-android"
+  "homepage": "https://github.com/modulesio/exokit-android#readme"
 }
