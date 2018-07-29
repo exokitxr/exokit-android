@@ -9,6 +9,7 @@ file(GLOB app_src_files
   "src/main/jni/deps/nanosvg/src/*.cpp"
   "src/main/jni/deps/canvascontext/src/*.cc"
   "src/main/jni/deps/webglcontext/src/*.cc"
+  "src/main/jni/deps/v8/src/*.cc"
   "src/main/jni/deps/platform/android/src/*.cpp"
 )
 

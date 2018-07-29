@@ -773,8 +773,9 @@ JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_start
   i += strlen(vrTextureString) + 1;
 
   char *args[] = {binPathArg, jsPathArg, libPathArg, urlArg, vrModeArg, vrTextureArg};
-  // node::Start(3, args);
-  // service = new node::NodeService(3, args);
+
+   node::Start(3, args);
+   //service = new node::NodeService(3, args);
 
   nodeServiceInitFunction = [&](node::NodeService *service) {
     Isolate *isolate = service->GetIsolate();
