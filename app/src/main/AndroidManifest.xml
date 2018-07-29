@@ -3,8 +3,8 @@
     package="com.mafintosh.nodeonandroid">
 
     <!-- The GVR SDK requires API 19+ and OpenGL ES 2+. -->
-    <uses-sdk android:minSdkVersion="19" android:targetSdkVersion="24" />
-    <uses-feature android:glEsVersion="0x00030000" android:required="true" />
+    <uses-sdk android:minSdkVersion="24" android:targetSdkVersion="27" />
+
 
     <!-- Required for vibration feedback when the trigger action is performed. -->
     <uses-permission android:name="android.permission.VIBRATE"/>
@@ -14,6 +14,10 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera.ar" android:required="true" />
+    <uses-feature android:name="android.hardware.camera" android:required="true" />
+    <uses-feature android:glEsVersion="0x00020000" android:required="true" />
+    <uses-feature android:glEsVersion="0x00030000" android:required="true" />
 
     <!-- Make accelerometer and gyroscope hard requirements for good head tracking. -->
     <uses-feature android:name="android.hardware.sensor.accelerometer" android:required="true"/>
@@ -29,8 +33,10 @@
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/Theme.AppCompat.Light.NoActionBar.FullScreen"
-    >
+        android:theme="@style/Theme.AppCompat.Light.NoActionBar.FullScreen">
+
+        <meta-data android:name="com.google.ar.core" android:value="required" />
+
 
         <activity
             android:name=".TreasureHuntActivity"
@@ -58,16 +64,28 @@
             </intent-filter>
           </activity>
 
-          <activity
-            android:name=".HelloArActivity"
-            android:label="@string/app_name"
+          <!--<activity-->
+            <!--android:name=".HelloArActivity"-->
+            <!--android:label="@string/app_name"-->
+            <!--android:configChanges="orientation|screenSize"-->
+            <!--android:exported="true"-->
+            <!--android:screenOrientation="locked"-->
+            <!--android:resizeableActivity="false">-->
+            <!--<intent-filter>-->
+                <!--<action android:name="android.intent.action.SEND" />-->
+            <!--</intent-filter>-->
+        <!--</activity>-->
+
+        <activity
+            android:name="com.mafintosh.nodeonandroid.HelloArActivity"
             android:configChanges="orientation|screenSize"
             android:exported="true"
-            android:screenOrientation="locked"
-            android:resizeableActivity="false">
-            <intent-filter>
-                <action android:name="android.intent.action.SEND" />
-            </intent-filter>
+            android:theme="@style/Theme.AppCompat.NoActionBar"
+            android:screenOrientation="locked">
+        <intent-filter>
+            <action android:name="android.intent.action.MAIN"/>
+            <category android:name="android.intent.category.LAUNCHER"/>
+        </intent-filter>
         </activity>
 
         <activity android:name=".MainActivity">
