@@ -3,7 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
-      <module fileurl="file://$PROJECT_DIR$/zeo-android.iml" filepath="$PROJECT_DIR$/zeo-android.iml" />
+      <module fileurl="file://$PROJECT_DIR$/exokit-android.iml" filepath="$PROJECT_DIR$/exokit-android.iml" />
     </modules>
   </component>
 </project>
