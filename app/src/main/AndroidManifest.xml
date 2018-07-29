@@ -23,9 +23,7 @@
     <uses-feature android:name="android.hardware.sensor.accelerometer" android:required="true"/>
     <uses-feature android:name="android.hardware.sensor.gyroscope" android:required="true"/>
 
-    <!-- Indicates use of Android's VR-mode, available only on Android N+. -->
     <uses-feature android:name="android.software.vr.mode" android:required="false"/>
-    <!-- Indicates use of VR features that are available only on Daydream-ready devices. -->
     <uses-feature android:name="android.hardware.vr.high_performance" android:required="false"/>
 
     <application
@@ -37,13 +35,22 @@
 
         <meta-data android:name="com.google.ar.core" android:value="required" />
 
+        <activity android:name=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
 
         <activity
             android:name=".TreasureHuntActivity"
+            android:parentActivityName="com.mafintosh.nodeonandroid.MainActivity"
             android:label="@string/app_name"
             android:screenOrientation="landscape"
-            android:configChanges="orientation|keyboardHidden|screenSize|uiMode|navigation"
+            android:configChanges="density|keyboardHidden|navigation|orientation|screenSize|uiMode"
             android:enableVrMode="@string/gvr_vr_mode_component"
+            android:theme="@style/VrActivityTheme"
             android:resizeableActivity="false">
             <!-- The VR icon to be used in Daydream Home comes in two parts:
                  a foreground icon and a background icon.  -->
@@ -54,13 +61,33 @@
 
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.MAIN" />
                 <category android:name="com.google.intent.category.CARDBOARD" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
 
-                <!-- The DAYDREAM category should only be declared by Activities that are Daydream
-                     compatible. Daydream compatible apps should typically use the Daydream
-                     controller APIs directly, however in this sample app we instead rely on
-                     Cardboard trigger emulation. -->
-                <category android:name="com.google.intent.category.DAYDREAM" />
+        <activity
+            android:name=".WebVR"
+            android:parentActivityName="com.mafintosh.nodeonandroid.MainActivity"
+            android:label="@string/app_name"
+            android:screenOrientation="landscape"
+            android:configChanges="density|keyboardHidden|navigation|orientation|screenSize|uiMode"
+            android:enableVrMode="@string/gvr_vr_mode_component"
+            android:theme="@style/VrActivityTheme"
+            android:resizeableActivity="false">
+            <!-- The VR icon to be used in Daydream Home comes in two parts:
+                 a foreground icon and a background icon.  -->
+            <meta-data android:name="com.google.android.vr.icon"
+                android:resource="@drawable/vr_icon" />
+            <meta-data android:name="com.google.android.vr.icon_background"
+                android:resource="@drawable/vr_icon_background" />
+
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="com.google.intent.category.CARDBOARD" />
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
           </activity>
 
@@ -78,6 +105,7 @@
 
         <activity
             android:name="com.mafintosh.nodeonandroid.HelloArActivity"
+            android:parentActivityName="com.mafintosh.nodeonandroid.MainActivity"
             android:configChanges="orientation|screenSize"
             android:exported="true"
             android:theme="@style/Theme.AppCompat.NoActionBar"
@@ -88,12 +116,6 @@
         </intent-filter>
         </activity>
 
-        <activity android:name=".MainActivity">
-          <intent-filter>
-              <action android:name="android.intent.action.MAIN" />
-              <category android:name="android.intent.category.LAUNCHER" />
-              <category android:name="android.intent.category.DEFAULT" />
-          </intent-filter>
-        </activity>
+
     </application>
 </manifest>
