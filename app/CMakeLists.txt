@@ -1,37 +1,136 @@
 cmake_minimum_required(VERSION 3.6)
 
-add_compile_options(-std=c++14 -pthread)
+add_compile_options(-DANDROID_STL=libc++_static -D__ANDROID_API__=27 -pthread )
 
 file(GLOB app_src_files
-  "src/main/jni/main.cpp"
-  "src/main/jni/deps/bindings/src/*.cc"
-  "src/main/jni/deps/canvas/src/*.cpp"
-  "src/main/jni/deps/nanosvg/src/*.cpp"
-  "src/main/jni/deps/canvascontext/src/*.cc"
-  "src/main/jni/deps/webglcontext/src/*.cc"
-  "src/main/jni/deps/v8/src/*.cc"
-  "src/main/jni/deps/platform/android/src/*.cpp"
+  "src/main/main.cpp"
+  "src/main/assets/node/node_modules/exokit/deps/exokit-bindings/bindings/src/*.cc"
+  "src/main/assets/node/node_modules/exokit/deps/exokit-bindings/util/src/*.cc"
+  "src/main/assets/node/node_modules/exokit/deps/exokit-bindings/canvas/src/*.cpp"
+  "src/main/assets/node/node_modules/exokit/deps/exokit-bindings/nanosvg/src/*.cpp"
+  "src/main/assets/node/node_modules/exokit/deps/exokit-bindings/canvascontext/src/*.cc"
+  "src/main/assets/node/node_modules/exokit/deps/exokit-bindings/webglcontext/src/*.cc"
+  "src/main/assets/node/node_modules/exokit/deps/exokit-bindings/webaudiocontext/src/*.cpp"
+  "src/main/assets/node/node_modules/exokit/deps/exokit-bindings/videocontext/src/*.cpp"
+  "src/main/assets/node/node_modules/exokit/deps/exokit-bindings/videocontext/src/linux/*.cpp"
+  "src/main/assets/node/node_modules/exokit/deps/exokit-bindings/glfw/src/*.cc"
+
+  "src/main/jni/platform/android/*.cpp"
 )
+
+
 
 add_library( nodebinding SHARED ${app_src_files} )
 
-include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/jni/deps )
-include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/jni/deps/node )
-include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/jni/deps/native_app_glue )
-include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/jni/deps/util/include )
-include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/jni/deps/bindings/include )
-include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/jni/deps/canvas/include )
-include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/jni/deps/nanosvg/include )
-include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/jni/deps/canvascontext/include )
-include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/jni/deps/webglcontext/include )
-include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/jni/deps/platform/android/include )
+
+
+
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/exokit/deps/exokit-bindings )
+
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/other_deps/node )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/other_deps/context/android )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/other_deps/v8/include )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/other_deps/uv )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/other_deps/node/nan )
+
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/exokit/deps/exokit-bindings/utf8 )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/exokit/deps/exokit-bindings/native_app_glue )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/exokit/deps/exokit-bindings/util/include )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/exokit/deps/exokit-bindings/bindings/include )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/exokit/deps/exokit-bindings/canvas/include )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/exokit/deps/exokit-bindings/nanosvg/include )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/exokit/deps/exokit-bindings/canvascontext/include )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/exokit/deps/exokit-bindings/webglcontext/include )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/exokit/deps/exokit-bindings/glfw/include )
+
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/native-canvas-deps/include/config )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/native-canvas-deps/include/core )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/native-canvas-deps/include/effects )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/native-canvas-deps/include/gpu )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/native-graphics-deps/include )
+
+
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/exokit/deps/exokit-bindings/videocontext/include )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/exokit/deps/exokit-bindings/webaudiocontext/include )
+
+
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/native-audio-deps/include )
+
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/native-video-deps/include )
+
+
+
+
 
 add_library( nodelib SHARED IMPORTED )
-set_target_properties( nodelib PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/jniLibs/${ANDROID_ABI}/libnode.so )
+set_target_properties( nodelib PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/jniLibs/${ANDROID_ABI}/libnode.so.64 )
+
+
+
+add_library( GLEW STATIC IMPORTED )
+set_target_properties( GLEW PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/native-graphics-deps/lib2/arm64/glew/libGLEW.a )
+
+add_library( glfw3 STATIC IMPORTED )
+set_target_properties( glfw3 PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/native-graphics-deps/lib2/arm64/glfw/libglfw3.a )
+
+add_library( png16 STATIC IMPORTED )
+set_target_properties( png16 PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/native-canvas-deps/lib2/arm64/libpng16.a )
+
+add_library( skia STATIC IMPORTED )
+set_target_properties( skia PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/native-canvas-deps/lib2/arm64/libskia.a )
+
+add_library( LabSound STATIC IMPORTED )
+set_target_properties( LabSound PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/native-audio-deps/lib2/arm64/libLabSound.a )
+
+add_library( avcodec STATIC IMPORTED )
+set_target_properties( avcodec PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/native-video-deps/lib2/arm64/libavcodec.a )
+
+add_library( avdevice STATIC IMPORTED )
+set_target_properties( avdevice PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/native-video-deps/lib2/arm64/libavdevice.a )
+
+add_library( avfilter STATIC IMPORTED )
+set_target_properties( avfilter PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/native-video-deps/lib2/arm64/libavfilter.a )
+
+add_library( avformat STATIC IMPORTED )
+set_target_properties( avformat PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/native-video-deps/lib2/arm64/libavformat.a )
+
+add_library( avutil STATIC IMPORTED )
+set_target_properties( avutil PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/native-video-deps/lib2/arm64/libavutil.a )
+
+add_library( swresample STATIC IMPORTED )
+set_target_properties( swresample PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/native-video-deps/lib2/arm64/libswresample.a )
+
+add_library( swscale STATIC IMPORTED )
+set_target_properties( swscale PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/native-video-deps/lib2/arm64/libswscale.a )
+
+
+
 
 find_library( log-lib log )
+find_library( stdc-lib stdc++ )
 find_library( android-lib android )
 find_library( egl-lib EGL )
+find_library( glesv2-lib GLESv2 )
 find_library( glesv3-lib GLESv3 )
 find_library( jnigraphics-lib jnigraphics )
-target_link_libraries( nodebinding ${log-lib} ${android-lib} ${egl-lib} ${glesv3-lib} ${jnigraphics-lib} nodelib )
+target_link_libraries( nodebinding
+                       ${log-lib}
+                       ${stdc-lib}
+                       ${android-lib}
+                       ${egl-lib}
+                       ${glesv2-lib}
+                       ${glesv3-lib}
+                       ${jnigraphics-lib}
+                       nodelib
+                       GLEW
+                       glfw3
+                       png16
+                       skia
+                       LabSound
+                       avcodec
+                       avdevice
+                       avformat
+                       avutil
+                       swresample
+                       swscale
+                       )

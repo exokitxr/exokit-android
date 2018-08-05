@@ -74,16 +74,19 @@ android {
     // }
 }
 
-task assetsNpmInstall(type: NpmTask) {
-    workingDir = file('./src/main/assets/node/')
-    args = ['install', '--production', '--no-package-lock', '--loglevel', 'warn']
-}
+//task assetsNpmInstall(type: NpmTask) {
+//    workingDir = file('./src/main/assets/node/')
+//    args = ['install', '--production', '--no-package-lock', '--loglevel', 'warn']
+//}
+//
+//tasks.whenTaskAdded { task ->
+//    if (task.name == 'generateArm8DebugSources' || task.name == 'generateArm8ReleaseSources') {
+//        generateArm8DebugSources.dependsOn assetsNpmInstall
+//    }
+//}
 
-tasks.whenTaskAdded { task ->
-    if (task.name == 'generateArm8DebugSources' || task.name == 'generateArm8ReleaseSources') {
-        generateArm8DebugSources.dependsOn assetsNpmInstall
-    }
-}
+
+
 
 /* repositories {
     // jcenter()
@@ -94,10 +97,10 @@ tasks.whenTaskAdded { task ->
 
 dependencies {
     // Adds Google VR spatial audio support
-    compile 'com.google.vr:sdk-audio:1.80.0'
+    implementation 'com.google.vr:sdk-audio:1.80.0'
 
     // Required for all Google VR apps
-    compile 'com.google.vr:sdk-base:1.80.0'
+    implementation 'com.google.vr:sdk-base:1.80.0'
 
     // ARCore library
     implementation 'com.google.ar:core:1.3.0'
