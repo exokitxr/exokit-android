@@ -11,6 +11,7 @@ android {
     compileSdkVersion 27
     buildToolsVersion '27.0.3'
 
+
     defaultConfig {
         applicationId "com.mafintosh.nodeonandroid"
         minSdkVersion 27
@@ -19,7 +20,23 @@ android {
         versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
 
-        // multiDexEnabled true
+        // Enabling multidex support.
+        multiDexEnabled true
+        dexOptions {
+            javaMaxHeapSize "4G"
+        }
+
+
+        externalNativeBuild {
+            cmake {
+                // Use the following syntax when passing arguments to variables:
+                // arguments "-DVAR_NAME=ARGUMENT".
+                arguments "-DANDROID_TOOLCHAIN=clang",
+                          "-DANDROID_STL=c++_shared"
+                         // "-DANDROID_ALLOW_UNDEFINED_SYMBOLS=TRUE"
+            }
+        }
+
         /* ndk {
           moduleName = "nodeonandroid_jni"
           cppFlags.addAll([
@@ -36,6 +53,7 @@ android {
 
           ldLibs.addAll(["log", "android", "EGL", "GLESv2"])
         } */
+
     }
     externalNativeBuild {
         cmake {
@@ -53,8 +71,15 @@ android {
             proguardFiles.add(file('../proguard.txt'))
         }
     }
+
     flavorDimensions 'cpuArch'
     productFlavors {
+//        arm7 {
+//            dimension 'cpuArch'
+//            ndk {
+//                abiFilter 'armeabi-v7a'
+//            }
+//        }
         arm8 {
             dimension 'cpuArch'
             ndk {
@@ -62,6 +87,7 @@ android {
             }
         }
     }
+
     /* externalNativeBuild {
         cmake {
             path "CMakeLists.txt"
