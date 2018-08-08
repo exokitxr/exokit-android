@@ -345,11 +345,9 @@ class Debug {
   void ApplySideEffectChecks(Handle<DebugInfo> debug_info);
   void ClearSideEffectChecks(Handle<DebugInfo> debug_info);
 
-  bool PerformSideEffectCheck(Handle<JSFunction> function,
-                              Handle<Object> receiver);
+  bool PerformSideEffectCheck(Handle<JSFunction> function);
   bool PerformSideEffectCheckForCallback(Handle<Object> callback_info);
   bool PerformSideEffectCheckAtBytecode(InterpretedFrame* frame);
-  bool PerformSideEffectCheckForObject(Handle<Object> object);
 
   // Flags and states.
   DebugScope* debugger_entry() {
@@ -536,8 +534,6 @@ class Debug {
   // Used for side effect check to mark temporary objects.
   class TemporaryObjectsTracker;
   std::unique_ptr<TemporaryObjectsTracker> temporary_objects_;
-
-  Handle<RegExpMatchInfo> regexp_match_info_;
 
   // Used to collect histogram data on debugger feature usage.
   DebugFeatureTracker feature_tracker_;

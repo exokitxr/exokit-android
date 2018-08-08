@@ -11,14 +11,10 @@ namespace v8 {
 namespace internal {
 namespace wasm {
 
-size_t GetSerializedNativeModuleSize(
+std::pair<std::unique_ptr<const byte[]>, size_t> SerializeNativeModule(
     Isolate* isolate, Handle<WasmCompiledModule> compiled_module);
 
-bool SerializeNativeModule(Isolate* isolate,
-                           Handle<WasmCompiledModule> compiled_module,
-                           Vector<byte> buffer);
-
-MaybeHandle<WasmModuleObject> DeserializeNativeModule(
+MaybeHandle<WasmCompiledModule> DeserializeNativeModule(
     Isolate* isolate, Vector<const byte> data, Vector<const byte> wire_bytes);
 
 }  // namespace wasm

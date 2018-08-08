@@ -46,9 +46,10 @@ Context* Context::cast(Object* context) {
   return reinterpret_cast<Context*>(context);
 }
 
-void Context::set_scope_info(ScopeInfo* scope_info) {
-  set(SCOPE_INFO_INDEX, scope_info);
-}
+
+JSFunction* Context::closure() { return JSFunction::cast(get(CLOSURE_INDEX)); }
+void Context::set_closure(JSFunction* closure) { set(CLOSURE_INDEX, closure); }
+
 
 Context* Context::previous() {
   Object* result = get(PREVIOUS_INDEX);

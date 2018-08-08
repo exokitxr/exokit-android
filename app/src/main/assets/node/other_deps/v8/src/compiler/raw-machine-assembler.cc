@@ -17,7 +17,7 @@ RawMachineAssembler::RawMachineAssembler(
     Isolate* isolate, Graph* graph, CallDescriptor* call_descriptor,
     MachineRepresentation word, MachineOperatorBuilder::Flags flags,
     MachineOperatorBuilder::AlignmentRequirements alignment_requirements,
-    PoisoningMitigationLevel poisoning_level)
+    PoisoningMitigationLevel poisoning_enabled)
     : isolate_(isolate),
       graph_(graph),
       schedule_(new (zone()) Schedule(zone())),
@@ -26,7 +26,7 @@ RawMachineAssembler::RawMachineAssembler(
       call_descriptor_(call_descriptor),
       parameters_(parameter_count(), zone()),
       current_block_(schedule()->start()),
-      poisoning_level_(poisoning_level) {
+      poisoning_enabled_(poisoning_enabled) {
   int param_count = static_cast<int>(parameter_count());
   // Add an extra input for the JSFunction parameter to the start node.
   graph->SetStart(graph->NewNode(common_.Start(param_count + 1)));

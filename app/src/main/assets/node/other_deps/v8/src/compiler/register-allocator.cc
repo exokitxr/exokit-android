@@ -1503,10 +1503,7 @@ bool RegisterAllocationData::ExistsUseWithoutDefinition() {
 // will be transferred via a move in the Gap::END's of the last instruction
 // of a deferred block.
 bool RegisterAllocationData::RangesDefinedInDeferredStayInDeferred() {
-  const size_t live_ranges_size = live_ranges().size();
   for (const TopLevelLiveRange* range : live_ranges()) {
-    CHECK_EQ(live_ranges_size,
-             live_ranges().size());  // TODO(neis): crbug.com/831822
     if (range == nullptr || range->IsEmpty() ||
         !code()
              ->GetInstructionBlock(range->Start().ToInstructionIndex())
@@ -2410,10 +2407,7 @@ void LiveRangeBuilder::BuildLiveRanges() {
     live_in_sets()[block_id] = live;
   }
   // Postprocess the ranges.
-  const size_t live_ranges_size = data()->live_ranges().size();
   for (TopLevelLiveRange* range : data()->live_ranges()) {
-    CHECK_EQ(live_ranges_size,
-             data()->live_ranges().size());  // TODO(neis): crbug.com/831822
     if (range == nullptr) continue;
     // Give slots to all ranges with a non fixed slot use.
     if (range->has_slot_use() && range->HasNoSpillType()) {
@@ -2579,8 +2573,6 @@ LifetimePosition RegisterAllocator::GetSplitPositionForInstruction(
 void RegisterAllocator::SplitAndSpillRangesDefinedByMemoryOperand() {
   size_t initial_range_count = data()->live_ranges().size();
   for (size_t i = 0; i < initial_range_count; ++i) {
-    CHECK_EQ(initial_range_count,
-             data()->live_ranges().size());  // TODO(neis): crbug.com/831822
     TopLevelLiveRange* range = data()->live_ranges()[i];
     if (!CanProcessRange(range)) continue;
     if (range->HasNoSpillType() ||
@@ -2772,10 +2764,7 @@ void LinearScanAllocator::AllocateRegisters() {
 
   SplitAndSpillRangesDefinedByMemoryOperand();
 
-  const size_t live_ranges_size = data()->live_ranges().size();
   for (TopLevelLiveRange* range : data()->live_ranges()) {
-    CHECK_EQ(live_ranges_size,
-             data()->live_ranges().size());  // TODO(neis): crbug.com/831822
     if (!CanProcessRange(range)) continue;
     for (LiveRange* to_add = range; to_add != nullptr;
          to_add = to_add->next()) {
@@ -2898,10 +2887,11 @@ void LinearScanAllocator::AddToUnhandledSorted(LiveRange* range) {
   if (range == nullptr || range->IsEmpty()) return;
   DCHECK(!range->HasRegisterAssigned() && !range->spilled());
   DCHECK(allocation_finger_ <= range->Start());
-  for (size_t i = unhandled_live_ranges().size(); i-- > 0;) {
+  for (int i = static_cast<int>(unhandled_live_ranges().size() - 1); i >= 0;
+       --i) {
     LiveRange* cur_range = unhandled_live_ranges().at(i);
     if (!range->ShouldBeAllocatedBefore(cur_range)) continue;
-    TRACE("Add live range %d:%d to unhandled at %zu\n",
+    TRACE("Add live range %d:%d to unhandled at %d\n",
           range->TopLevel()->vreg(), range->relative_id(), i + 1);
     auto it = unhandled_live_ranges().begin() + (i + 1);
     unhandled_live_ranges().insert(it, range);
@@ -3534,10 +3524,7 @@ SpillSlotLocator::SpillSlotLocator(RegisterAllocationData* data)
 
 void SpillSlotLocator::LocateSpillSlots() {
   const InstructionSequence* code = data()->code();
-  const size_t live_ranges_size = data()->live_ranges().size();
   for (TopLevelLiveRange* range : data()->live_ranges()) {
-    CHECK_EQ(live_ranges_size,
-             data()->live_ranges().size());  // TODO(neis): crbug.com/831822
     if (range == nullptr || range->IsEmpty()) continue;
     // We care only about ranges which spill in the frame.
     if (!range->HasSpillRange() || range->IsSpilledOnlyInDeferredBlocks()) {
@@ -3583,10 +3570,7 @@ void OperandAssigner::AssignSpillSlots() {
 
 
 void OperandAssigner::CommitAssignment() {
-  const size_t live_ranges_size = data()->live_ranges().size();
   for (TopLevelLiveRange* top_range : data()->live_ranges()) {
-    CHECK_EQ(live_ranges_size,
-             data()->live_ranges().size());  // TODO(neis): crbug.com/831822
     if (top_range == nullptr || top_range->IsEmpty()) continue;
     InstructionOperand spill_operand;
     if (top_range->HasSpillOperand()) {
@@ -3655,10 +3639,7 @@ void ReferenceMapPopulator::PopulateReferenceMaps() {
   int last_range_start = 0;
   const ReferenceMapDeque* reference_maps = data()->code()->reference_maps();
   ReferenceMapDeque::const_iterator first_it = reference_maps->begin();
-  const size_t live_ranges_size = data()->live_ranges().size();
   for (TopLevelLiveRange* range : data()->live_ranges()) {
-    CHECK_EQ(live_ranges_size,
-             data()->live_ranges().size());  // TODO(neis): crbug.com/831822
     if (range == nullptr) continue;
     // Skip non-reference values.
     if (!data()->IsReference(range)) continue;
@@ -3850,10 +3831,7 @@ void LiveRangeConnector::ResolveControlFlow(Zone* local_zone) {
   // At this stage, we collected blocks needing a spill operand from
   // ConnectRanges and from ResolveControlFlow. Time to commit the spills for
   // deferred blocks.
-  const size_t live_ranges_size = data()->live_ranges().size();
   for (TopLevelLiveRange* top : data()->live_ranges()) {
-    CHECK_EQ(live_ranges_size,
-             data()->live_ranges().size());  // TODO(neis): crbug.com/831822
     if (top == nullptr || top->IsEmpty() ||
         !top->IsSpilledOnlyInDeferredBlocks())
       continue;
@@ -3886,10 +3864,7 @@ int LiveRangeConnector::ResolveControlFlow(const InstructionBlock* block,
 
 void LiveRangeConnector::ConnectRanges(Zone* local_zone) {
   DelayedInsertionMap delayed_insertion_map(local_zone);
-  const size_t live_ranges_size = data()->live_ranges().size();
   for (TopLevelLiveRange* top_range : data()->live_ranges()) {
-    CHECK_EQ(live_ranges_size,
-             data()->live_ranges().size());  // TODO(neis): crbug.com/831822
     if (top_range == nullptr) continue;
     bool connect_spilled = top_range->IsSpilledOnlyInDeferredBlocks();
     LiveRange* first_range = top_range;

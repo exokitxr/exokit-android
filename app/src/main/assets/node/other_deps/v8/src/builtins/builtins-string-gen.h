@@ -74,17 +74,12 @@ class StringBuiltinsAssembler : public CodeStubAssembler {
   void StringIndexOf(Node* const subject_string, Node* const search_string,
                      Node* const position, std::function<void(Node*)> f_return);
 
-  TNode<Smi> IndexOfDollarChar(Node* const context, Node* const string);
-
-  TNode<JSArray> StringToArray(TNode<Context> context,
-                               TNode<String> subject_string,
-                               TNode<Smi> subject_length,
-                               TNode<Number> limit_number);
+  Node* IndexOfDollarChar(Node* const context, Node* const string);
 
   void RequireObjectCoercible(Node* const context, Node* const value,
                               const char* method_name);
 
-  TNode<BoolT> SmiIsNegative(TNode<Smi> value) {
+  Node* SmiIsNegative(Node* const value) {
     return SmiLessThan(value, SmiConstant(0));
   }
 
@@ -107,9 +102,6 @@ class StringBuiltinsAssembler : public CodeStubAssembler {
                                  Handle<Symbol> symbol,
                                  const NodeFunction0& regexp_call,
                                  const NodeFunction1& generic_call);
-
-  void Generate_StringAdd(StringAddFlags flags, PretenureFlag pretenure_flag,
-                          Node* context, Node* left, Node* right);
 };
 
 class StringIncludesIndexOfAssembler : public StringBuiltinsAssembler {

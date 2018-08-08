@@ -221,7 +221,8 @@ Node* PromiseBuiltinsAssembler::CreatePromiseAllResolveElementContext(
 }
 
 Node* PromiseBuiltinsAssembler::CreatePromiseAllResolveElementFunction(
-    Node* context, TNode<Smi> index, Node* native_context) {
+    Node* context, Node* index, Node* native_context) {
+  CSA_ASSERT(this, TaggedIsSmi(index));
   CSA_ASSERT(this, SmiGreaterThan(index, SmiConstant(0)));
   CSA_ASSERT(this, SmiLessThanOrEqual(
                        index, SmiConstant(PropertyArray::HashField::kMax)));
@@ -267,9 +268,8 @@ Node* PromiseBuiltinsAssembler::PromiseHasHandler(Node* promise) {
 }
 
 void PromiseBuiltinsAssembler::PromiseSetHasHandler(Node* promise) {
-  TNode<Smi> const flags =
-      CAST(LoadObjectField(promise, JSPromise::kFlagsOffset));
-  TNode<Smi> const new_flags =
+  Node* const flags = LoadObjectField(promise, JSPromise::kFlagsOffset);
+  Node* const new_flags =
       SmiOr(flags, SmiConstant(1 << JSPromise::kHasHandlerBit));
   StoreObjectFieldNoWriteBarrier(promise, JSPromise::kFlagsOffset, new_flags);
 }
@@ -281,8 +281,7 @@ Node* PromiseBuiltinsAssembler::IsPromiseStatus(
 
 Node* PromiseBuiltinsAssembler::PromiseStatus(Node* promise) {
   STATIC_ASSERT(JSPromise::kStatusShift == 0);
-  TNode<Smi> const flags =
-      CAST(LoadObjectField(promise, JSPromise::kFlagsOffset));
+  Node* const flags = LoadObjectField(promise, JSPromise::kFlagsOffset);
   return Word32And(SmiToInt32(flags), Int32Constant(JSPromise::kStatusMask));
 }
 
@@ -292,17 +291,15 @@ void PromiseBuiltinsAssembler::PromiseSetStatus(
              IsPromiseStatus(PromiseStatus(promise), v8::Promise::kPending));
   CHECK_NE(status, v8::Promise::kPending);
 
-  TNode<Smi> mask = SmiConstant(status);
-  TNode<Smi> const flags =
-      CAST(LoadObjectField(promise, JSPromise::kFlagsOffset));
+  Node* mask = SmiConstant(status);
+  Node* const flags = LoadObjectField(promise, JSPromise::kFlagsOffset);
   StoreObjectFieldNoWriteBarrier(promise, JSPromise::kFlagsOffset,
                                  SmiOr(flags, mask));
 }
 
 void PromiseBuiltinsAssembler::PromiseSetHandledHint(Node* promise) {
-  TNode<Smi> const flags =
-      CAST(LoadObjectField(promise, JSPromise::kFlagsOffset));
-  TNode<Smi> const new_flags =
+  Node* const flags = LoadObjectField(promise, JSPromise::kFlagsOffset);
+  Node* const new_flags =
       SmiOr(flags, SmiConstant(1 << JSPromise::kHandledHintBit));
   StoreObjectFieldNoWriteBarrier(promise, JSPromise::kFlagsOffset, new_flags);
 }
@@ -1826,7 +1823,7 @@ Node* PromiseBuiltinsAssembler::PerformPromiseAll(
   Node* const resolve_element_context =
       CreatePromiseAllResolveElementContext(capability, native_context);
 
-  TVARIABLE(Smi, var_index, SmiConstant(1));
+  VARIABLE(var_index, MachineRepresentation::kTagged, SmiConstant(1));
   Label loop(this, &var_index), done_loop(this),
       too_many_elements(this, Label::kDeferred),
       close_iterator(this, Label::kDeferred);
@@ -1856,14 +1853,14 @@ Node* PromiseBuiltinsAssembler::PerformPromiseAll(
                       var_exception);
 
     // Check if we reached the limit.
-    TNode<Smi> const index = var_index.value();
+    Node* const index = var_index.value();
     GotoIf(SmiEqual(index, SmiConstant(PropertyArray::HashField::kMax)),
            &too_many_elements);
 
     // Set remainingElementsCount.[[Value]] to
     //     remainingElementsCount.[[Value]] + 1.
-    TNode<Smi> const remaining_elements_count = CAST(LoadContextElement(
-        resolve_element_context, kPromiseAllResolveElementRemainingSlot));
+    Node* const remaining_elements_count = LoadContextElement(
+        resolve_element_context, kPromiseAllResolveElementRemainingSlot);
     StoreContextElementNoWriteBarrier(
         resolve_element_context, kPromiseAllResolveElementRemainingSlot,
         SmiAdd(remaining_elements_count, SmiConstant(1)));
@@ -1902,7 +1899,7 @@ Node* PromiseBuiltinsAssembler::PerformPromiseAll(
     });
 
     // Set index to index + 1.
-    var_index = SmiAdd(index, SmiConstant(1));
+    var_index.Bind(SmiAdd(index, SmiConstant(1)));
     Goto(&loop);
   }
 
@@ -1936,8 +1933,8 @@ Node* PromiseBuiltinsAssembler::PerformPromiseAll(
     // Set iteratorRecord.[[Done]] to true.
     // Set remainingElementsCount.[[Value]] to
     //    remainingElementsCount.[[Value]] - 1.
-    TNode<Smi> remaining_elements_count = CAST(LoadContextElement(
-        resolve_element_context, kPromiseAllResolveElementRemainingSlot));
+    Node* remaining_elements_count = LoadContextElement(
+        resolve_element_context, kPromiseAllResolveElementRemainingSlot);
     remaining_elements_count = SmiSub(remaining_elements_count, SmiConstant(1));
     StoreContextElementNoWriteBarrier(resolve_element_context,
                                       kPromiseAllResolveElementRemainingSlot,
@@ -1952,8 +1949,8 @@ Node* PromiseBuiltinsAssembler::PerformPromiseAll(
     Node* const values_array = LoadContextElement(
         resolve_element_context, kPromiseAllResolveElementValuesArraySlot);
     Node* const old_elements = LoadElements(values_array);
-    TNode<Smi> const old_capacity = LoadFixedArrayBaseLength(old_elements);
-    TNode<Smi> const new_capacity = var_index.value();
+    Node* const old_capacity = LoadFixedArrayBaseLength(old_elements);
+    Node* const new_capacity = var_index.value();
     GotoIf(SmiGreaterThanOrEqual(old_capacity, new_capacity), &return_promise);
     Node* const new_elements =
         AllocateFixedArray(PACKED_ELEMENTS, new_capacity, SMI_PARAMETERS,
@@ -2130,8 +2127,8 @@ TF_BUILTIN(PromiseAllResolveElementClosure, PromiseBuiltinsAssembler) {
   }
 
   BIND(&done);
-  TNode<Smi> remaining_elements_count =
-      CAST(LoadContextElement(context, kPromiseAllResolveElementRemainingSlot));
+  Node* remaining_elements_count =
+      LoadContextElement(context, kPromiseAllResolveElementRemainingSlot);
   remaining_elements_count = SmiSub(remaining_elements_count, SmiConstant(1));
   StoreContextElement(context, kPromiseAllResolveElementRemainingSlot,
                       remaining_elements_count);

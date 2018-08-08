@@ -116,21 +116,6 @@ RUNTIME_FUNCTION(Runtime_ConstructConsString) {
   return *isolate->factory()->NewConsString(left, right, length, kIsOneByte);
 }
 
-RUNTIME_FUNCTION(Runtime_ConstructSlicedString) {
-  HandleScope scope(isolate);
-  DCHECK_EQ(2, args.length());
-  CONVERT_ARG_HANDLE_CHECKED(String, string, 0);
-  CONVERT_ARG_HANDLE_CHECKED(Smi, index, 1);
-
-  CHECK(string->IsOneByteRepresentation());
-  CHECK_LT(index->value(), string->length());
-
-  Handle<String> sliced_string = isolate->factory()->NewSubString(
-      string, index->value(), string->length());
-  CHECK(sliced_string->IsSlicedString());
-  return *sliced_string;
-}
-
 RUNTIME_FUNCTION(Runtime_DeoptimizeFunction) {
   HandleScope scope(isolate);
   DCHECK_EQ(1, args.length());
@@ -526,54 +511,28 @@ RUNTIME_FUNCTION(Runtime_DebugPrint) {
   SealHandleScope shs(isolate);
   DCHECK_EQ(1, args.length());
 
-  // Hack: The argument is passed as Object* but here it's really a
-  // MaybeObject*.
-  MaybeObject* maybe_object = reinterpret_cast<MaybeObject*>(args[0]);
-
   OFStream os(stdout);
-  if (maybe_object->IsClearedWeakHeapObject()) {
-    os << "[weak cleared]";
-  } else {
-    Object* object;
-    bool weak = false;
-    if (maybe_object->IsWeakHeapObject()) {
-      weak = true;
-      object = maybe_object->ToWeakHeapObject();
-    } else {
-      // Strong reference or SMI.
-      object = maybe_object->ToObject();
-    }
-
 #ifdef DEBUG
-    if (object->IsString() && isolate->context() != nullptr) {
-      DCHECK(!weak);
-      // If we have a string, assume it's a code "marker"
-      // and print some interesting cpu debugging info.
-      object->Print(os);
-      JavaScriptFrameIterator it(isolate);
-      JavaScriptFrame* frame = it.frame();
-      os << "fp = " << reinterpret_cast<void*>(frame->fp())
-         << ", sp = " << reinterpret_cast<void*>(frame->sp())
-         << ", caller_sp = " << reinterpret_cast<void*>(frame->caller_sp())
-         << ": ";
-    } else {
-      os << "DebugPrint: ";
-      if (weak) {
-        os << "[weak] ";
-      }
-      object->Print(os);
-    }
-    if (object->IsHeapObject()) {
-      HeapObject::cast(object)->map()->Print(os);
-    }
-#else
-    if (weak) {
-      os << "[weak] ";
-    }
-    // ShortPrint is available in release mode. Print is not.
-    os << Brief(object);
-#endif
+  if (args[0]->IsString() && isolate->context() != nullptr) {
+    // If we have a string, assume it's a code "marker"
+    // and print some interesting cpu debugging info.
+    args[0]->Print(os);
+    JavaScriptFrameIterator it(isolate);
+    JavaScriptFrame* frame = it.frame();
+    os << "fp = " << static_cast<void*>(frame->fp())
+       << ", sp = " << static_cast<void*>(frame->sp())
+       << ", caller_sp = " << static_cast<void*>(frame->caller_sp()) << ": ";
+  } else {
+    os << "DebugPrint: ";
+    args[0]->Print(os);
   }
+  if (args[0]->IsHeapObject()) {
+    HeapObject::cast(args[0])->map()->Print(os);
+  }
+#else
+  // ShortPrint is available in release mode. Print is not.
+  os << Brief(args[0]);
+#endif
   os << std::endl;
 
   return args[0];  // return TOS
@@ -901,27 +860,22 @@ RUNTIME_FUNCTION(Runtime_PromiseSpeciesProtector) {
       isolate->IsPromiseSpeciesLookupChainIntact());
 }
 
-// Take a compiled wasm module and serialize it into an array buffer, which is
-// then returned.
+// Take a compiled wasm module, serialize it and copy the buffer into an array
+// buffer, which is then returned.
 RUNTIME_FUNCTION(Runtime_SerializeWasmModule) {
   HandleScope shs(isolate);
   DCHECK_EQ(1, args.length());
   CONVERT_ARG_HANDLE_CHECKED(WasmModuleObject, module_obj, 0);
 
-  Handle<WasmCompiledModule> compiled_module(module_obj->compiled_module(),
-                                             isolate);
-  size_t compiled_size =
-      wasm::GetSerializedNativeModuleSize(isolate, compiled_module);
-  void* array_data = isolate->array_buffer_allocator()->Allocate(compiled_size);
-  Handle<JSArrayBuffer> array_buffer = isolate->factory()->NewJSArrayBuffer();
-  JSArrayBuffer::Setup(array_buffer, isolate, false, array_data, compiled_size);
-  if (!array_data ||
-      !wasm::SerializeNativeModule(
-          isolate, compiled_module,
-          {reinterpret_cast<uint8_t*>(array_data), compiled_size})) {
-    return isolate->heap()->undefined_value();
-  }
-  return *array_buffer;
+  Handle<WasmCompiledModule> orig(module_obj->compiled_module());
+  std::pair<std::unique_ptr<const byte[]>, size_t> serialized_module =
+      wasm::SerializeNativeModule(isolate, orig);
+  int data_size = static_cast<int>(serialized_module.second);
+  void* buff = isolate->array_buffer_allocator()->Allocate(data_size);
+  Handle<JSArrayBuffer> ret = isolate->factory()->NewJSArrayBuffer();
+  JSArrayBuffer::Setup(ret, isolate, false, buff, data_size);
+  memcpy(buff, serialized_module.first.get(), data_size);
+  return *ret;
 }
 
 // Take an array buffer and attempt to reconstruct a compiled wasm module.
@@ -932,7 +886,7 @@ RUNTIME_FUNCTION(Runtime_DeserializeWasmModule) {
   CONVERT_ARG_HANDLE_CHECKED(JSArrayBuffer, buffer, 0);
   CONVERT_ARG_HANDLE_CHECKED(JSArrayBuffer, wire_bytes, 1);
 
-  uint8_t* mem_start = reinterpret_cast<uint8_t*>(buffer->backing_store());
+  Address mem_start = static_cast<Address>(buffer->backing_store());
   size_t mem_size = static_cast<size_t>(buffer->byte_length()->Number());
 
   // Note that {wasm::DeserializeNativeModule} will allocate. We assume the
@@ -942,7 +896,7 @@ RUNTIME_FUNCTION(Runtime_DeserializeWasmModule) {
     wire_bytes->set_is_external(true);
     isolate->heap()->UnregisterArrayBuffer(*wire_bytes);
   }
-  MaybeHandle<WasmModuleObject> maybe_module_object =
+  MaybeHandle<WasmCompiledModule> maybe_compiled_module =
       wasm::DeserializeNativeModule(
           isolate, {mem_start, mem_size},
           Vector<const uint8_t>(
@@ -952,11 +906,11 @@ RUNTIME_FUNCTION(Runtime_DeserializeWasmModule) {
     wire_bytes->set_is_external(false);
     isolate->heap()->RegisterNewArrayBuffer(*wire_bytes);
   }
-  Handle<WasmModuleObject> module_object;
-  if (!maybe_module_object.ToHandle(&module_object)) {
+  Handle<WasmCompiledModule> compiled_module;
+  if (!maybe_compiled_module.ToHandle(&compiled_module)) {
     return isolate->heap()->undefined_value();
   }
-  return *module_object;
+  return *WasmModuleObject::New(isolate, compiled_module);
 }
 
 RUNTIME_FUNCTION(Runtime_ValidateWasmInstancesChain) {
@@ -974,6 +928,14 @@ RUNTIME_FUNCTION(Runtime_ValidateWasmModuleState) {
   DCHECK_EQ(1, args.length());
   CONVERT_ARG_HANDLE_CHECKED(WasmModuleObject, module_obj, 0);
   WasmModuleObject::ValidateStateForTesting(isolate, module_obj);
+  return isolate->heap()->ToBoolean(true);
+}
+
+RUNTIME_FUNCTION(Runtime_ValidateWasmOrphanedInstance) {
+  HandleScope shs(isolate);
+  DCHECK_EQ(1, args.length());
+  CONVERT_ARG_HANDLE_CHECKED(WasmInstanceObject, instance, 0);
+  WasmInstanceObject::ValidateOrphanedInstanceForTesting(isolate, instance);
   return isolate->heap()->ToBoolean(true);
 }
 

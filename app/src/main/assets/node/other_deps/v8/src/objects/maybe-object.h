@@ -21,7 +21,6 @@ class MaybeObject {
  public:
   bool IsSmi() const { return HAS_SMI_TAG(this); }
   inline bool ToSmi(Smi** value);
-  inline Smi* ToSmi();
 
   bool IsClearedWeakHeapObject() {
     return ::v8::internal::IsClearedWeakHeapObject(this);
@@ -35,15 +34,10 @@ class MaybeObject {
   inline bool ToStrongHeapObject(HeapObject** result);
   inline HeapObject* ToStrongHeapObject();
   inline bool IsWeakHeapObject();
-  inline bool IsWeakOrClearedHeapObject();
   inline bool ToWeakHeapObject(HeapObject** result);
   inline HeapObject* ToWeakHeapObject();
 
-  // Returns the HeapObject pointed to (either strongly or weakly).
   inline HeapObject* GetHeapObject();
-  inline Object* GetHeapObjectOrSmi();
-
-  inline Object* ToObject();
 
   static MaybeObject* FromSmi(Smi* smi) {
     DCHECK(HAS_SMI_TAG(smi));
@@ -55,27 +49,13 @@ class MaybeObject {
     return reinterpret_cast<MaybeObject*>(object);
   }
 
-  static inline MaybeObject* MakeWeak(MaybeObject* object);
+  static MaybeObject* MakeWeak(MaybeObject* object) {
+    DCHECK(object->IsStrongOrWeakHeapObject());
+    return AddWeakHeapObjectMask(object);
+  }
 
 #ifdef VERIFY_HEAP
   static void VerifyMaybeObjectPointer(MaybeObject* p);
-#endif
-
-  // Prints this object without details.
-  void ShortPrint(FILE* out = stdout);
-
-  // Prints this object without details to a message accumulator.
-  void ShortPrint(StringStream* accumulator);
-
-  void ShortPrint(std::ostream& os);
-
-#ifdef OBJECT_PRINT
-  void Print();
-
-  void Print(std::ostream& os);
-#else
-  void Print() { ShortPrint(); }
-  void Print(std::ostream& os) { ShortPrint(os); }
 #endif
 
  private:
@@ -86,14 +66,12 @@ class MaybeObject {
 // reference to a HeapObject, or a cleared weak reference.
 class HeapObjectReference : public MaybeObject {
  public:
-  static HeapObjectReference* Strong(Object* object) {
-    DCHECK(!object->IsSmi());
+  static HeapObjectReference* Strong(HeapObject* object) {
     DCHECK(!HasWeakHeapObjectTag(object));
     return reinterpret_cast<HeapObjectReference*>(object);
   }
 
-  static HeapObjectReference* Weak(Object* object) {
-    DCHECK(!object->IsSmi());
+  static HeapObjectReference* Weak(HeapObject* object) {
     DCHECK(!HasWeakHeapObjectTag(object));
     return AddWeakHeapObjectMask(object);
   }

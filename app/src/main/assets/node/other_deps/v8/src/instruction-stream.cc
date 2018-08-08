@@ -14,7 +14,7 @@ namespace internal {
 // static
 bool InstructionStream::PcIsOffHeap(Isolate* isolate, Address pc) {
 #ifdef V8_EMBEDDED_BUILTINS
-  const Address start = reinterpret_cast<Address>(isolate->embedded_blob());
+  const uint8_t* start = isolate->embedded_blob();
   return start <= pc && pc < start + isolate->embedded_blob_size();
 #else
   return false;
@@ -31,8 +31,8 @@ Code* InstructionStream::TryLookupCode(Isolate* isolate, Address address) {
   int l = 0, r = Builtins::builtin_count;
   while (l < r) {
     const int mid = (l + r) / 2;
-    Address start = d.InstructionStartOfBuiltin(mid);
-    Address end = start + d.InstructionSizeOfBuiltin(mid);
+    const uint8_t* start = d.InstructionStartOfBuiltin(mid);
+    const uint8_t* end = start + d.InstructionSizeOfBuiltin(mid);
 
     if (address < start) {
       r = mid;
@@ -69,7 +69,7 @@ void InstructionStream::CreateOffHeapInstructionStream(Isolate* isolate,
                        PageAllocator::kReadExecute));
 
   *data = allocated_bytes;
-  *size = d.size();
+  *size = allocated_size;
 
   d.Dispose();
 }
@@ -77,8 +77,7 @@ void InstructionStream::CreateOffHeapInstructionStream(Isolate* isolate,
 // static
 void InstructionStream::FreeOffHeapInstructionStream(uint8_t* data,
                                                      uint32_t size) {
-  const uint32_t page_size = static_cast<uint32_t>(AllocatePageSize());
-  CHECK(FreePages(data, RoundUp(size, page_size)));
+  CHECK(FreePages(data, size));
 }
 #endif  // V8_EMBEDDED_BUILTINS
 

@@ -57,7 +57,7 @@ namespace internal {
   V(TransitionArray)       \
   V(WasmInstanceObject)    \
   V(WeakCell)              \
-  V(WeakArray)
+  V(WeakFixedArray)
 
 // For data objects, JS objects and structs along with generic visitor which
 // can visit object of any size we provide visitors specialized by
@@ -126,8 +126,7 @@ typedef std::vector<Handle<Map>> MapHandles;
 //      |          |   - elements_kind (bits 3..7)               |
 // +----+----------+---------------------------------------------+
 // | Int           | [bit_field3]                                |
-// |               |   - enum_length (bit 0..9)                  |
-// |               |   - number_of_own_descriptors (bit 10..19)  |
+// |               |   - number_of_own_descriptors (bit 0..19)   |
 // |               |   - is_dictionary_map (bit 20)              |
 // |               |   - owns_descriptors (bit 21)               |
 // |               |   - has_hidden_prototype (bit 22)           |
@@ -737,8 +736,6 @@ class Map : public HeapObject {
   // found at all.
   Map* FindElementsKindTransitionedMap(MapHandles const& candidates);
 
-  inline static bool IsJSObject(InstanceType type);
-
   inline bool CanTransition() const;
 
   inline bool IsBooleanMap() const;
@@ -757,8 +754,6 @@ class Map : public HeapObject {
   inline bool IsJSDataViewMap() const;
 
   inline bool IsSpecialReceiverMap() const;
-
-  inline bool IsCustomElementsReceiverMap() const;
 
   static void AddDependentCode(Handle<Map> map,
                                DependentCode::DependencyGroup group,

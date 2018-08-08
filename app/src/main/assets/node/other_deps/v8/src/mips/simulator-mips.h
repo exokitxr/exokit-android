@@ -226,7 +226,9 @@ class Simulator : public SimulatorBase {
   void set_pc(int32_t value);
   int32_t get_pc() const;
 
-  Address get_sp() const { return static_cast<Address>(get_register(sp)); }
+  Address get_sp() const {
+    return reinterpret_cast<Address>(static_cast<intptr_t>(get_register(sp)));
+  }
 
   // Accessor to the internal simulator stack area.
   uintptr_t StackLimit(uintptr_t c_limit) const;
@@ -235,12 +237,12 @@ class Simulator : public SimulatorBase {
   void Execute();
 
   template <typename Return, typename... Args>
-  Return Call(Address entry, Args... args) {
+  Return Call(byte* entry, Args... args) {
     return VariadicCall<Return>(this, &Simulator::CallImpl, entry, args...);
   }
 
   // Alternative: call a 2-argument double function.
-  double CallFP(Address entry, double d0, double d1);
+  double CallFP(byte* entry, double d0, double d1);
 
   // Push an address onto the JS stack.
   uintptr_t PushAddress(uintptr_t address);
@@ -278,7 +280,7 @@ class Simulator : public SimulatorBase {
     Unpredictable = 0xbadbeaf
   };
 
-  V8_EXPORT_PRIVATE intptr_t CallImpl(Address entry, int argument_count,
+  V8_EXPORT_PRIVATE intptr_t CallImpl(byte* entry, int argument_count,
                                       const intptr_t* arguments);
 
   // Unsupported instructions use Format to print an error and stop execution.
@@ -509,7 +511,7 @@ class Simulator : public SimulatorBase {
   void GetFpArgs(double* x, double* y, int32_t* z);
   void SetFpResult(const double& result);
 
-  void CallInternal(Address entry);
+  void CallInternal(byte* entry);
 
   // Architecture state.
   // Registers.

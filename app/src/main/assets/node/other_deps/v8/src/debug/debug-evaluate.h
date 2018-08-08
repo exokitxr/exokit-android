@@ -9,7 +9,6 @@
 
 #include "src/frames.h"
 #include "src/objects.h"
-#include "src/objects/shared-function-info.h"
 #include "src/objects/string-table.h"
 
 namespace v8 {
@@ -38,7 +37,12 @@ class DebugEvaluate : public AllStatic {
   static MaybeHandle<Object> WithTopmostArguments(Isolate* isolate,
                                                   Handle<String> source);
 
-  static SharedFunctionInfo::SideEffectState FunctionGetSideEffectState(
+  enum SideEffectState {
+    kHasSideEffects,
+    kRequiresRuntimeChecks,
+    kHasNoSideEffect
+  };
+  static SideEffectState FunctionGetSideEffectState(
       Handle<SharedFunctionInfo> info);
   static bool CallbackHasNoSideEffect(Object* callback_info);
   static void ApplySideEffectChecks(Handle<BytecodeArray> bytecode_array);

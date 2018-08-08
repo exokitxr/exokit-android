@@ -60,23 +60,23 @@ void RegExpStack::ThreadLocal::Free() {
 
 
 Address RegExpStack::EnsureCapacity(size_t size) {
-  if (size > kMaximumStackSize) return kNullAddress;
+  if (size > kMaximumStackSize) return nullptr;
   if (size < kMinimumStackSize) size = kMinimumStackSize;
   if (thread_local_.memory_size_ < size) {
-    byte* new_memory = NewArray<byte>(size);
+    Address new_memory = NewArray<byte>(static_cast<int>(size));
     if (thread_local_.memory_size_ > 0) {
       // Copy original memory into top of new memory.
-      MemCopy(new_memory + size - thread_local_.memory_size_,
-              thread_local_.memory_, thread_local_.memory_size_);
+      MemCopy(reinterpret_cast<void*>(new_memory + size -
+                                      thread_local_.memory_size_),
+              reinterpret_cast<void*>(thread_local_.memory_),
+              thread_local_.memory_size_);
       DeleteArray(thread_local_.memory_);
     }
     thread_local_.memory_ = new_memory;
     thread_local_.memory_size_ = size;
-    thread_local_.limit_ =
-        reinterpret_cast<Address>(new_memory) + kStackLimitSlack * kPointerSize;
+    thread_local_.limit_ = new_memory + kStackLimitSlack * kPointerSize;
   }
-  return reinterpret_cast<Address>(thread_local_.memory_) +
-         thread_local_.memory_size_;
+  return thread_local_.memory_ + thread_local_.memory_size_;
 }
 
 

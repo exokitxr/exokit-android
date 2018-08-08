@@ -9,7 +9,6 @@
 #include "src/ast/ast.h"
 #include "src/ast/compile-time-value.h"
 #include "src/isolate-inl.h"
-#include "src/objects/hash-table-inl.h"
 #include "src/runtime/runtime.h"
 
 namespace v8 {
@@ -457,7 +456,7 @@ MaybeHandle<JSObject> CreateLiteral(Isolate* isolate,
                                     Handle<HeapObject> description, int flags) {
   FeedbackSlot literals_slot(FeedbackVector::ToSlot(literals_index));
   CHECK(literals_slot.ToInt() < vector->length());
-  Handle<Object> literal_site(vector->Get(literals_slot)->ToObject(), isolate);
+  Handle<Object> literal_site(vector->Get(literals_slot), isolate);
   DeepCopyHints copy_hints =
       (flags & AggregateLiteral::kIsShallow) ? kObjectIsShallow : kNoHints;
   if (FLAG_track_double_fields && !FLAG_unbox_double_fields) {
@@ -553,7 +552,7 @@ RUNTIME_FUNCTION(Runtime_CreateRegExpLiteral) {
   FeedbackSlot literal_slot(FeedbackVector::ToSlot(index));
 
   // Check if boilerplate exists. If not, create it first.
-  Handle<Object> literal_site(vector->Get(literal_slot)->ToObject(), isolate);
+  Handle<Object> literal_site(vector->Get(literal_slot), isolate);
   Handle<Object> boilerplate;
   if (!HasBoilerplate(isolate, literal_site)) {
     ASSIGN_RETURN_FAILURE_ON_EXCEPTION(

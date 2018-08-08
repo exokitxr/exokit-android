@@ -15,7 +15,7 @@ namespace internal {
 namespace interpreter {
 
 // static
-Register BytecodeDecoder::DecodeRegisterOperand(Address operand_start,
+Register BytecodeDecoder::DecodeRegisterOperand(const uint8_t* operand_start,
                                                 OperandType operand_type,
                                                 OperandScale operand_scale) {
   DCHECK(Bytecodes::IsRegisterOperandType(operand_type));
@@ -26,7 +26,7 @@ Register BytecodeDecoder::DecodeRegisterOperand(Address operand_start,
 
 // static
 RegisterList BytecodeDecoder::DecodeRegisterListOperand(
-    Address operand_start, uint32_t count, OperandType operand_type,
+    const uint8_t* operand_start, uint32_t count, OperandType operand_type,
     OperandScale operand_scale) {
   Register first_reg =
       DecodeRegisterOperand(operand_start, operand_type, operand_scale);
@@ -34,13 +34,13 @@ RegisterList BytecodeDecoder::DecodeRegisterListOperand(
 }
 
 // static
-int32_t BytecodeDecoder::DecodeSignedOperand(Address operand_start,
+int32_t BytecodeDecoder::DecodeSignedOperand(const uint8_t* operand_start,
                                              OperandType operand_type,
                                              OperandScale operand_scale) {
   DCHECK(!Bytecodes::IsUnsignedOperandType(operand_type));
   switch (Bytecodes::SizeOfOperand(operand_type, operand_scale)) {
     case OperandSize::kByte:
-      return *reinterpret_cast<const int8_t*>(operand_start);
+      return static_cast<int8_t>(*operand_start);
     case OperandSize::kShort:
       return static_cast<int16_t>(ReadUnalignedUInt16(operand_start));
     case OperandSize::kQuad:
@@ -52,13 +52,13 @@ int32_t BytecodeDecoder::DecodeSignedOperand(Address operand_start,
 }
 
 // static
-uint32_t BytecodeDecoder::DecodeUnsignedOperand(Address operand_start,
+uint32_t BytecodeDecoder::DecodeUnsignedOperand(const uint8_t* operand_start,
                                                 OperandType operand_type,
                                                 OperandScale operand_scale) {
   DCHECK(Bytecodes::IsUnsignedOperandType(operand_type));
   switch (Bytecodes::SizeOfOperand(operand_type, operand_scale)) {
     case OperandSize::kByte:
-      return *reinterpret_cast<const uint8_t*>(operand_start);
+      return *operand_start;
     case OperandSize::kShort:
       return ReadUnalignedUInt16(operand_start);
     case OperandSize::kQuad:
@@ -139,8 +139,8 @@ std::ostream& BytecodeDecoder::Decode(std::ostream& os,
     OperandType op_type = Bytecodes::GetOperandType(bytecode, i);
     int operand_offset =
         Bytecodes::GetOperandOffset(bytecode, i, operand_scale);
-    Address operand_start = reinterpret_cast<Address>(
-        &bytecode_start[prefix_offset + operand_offset]);
+    const uint8_t* operand_start =
+        &bytecode_start[prefix_offset + operand_offset];
     switch (op_type) {
       case interpreter::OperandType::kIdx:
       case interpreter::OperandType::kUImm:
@@ -201,8 +201,8 @@ std::ostream& BytecodeDecoder::Decode(std::ostream& os,
                   OperandType::kRegCount);
         int reg_count_offset =
             Bytecodes::GetOperandOffset(bytecode, i + 1, operand_scale);
-        Address reg_count_operand = reinterpret_cast<Address>(
-            &bytecode_start[prefix_offset + reg_count_offset]);
+        const uint8_t* reg_count_operand =
+            &bytecode_start[prefix_offset + reg_count_offset];
         uint32_t count = DecodeUnsignedOperand(
             reg_count_operand, OperandType::kRegCount, operand_scale);
         RegisterList reg_list = DecodeRegisterListOperand(

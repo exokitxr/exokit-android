@@ -69,7 +69,8 @@ int32_t Operand::immediate() const {
 void RelocInfo::apply(intptr_t delta) {
   if (IsInternalReference(rmode_) || IsInternalReferenceEncoded(rmode_)) {
     // Absolute code pointer inside code object moves with the code object.
-    Assembler::RelocateInternalReference(rmode_, pc_, delta);
+    byte* p = reinterpret_cast<byte*>(pc_);
+    Assembler::RelocateInternalReference(rmode_, p, delta);
   }
 }
 
@@ -101,11 +102,12 @@ Address RelocInfo::target_address_address() {
     // On R6 we don't move to the end of the instructions to be patched, but one
     // instruction before, because if these instructions are at the end of the
     // code object it can cause errors in the deserializer.
-    return pc_ + (Assembler::kInstructionsFor32BitConstant - 1) *
-                     Assembler::kInstrSize;
+    return reinterpret_cast<Address>(
+        pc_ +
+        (Assembler::kInstructionsFor32BitConstant - 1) * Assembler::kInstrSize);
   } else {
-    return pc_ +
-           Assembler::kInstructionsFor32BitConstant * Assembler::kInstrSize;
+    return reinterpret_cast<Address>(
+        pc_ + Assembler::kInstructionsFor32BitConstant * Assembler::kInstrSize);
   }
 }
 
@@ -129,17 +131,12 @@ void Assembler::deserialization_set_special_target_at(
     // On R6 the address location is shifted by one instruction
     set_target_address_at(
         instruction_payload - (kInstructionsFor32BitConstant - 1) * kInstrSize,
-        code ? code->constant_pool() : kNullAddress, target);
+        code ? code->constant_pool() : nullptr, target);
   } else {
     set_target_address_at(
         instruction_payload - kInstructionsFor32BitConstant * kInstrSize,
-        code ? code->constant_pool() : kNullAddress, target);
+        code ? code->constant_pool() : nullptr, target);
   }
-}
-
-int Assembler::deserialization_special_target_size(
-    Address instruction_payload) {
-  return kSpecialTargetSize;
 }
 
 void Assembler::set_target_internal_reference_encoded_at(Address pc,
@@ -150,7 +147,7 @@ void Assembler::set_target_internal_reference_encoded_at(Address pc,
   DCHECK(Assembler::IsOri(instr2) || Assembler::IsJicOrJialc(instr2));
   instr1 &= ~kImm16Mask;
   instr2 &= ~kImm16Mask;
-  int32_t imm = static_cast<int32_t>(target);
+  int32_t imm = reinterpret_cast<int32_t>(target);
   DCHECK_EQ(imm & 3, 0);
   if (Assembler::IsJicOrJialc(instr2)) {
     // Encoded internal references are lui/jic load of 32-bit absolute address.
@@ -235,19 +232,19 @@ Address RelocInfo::target_internal_reference() {
     DCHECK(Assembler::IsLui(instr1));
     DCHECK(Assembler::IsOri(instr2) || Assembler::IsJicOrJialc(instr2));
     if (Assembler::IsJicOrJialc(instr2)) {
-      return static_cast<Address>(
+      return reinterpret_cast<Address>(
           Assembler::CreateTargetAddress(instr1, instr2));
     }
     int32_t imm = (instr1 & static_cast<int32_t>(kImm16Mask)) << kLuiShift;
     imm |= (instr2 & static_cast<int32_t>(kImm16Mask));
-    return static_cast<Address>(imm);
+    return reinterpret_cast<Address>(imm);
   }
 }
 
 
 Address RelocInfo::target_internal_reference_address() {
   DCHECK(rmode_ == INTERNAL_REFERENCE || rmode_ == INTERNAL_REFERENCE_ENCODED);
-  return pc_;
+  return reinterpret_cast<Address>(pc_);
 }
 
 void RelocInfo::set_wasm_code_table_entry(Address target,
@@ -280,11 +277,11 @@ void RelocInfo::WipeOut() {
          IsRuntimeEntry(rmode_) || IsExternalReference(rmode_) ||
          IsInternalReference(rmode_) || IsInternalReferenceEncoded(rmode_));
   if (IsInternalReference(rmode_)) {
-    Memory::Address_at(pc_) = kNullAddress;
+    Memory::Address_at(pc_) = nullptr;
   } else if (IsInternalReferenceEncoded(rmode_)) {
-    Assembler::set_target_internal_reference_encoded_at(pc_, kNullAddress);
+    Assembler::set_target_internal_reference_encoded_at(pc_, nullptr);
   } else {
-    Assembler::set_target_address_at(pc_, constant_pool_, kNullAddress);
+    Assembler::set_target_address_at(pc_, constant_pool_, nullptr);
   }
 }
 

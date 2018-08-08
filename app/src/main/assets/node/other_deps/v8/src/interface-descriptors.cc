@@ -70,7 +70,7 @@ void FastNewFunctionContextDescriptor::InitializePlatformIndependent(
 
 void FastNewFunctionContextDescriptor::InitializePlatformSpecific(
     CallInterfaceDescriptorData* data) {
-  Register registers[] = {ScopeInfoRegister(), SlotsRegister()};
+  Register registers[] = {FunctionRegister(), SlotsRegister()};
   data->InitializePlatformSpecific(arraysize(registers), registers);
 }
 
@@ -121,6 +121,21 @@ void LoadDescriptor::InitializePlatformIndependent(
 void LoadDescriptor::InitializePlatformSpecific(
     CallInterfaceDescriptorData* data) {
   Register registers[] = {ReceiverRegister(), NameRegister(), SlotRegister()};
+  data->InitializePlatformSpecific(arraysize(registers), registers);
+}
+
+void LoadFieldDescriptor::InitializePlatformIndependent(
+    CallInterfaceDescriptorData* data) {
+  // kReceiver, kSmiHandler
+  MachineType machine_types[] = {MachineType::AnyTagged(),
+                                 MachineType::AnyTagged()};
+  data->InitializePlatformIndependent(arraysize(machine_types), 0,
+                                      machine_types);
+}
+
+void LoadFieldDescriptor::InitializePlatformSpecific(
+    CallInterfaceDescriptorData* data) {
+  Register registers[] = {ReceiverRegister(), SmiHandlerRegister()};
   data->InitializePlatformSpecific(arraysize(registers), registers);
 }
 
@@ -310,6 +325,19 @@ void MathPowIntegerDescriptor::InitializePlatformSpecific(
     CallInterfaceDescriptorData* data) {
   Register registers[] = {exponent()};
   data->InitializePlatformSpecific(arraysize(registers), registers);
+}
+
+const Register LoadFieldDescriptor::ReceiverRegister() {
+  // Reuse the register from the LoadDescriptor, since given the
+  // LoadFieldDescriptor's usage, it doesn't matter exactly which registers are
+  // used to pass parameters in.
+  return LoadDescriptor::ReceiverRegister();
+}
+const Register LoadFieldDescriptor::SmiHandlerRegister() {
+  // Reuse the register from the LoadDescriptor, since given the
+  // LoadFieldDescriptor's usage, it doesn't matter exactly which registers are
+  // used to pass parameters in.
+  return LoadDescriptor::NameRegister();
 }
 
 void LoadWithVectorDescriptor::InitializePlatformIndependent(

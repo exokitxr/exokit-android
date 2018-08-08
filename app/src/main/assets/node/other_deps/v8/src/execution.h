@@ -60,7 +60,8 @@ class Execution final : public AllStatic {
 
 
 class ExecutionAccess;
-class InterruptsScope;
+class PostponeInterruptsScope;
+
 
 // StackGuard contains the handling of the limits that are used to limit the
 // number of nested invocations of JavaScript and the stack size used in each
@@ -135,6 +136,7 @@ class V8_EXPORT_PRIVATE StackGuard final {
   // If the stack guard is triggered, but it is not an actual
   // stack overflow, then handle the interruption accordingly.
   Object* HandleInterrupts();
+  void HandleGCInterrupt();
 
  private:
   StackGuard();
@@ -168,8 +170,8 @@ class V8_EXPORT_PRIVATE StackGuard final {
   static const uintptr_t kIllegalLimit = 0xfffffff8;
 #endif
 
-  void PushInterruptsScope(InterruptsScope* scope);
-  void PopInterruptsScope();
+  void PushPostponeInterruptsScope(PostponeInterruptsScope* scope);
+  void PopPostponeInterruptsScope();
 
   class ThreadLocal final {
    public:
@@ -213,7 +215,7 @@ class V8_EXPORT_PRIVATE StackGuard final {
                                  static_cast<base::AtomicWord>(limit));
     }
 
-    InterruptsScope* interrupt_scopes_;
+    PostponeInterruptsScope* postpone_interrupts_;
     int interrupt_flags_;
   };
 
@@ -224,7 +226,7 @@ class V8_EXPORT_PRIVATE StackGuard final {
 
   friend class Isolate;
   friend class StackLimitCheck;
-  friend class InterruptsScope;
+  friend class PostponeInterruptsScope;
 
   DISALLOW_COPY_AND_ASSIGN(StackGuard);
 };

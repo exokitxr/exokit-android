@@ -42,7 +42,8 @@ function Stringify(x, depth) {
     case "string":
       return "\"" + x.toString() + "\"";
     case "bigint":
-      return x.toString() + "n";
+      // TODO(neis): Use x.toString() once we have it.
+      return String(x) + "n";
     case "object":
       if (IS_NULL(x)) return "null";
       if (x.constructor && x.constructor.name === "Array") {

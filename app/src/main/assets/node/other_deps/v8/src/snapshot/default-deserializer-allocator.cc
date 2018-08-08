@@ -45,7 +45,7 @@ Address DefaultDeserializerAllocator::AllocateRaw(AllocationSpace space,
   } else {
     DCHECK_LT(space, kNumberOfPreallocatedSpaces);
     Address address = high_water_[space];
-    DCHECK_NE(address, kNullAddress);
+    DCHECK_NOT_NULL(address);
     high_water_[space] += size;
 #ifdef DEBUG
     // Assert that the current reserved chunk is still big enough.
@@ -125,8 +125,7 @@ void DefaultDeserializerAllocator::DecodeReservation(
   DCHECK_EQ(0, reservations_[FIRST_SPACE].size());
   int current_space = FIRST_SPACE;
   for (auto& r : res) {
-    reservations_[current_space].push_back(
-        {r.chunk_size(), kNullAddress, kNullAddress});
+    reservations_[current_space].push_back({r.chunk_size(), NULL, NULL});
     if (r.is_last()) current_space++;
   }
   DCHECK_EQ(kNumberOfSpaces, current_space);

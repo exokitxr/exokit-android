@@ -226,7 +226,7 @@ namespace interpreter {
     OperandType::kIdx)                                                         \
   V(TestGreaterThanOrEqual, AccumulatorUse::kReadWrite, OperandType::kReg,     \
     OperandType::kIdx)                                                         \
-  V(TestReferenceEqual, AccumulatorUse::kReadWrite, OperandType::kReg)         \
+  V(TestEqualStrictNoFeedback, AccumulatorUse::kReadWrite, OperandType::kReg)  \
   V(TestInstanceOf, AccumulatorUse::kReadWrite, OperandType::kReg,             \
     OperandType::kIdx)                                                         \
   V(TestIn, AccumulatorUse::kReadWrite, OperandType::kReg)                     \
@@ -261,14 +261,12 @@ namespace interpreter {
     OperandType::kIdx, OperandType::kFlag8)                                    \
                                                                                \
   /* Context allocation */                                                     \
-  V(CreateBlockContext, AccumulatorUse::kWrite, OperandType::kIdx)             \
-  V(CreateCatchContext, AccumulatorUse::kWrite, OperandType::kReg,             \
-    OperandType::kIdx)                                                         \
-  V(CreateFunctionContext, AccumulatorUse::kWrite, OperandType::kIdx,          \
-    OperandType::kUImm)                                                        \
-  V(CreateEvalContext, AccumulatorUse::kWrite, OperandType::kIdx,              \
-    OperandType::kUImm)                                                        \
-  V(CreateWithContext, AccumulatorUse::kWrite, OperandType::kReg,              \
+  V(CreateBlockContext, AccumulatorUse::kReadWrite, OperandType::kIdx)         \
+  V(CreateCatchContext, AccumulatorUse::kReadWrite, OperandType::kReg,         \
+    OperandType::kIdx, OperandType::kIdx)                                      \
+  V(CreateFunctionContext, AccumulatorUse::kWrite, OperandType::kUImm)         \
+  V(CreateEvalContext, AccumulatorUse::kWrite, OperandType::kUImm)             \
+  V(CreateWithContext, AccumulatorUse::kReadWrite, OperandType::kReg,          \
     OperandType::kIdx)                                                         \
                                                                                \
   /* Arguments allocation */                                                   \

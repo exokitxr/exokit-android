@@ -25,19 +25,13 @@ Serializer<AllocatorT>::Serializer(Isolate* isolate)
   if (FLAG_serialization_statistics) {
     instance_type_count_ = NewArray<int>(kInstanceTypes);
     instance_type_size_ = NewArray<size_t>(kInstanceTypes);
-    read_only_instance_type_count_ = NewArray<int>(kInstanceTypes);
-    read_only_instance_type_size_ = NewArray<size_t>(kInstanceTypes);
     for (int i = 0; i < kInstanceTypes; i++) {
       instance_type_count_[i] = 0;
       instance_type_size_[i] = 0;
-      read_only_instance_type_count_[i] = 0;
-      read_only_instance_type_size_[i] = 0;
     }
   } else {
     instance_type_count_ = nullptr;
     instance_type_size_ = nullptr;
-    read_only_instance_type_count_ = nullptr;
-    read_only_instance_type_size_ = nullptr;
   }
 #endif  // OBJECT_PRINT
 }
@@ -49,24 +43,16 @@ Serializer<AllocatorT>::~Serializer() {
   if (instance_type_count_ != nullptr) {
     DeleteArray(instance_type_count_);
     DeleteArray(instance_type_size_);
-    DeleteArray(read_only_instance_type_count_);
-    DeleteArray(read_only_instance_type_size_);
   }
 #endif  // OBJECT_PRINT
 }
 
 #ifdef OBJECT_PRINT
 template <class AllocatorT>
-void Serializer<AllocatorT>::CountInstanceType(Map* map, int size,
-                                               AllocationSpace space) {
+void Serializer<AllocatorT>::CountInstanceType(Map* map, int size) {
   int instance_type = map->instance_type();
-  if (space != RO_SPACE) {
-    instance_type_count_[instance_type]++;
-    instance_type_size_[instance_type] += size;
-  } else {
-    read_only_instance_type_count_[instance_type]++;
-    read_only_instance_type_size_[instance_type] += size;
-  }
+  instance_type_count_[instance_type]++;
+  instance_type_size_[instance_type] += size;
 }
 #endif  // OBJECT_PRINT
 
@@ -86,21 +72,6 @@ void Serializer<AllocatorT>::OutputStatistics(const char* name) {
   }
   INSTANCE_TYPE_LIST(PRINT_INSTANCE_TYPE)
 #undef PRINT_INSTANCE_TYPE
-  size_t read_only_total = 0;
-#define UPDATE_TOTAL(Name) \
-  read_only_total += read_only_instance_type_size_[Name];
-  INSTANCE_TYPE_LIST(UPDATE_TOTAL)
-#undef UPDATE_TOTAL
-  if (read_only_total > 0) {
-    PrintF("\n  Read Only Instance types (count and bytes):\n");
-#define PRINT_INSTANCE_TYPE(Name)                                           \
-  if (read_only_instance_type_count_[Name]) {                               \
-    PrintF("%10d %10" PRIuS "  %s\n", read_only_instance_type_count_[Name], \
-           read_only_instance_type_size_[Name], #Name);                     \
-  }
-    INSTANCE_TYPE_LIST(PRINT_INSTANCE_TYPE)
-#undef PRINT_INSTANCE_TYPE
-  }
   PrintF("\n");
 #endif  // OBJECT_PRINT
 }
@@ -348,11 +319,9 @@ template <class AllocatorT>
 Code* Serializer<AllocatorT>::CopyCode(Code* code) {
   code_buffer_.clear();  // Clear buffer without deleting backing store.
   int size = code->CodeSize();
-  code_buffer_.insert(code_buffer_.end(),
-                      reinterpret_cast<byte*>(code->address()),
-                      reinterpret_cast<byte*>(code->address() + size));
-  return Code::cast(HeapObject::FromAddress(
-      reinterpret_cast<Address>(&code_buffer_.front())));
+  code_buffer_.insert(code_buffer_.end(), code->address(),
+                      code->address() + size);
+  return Code::cast(HeapObject::FromAddress(&code_buffer_.front()));
 }
 
 template <class AllocatorT>
@@ -391,7 +360,7 @@ void Serializer<AllocatorT>::ObjectSerializer::SerializePrologue(
 
 #ifdef OBJECT_PRINT
   if (FLAG_serialization_statistics) {
-    serializer_->CountInstanceType(map, size, space);
+    serializer_->CountInstanceType(map, size);
   }
 #endif  // OBJECT_PRINT
 
@@ -557,7 +526,7 @@ void Serializer<
   sink_->PutInt(bytes_to_output, "length");
 
   // Serialize string header (except for map).
-  uint8_t* string_start = reinterpret_cast<uint8_t*>(string->address());
+  Address string_start = string->address();
   for (int i = HeapObject::kHeaderSize; i < SeqString::kHeaderSize; i++) {
     sink_->PutSection(string_start[i], "StringHeader");
   }
@@ -609,16 +578,12 @@ void Serializer<AllocatorT>::ObjectSerializer::Serialize() {
   if (object_->IsExternalString()) {
     SerializeExternalString();
     return;
-  } else if (!serializer_->isolate()->heap()->InReadOnlySpace(object_)) {
-    // Only clear padding for strings outside RO_SPACE. RO_SPACE should have
-    // been cleared elsewhere.
-    if (object_->IsSeqOneByteString()) {
-      // Clear padding bytes at the end. Done here to avoid having to do this
-      // at allocation sites in generated code.
-      SeqOneByteString::cast(object_)->clear_padding();
-    } else if (object_->IsSeqTwoByteString()) {
-      SeqTwoByteString::cast(object_)->clear_padding();
-    }
+  } else if (object_->IsSeqOneByteString()) {
+    // Clear padding bytes at the end. Done here to avoid having to do this
+    // at allocation sites in generated code.
+    SeqOneByteString::cast(object_)->clear_padding();
+  } else if (object_->IsSeqTwoByteString()) {
+    SeqTwoByteString::cast(object_)->clear_padding();
   }
   if (object_->IsJSTypedArray()) {
     SerializeJSTypedArray();
@@ -811,7 +776,7 @@ void Serializer<AllocatorT>::ObjectSerializer::VisitExternalReference(
                "ExternalRef");
   }
   sink_->PutInt(skip, "SkipB4ExternalRef");
-  DCHECK_NE(target, kNullAddress);  // Code does not reference null.
+  DCHECK_NOT_NULL(target);  // Code does not reference null.
   sink_->PutInt(encoded_reference.index(), "reference index");
   bytes_processed_so_far_ += rinfo->target_address_size();
 }
@@ -826,18 +791,18 @@ void Serializer<AllocatorT>::ObjectSerializer::VisitInternalReference(
   // inline. That would cause the skip to be negative. Instead, we store the
   // offset from code entry.
   Address entry = Code::cast(object_)->entry();
-  DCHECK_GE(rinfo->target_internal_reference_address(), entry);
-  uintptr_t pc_offset = rinfo->target_internal_reference_address() - entry;
-  DCHECK_LE(pc_offset, Code::cast(object_)->raw_instruction_size());
-  DCHECK_GE(rinfo->target_internal_reference(), entry);
-  uintptr_t target_offset = rinfo->target_internal_reference() - entry;
-  DCHECK_LE(target_offset, Code::cast(object_)->raw_instruction_size());
+  intptr_t pc_offset = rinfo->target_internal_reference_address() - entry;
+  intptr_t target_offset = rinfo->target_internal_reference() - entry;
+  DCHECK(0 <= pc_offset &&
+         pc_offset <= Code::cast(object_)->raw_instruction_size());
+  DCHECK(0 <= target_offset &&
+         target_offset <= Code::cast(object_)->raw_instruction_size());
   sink_->Put(rinfo->rmode() == RelocInfo::INTERNAL_REFERENCE
                  ? kInternalReference
                  : kInternalReferenceEncoded,
              "InternalRef");
-  sink_->PutInt(pc_offset, "internal ref address");
-  sink_->PutInt(target_offset, "internal ref value");
+  sink_->PutInt(static_cast<uintptr_t>(pc_offset), "internal ref address");
+  sink_->PutInt(static_cast<uintptr_t>(target_offset), "internal ref value");
 }
 
 template <class AllocatorT>
@@ -862,7 +827,7 @@ void Serializer<AllocatorT>::ObjectSerializer::VisitOffHeapTarget(
     STATIC_ASSERT(EmbeddedData::kTableSize == Builtins::builtin_count);
     CHECK(Builtins::IsEmbeddedBuiltin(host));
     Address addr = rinfo->target_off_heap_target();
-    CHECK_NE(kNullAddress, addr);
+    CHECK_NOT_NULL(addr);
     CHECK_NOT_NULL(
         InstructionStream::TryLookupCode(serializer_->isolate(), addr));
   }
@@ -875,46 +840,6 @@ void Serializer<AllocatorT>::ObjectSerializer::VisitOffHeapTarget(
 #else
   UNREACHABLE();
 #endif
-}
-
-namespace {
-class CompareRelocInfo {
- public:
-  bool operator()(RelocInfo x, RelocInfo y) {
-    // Everything that does not use target_address_address will compare equal.
-    Address x_num = 0;
-    Address y_num = 0;
-    if (HasTargetAddressAddress(x.rmode())) {
-      x_num = x.target_address_address();
-    }
-    if (HasTargetAddressAddress(y.rmode())) {
-      y_num = y.target_address_address();
-    }
-    return x_num > y_num;
-  }
-
- private:
-  static bool HasTargetAddressAddress(RelocInfo::Mode mode) {
-    return RelocInfo::IsEmbeddedObject(mode) || RelocInfo::IsCodeTarget(mode) ||
-           RelocInfo::IsExternalReference(mode) ||
-           RelocInfo::IsRuntimeEntry(mode);
-  }
-};
-}  // namespace
-
-template <class AllocatorT>
-void Serializer<AllocatorT>::ObjectSerializer::VisitRelocInfo(
-    RelocIterator* it) {
-  std::priority_queue<RelocInfo, std::vector<RelocInfo>, CompareRelocInfo>
-      reloc_queue;
-  for (; !it->done(); it->next()) {
-    reloc_queue.push(*it->rinfo());
-  }
-  while (!reloc_queue.empty()) {
-    RelocInfo rinfo = reloc_queue.top();
-    reloc_queue.pop();
-    rinfo.Visit(this);
-  }
 }
 
 template <class AllocatorT>
@@ -947,28 +872,23 @@ void Serializer<AllocatorT>::ObjectSerializer::OutputRawData(Address up_to) {
     }
 #ifdef MEMORY_SANITIZER
     // Check that we do not serialize uninitialized memory.
-    __msan_check_mem_is_initialized(
-        reinterpret_cast<void*>(object_start + base), bytes_to_output);
+    __msan_check_mem_is_initialized(object_start + base, bytes_to_output);
 #endif  // MEMORY_SANITIZER
     if (object_->IsBytecodeArray()) {
       // The code age byte can be changed concurrently by GC.
       const int bytes_to_age_byte = BytecodeArray::kBytecodeAgeOffset - base;
       if (0 <= bytes_to_age_byte && bytes_to_age_byte < bytes_to_output) {
-        sink_->PutRaw(reinterpret_cast<byte*>(object_start + base),
-                      bytes_to_age_byte, "Bytes");
+        sink_->PutRaw(object_start + base, bytes_to_age_byte, "Bytes");
         byte bytecode_age = BytecodeArray::kNoAgeBytecodeAge;
         sink_->PutRaw(&bytecode_age, 1, "Bytes");
         const int bytes_written = bytes_to_age_byte + 1;
-        sink_->PutRaw(
-            reinterpret_cast<byte*>(object_start + base + bytes_written),
-            bytes_to_output - bytes_written, "Bytes");
+        sink_->PutRaw(object_start + base + bytes_written,
+                      bytes_to_output - bytes_written, "Bytes");
       } else {
-        sink_->PutRaw(reinterpret_cast<byte*>(object_start + base),
-                      bytes_to_output, "Bytes");
+        sink_->PutRaw(object_start + base, bytes_to_output, "Bytes");
       }
     } else {
-      sink_->PutRaw(reinterpret_cast<byte*>(object_start + base),
-                    bytes_to_output, "Bytes");
+      sink_->PutRaw(object_start + base, bytes_to_output, "Bytes");
     }
   }
 }
@@ -980,8 +900,7 @@ int Serializer<AllocatorT>::ObjectSerializer::SkipTo(Address to) {
   int to_skip = up_to_offset - bytes_processed_so_far_;
   bytes_processed_so_far_ += to_skip;
   // This assert will fail if the reloc info gives us the target_address_address
-  // locations in a non-ascending order. We make sure this doesn't happen by
-  // sorting the relocation info.
+  // locations in a non-ascending order.  Luckily that doesn't happen.
   DCHECK_GE(to_skip, 0);
   return to_skip;
 }
@@ -990,22 +909,24 @@ template <class AllocatorT>
 void Serializer<AllocatorT>::ObjectSerializer::OutputCode(int size) {
   DCHECK_EQ(kPointerSize, bytes_processed_so_far_);
   Code* code = Code::cast(object_);
-  // To make snapshots reproducible, we make a copy of the code object
-  // and wipe all pointers in the copy, which we then serialize.
-  code = serializer_->CopyCode(code);
-  int mode_mask = RelocInfo::kCodeTargetMask |
-                  RelocInfo::ModeMask(RelocInfo::EMBEDDED_OBJECT) |
-                  RelocInfo::ModeMask(RelocInfo::EXTERNAL_REFERENCE) |
-                  RelocInfo::ModeMask(RelocInfo::RUNTIME_ENTRY) |
-                  RelocInfo::ModeMask(RelocInfo::INTERNAL_REFERENCE) |
-                  RelocInfo::ModeMask(RelocInfo::INTERNAL_REFERENCE_ENCODED);
-  for (RelocIterator it(code, mode_mask); !it.done(); it.next()) {
-    RelocInfo* rinfo = it.rinfo();
-    rinfo->WipeOut();
+  if (FLAG_predictable) {
+    // To make snapshots reproducible, we make a copy of the code object
+    // and wipe all pointers in the copy, which we then serialize.
+    code = serializer_->CopyCode(code);
+    int mode_mask = RelocInfo::kCodeTargetMask |
+                    RelocInfo::ModeMask(RelocInfo::EMBEDDED_OBJECT) |
+                    RelocInfo::ModeMask(RelocInfo::EXTERNAL_REFERENCE) |
+                    RelocInfo::ModeMask(RelocInfo::RUNTIME_ENTRY) |
+                    RelocInfo::ModeMask(RelocInfo::INTERNAL_REFERENCE) |
+                    RelocInfo::ModeMask(RelocInfo::INTERNAL_REFERENCE_ENCODED);
+    for (RelocIterator it(code, mode_mask); !it.done(); it.next()) {
+      RelocInfo* rinfo = it.rinfo();
+      rinfo->WipeOut();
+    }
+    // We need to wipe out the header fields *after* wiping out the
+    // relocations, because some of these fields are needed for the latter.
+    code->WipeOutHeader();
   }
-  // We need to wipe out the header fields *after* wiping out the
-  // relocations, because some of these fields are needed for the latter.
-  code->WipeOutHeader();
 
   Address start = code->address() + Code::kDataStart;
   int bytes_to_output = size - Code::kDataStart;
@@ -1015,10 +936,9 @@ void Serializer<AllocatorT>::ObjectSerializer::OutputCode(int size) {
 
 #ifdef MEMORY_SANITIZER
   // Check that we do not serialize uninitialized memory.
-  __msan_check_mem_is_initialized(reinterpret_cast<void*>(start),
-                                  bytes_to_output);
+  __msan_check_mem_is_initialized(start, bytes_to_output);
 #endif  // MEMORY_SANITIZER
-  sink_->PutRaw(reinterpret_cast<byte*>(start), bytes_to_output, "Code");
+  sink_->PutRaw(start, bytes_to_output, "Code");
 }
 
 // Explicit instantiation.

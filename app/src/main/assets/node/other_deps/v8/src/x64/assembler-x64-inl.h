@@ -24,27 +24,29 @@ bool CpuFeatures::SupportsWasmSimd128() { return IsSupported(SSE4_1); }
 
 
 void Assembler::emitl(uint32_t x) {
-  Memory::uint32_at(reinterpret_cast<Address>(pc_)) = x;
+  Memory::uint32_at(pc_) = x;
   pc_ += sizeof(uint32_t);
 }
 
-void Assembler::emitp(Address x, RelocInfo::Mode rmode) {
-  Memory::uintptr_at(reinterpret_cast<Address>(pc_)) = x;
+
+void Assembler::emitp(void* x, RelocInfo::Mode rmode) {
+  uintptr_t value = reinterpret_cast<uintptr_t>(x);
+  Memory::uintptr_at(pc_) = value;
   if (!RelocInfo::IsNone(rmode)) {
-    RecordRelocInfo(rmode, x);
+    RecordRelocInfo(rmode, value);
   }
   pc_ += sizeof(uintptr_t);
 }
 
 
 void Assembler::emitq(uint64_t x) {
-  Memory::uint64_at(reinterpret_cast<Address>(pc_)) = x;
+  Memory::uint64_at(pc_) = x;
   pc_ += sizeof(uint64_t);
 }
 
 
 void Assembler::emitw(uint16_t x) {
-  Memory::uint16_at(reinterpret_cast<Address>(pc_)) = x;
+  Memory::uint16_at(pc_) = x;
   pc_ += sizeof(uint16_t);
 }
 
@@ -269,12 +271,7 @@ Address Assembler::target_address_from_return_address(Address pc) {
 void Assembler::deserialization_set_special_target_at(
     Address instruction_payload, Code* code, Address target) {
   set_target_address_at(instruction_payload,
-                        code ? code->constant_pool() : kNullAddress, target);
-}
-
-int Assembler::deserialization_special_target_size(
-    Address instruction_payload) {
-  return kSpecialTargetSize;
+                        code ? code->constant_pool() : nullptr, target);
 }
 
 Handle<Code> Assembler::code_target_object_handle_at(Address pc) {
@@ -308,7 +305,7 @@ Address RelocInfo::target_address_address() {
   DCHECK(IsCodeTarget(rmode_) || IsRuntimeEntry(rmode_) || IsWasmCall(rmode_) ||
          IsEmbeddedObject(rmode_) || IsExternalReference(rmode_) ||
          IsOffHeapTarget(rmode_));
-  return pc_;
+  return reinterpret_cast<Address>(pc_);
 }
 
 
@@ -370,7 +367,7 @@ Address RelocInfo::target_internal_reference() {
 
 Address RelocInfo::target_internal_reference_address() {
   DCHECK(rmode_ == INTERNAL_REFERENCE);
-  return pc_;
+  return reinterpret_cast<Address>(pc_);
 }
 
 void RelocInfo::set_target_object(HeapObject* target,
@@ -411,7 +408,7 @@ Address RelocInfo::target_off_heap_target() {
 void RelocInfo::WipeOut() {
   if (IsEmbeddedObject(rmode_) || IsExternalReference(rmode_) ||
       IsInternalReference(rmode_)) {
-    Memory::Address_at(pc_) = kNullAddress;
+    Memory::Address_at(pc_) = nullptr;
   } else if (IsCodeTarget(rmode_) || IsRuntimeEntry(rmode_)) {
     // Effectively write zero into the relocation.
     Assembler::set_target_address_at(pc_, constant_pool_,

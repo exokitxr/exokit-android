@@ -499,11 +499,11 @@ class ModuleDecoderImpl : public Decoder {
           // ===== Imported global =========================================
           import->index = static_cast<uint32_t>(module_->globals.size());
           module_->globals.push_back(
-              {kWasmStmt, false, WasmInitExpr(), {0}, true, false});
+              {kWasmStmt, false, WasmInitExpr(), 0, true, false});
           WasmGlobal* global = &module_->globals.back();
           global->type = consume_value_type();
           global->mutability = consume_mutability();
-          if (!FLAG_experimental_wasm_mut_global && global->mutability) {
+          if (global->mutability) {
             error("mutable globals cannot be imported");
           }
           break;
@@ -571,7 +571,7 @@ class ModuleDecoderImpl : public Decoder {
       TRACE("DecodeGlobal[%d] module+%d\n", i, static_cast<int>(pc_ - start_));
       // Add an uninitialized global and pass a pointer to it.
       module_->globals.push_back(
-          {kWasmStmt, false, WasmInitExpr(), {0}, false, false});
+          {kWasmStmt, false, WasmInitExpr(), 0, false, false});
       WasmGlobal* global = &module_->globals.back();
       DecodeGlobalInModule(module_.get(), i + imported_globals, global);
     }
@@ -580,7 +580,7 @@ class ModuleDecoderImpl : public Decoder {
 
   void DecodeExportSection() {
     uint32_t export_table_count =
-        consume_count("exports count", kV8MaxWasmExports);
+        consume_count("exports count", kV8MaxWasmImports);
     module_->export_table.reserve(export_table_count);
     for (uint32_t i = 0; ok() && i < export_table_count; ++i) {
       TRACE("DecodeExportTable[%d] module+%d\n", i,
@@ -625,7 +625,7 @@ class ModuleDecoderImpl : public Decoder {
           WasmGlobal* global = nullptr;
           exp->index = consume_global_index(module_.get(), &global);
           if (global) {
-            if (!FLAG_experimental_wasm_mut_global && global->mutability) {
+            if (global->mutability) {
               error("mutable globals cannot be exported");
             }
             global->exported = true;
@@ -958,14 +958,14 @@ class ModuleDecoderImpl : public Decoder {
         errorf(pos,
                "type mismatch in global initialization "
                "(from global #%u), expected %s, got %s",
-               other_index, ValueTypes::TypeName(global->type),
-               ValueTypes::TypeName(module->globals[other_index].type));
+               other_index, WasmOpcodes::TypeName(global->type),
+               WasmOpcodes::TypeName(module->globals[other_index].type));
       }
     } else {
       if (global->type != TypeOf(module, global->init)) {
         errorf(pos, "type error in global initialization, expected %s, got %s",
-               ValueTypes::TypeName(global->type),
-               ValueTypes::TypeName(TypeOf(module, global->init)));
+               WasmOpcodes::TypeName(global->type),
+               WasmOpcodes::TypeName(TypeOf(module, global->init)));
       }
     }
   }
@@ -988,19 +988,14 @@ class ModuleDecoderImpl : public Decoder {
     uint32_t offset = 0;
     if (module->globals.size() == 0) {
       module->globals_size = 0;
-      module->num_imported_mutable_globals = 0;
       return;
     }
     for (WasmGlobal& global : module->globals) {
-      byte size = ValueTypes::MemSize(ValueTypes::MachineTypeFor(global.type));
-      if (global.mutability && global.imported) {
-        DCHECK(FLAG_experimental_wasm_mut_global);
-        global.index = module->num_imported_mutable_globals++;
-      } else {
-        offset = (offset + size - 1) & ~(size - 1);  // align
-        global.offset = offset;
-        offset += size;
-      }
+      byte size =
+          WasmOpcodes::MemSize(WasmOpcodes::MachineTypeFor(global.type));
+      offset = (offset + size - 1) & ~(size - 1);  // align
+      global.offset = offset;
+      offset += size;
     }
     module->globals_size = offset;
   }
@@ -1159,14 +1154,14 @@ class ModuleDecoderImpl : public Decoder {
     unsigned len = 0;
     switch (opcode) {
       case kExprGetGlobal: {
-        GlobalIndexImmediate<Decoder::kValidate> imm(this, pc() - 1);
-        if (module->globals.size() <= imm.index) {
+        GlobalIndexOperand<Decoder::kValidate> operand(this, pc() - 1);
+        if (module->globals.size() <= operand.index) {
           error("global index is out of bounds");
           expr.kind = WasmInitExpr::kNone;
           expr.val.i32_const = 0;
           break;
         }
-        WasmGlobal* global = &module->globals[imm.index];
+        WasmGlobal* global = &module->globals[operand.index];
         if (global->mutability || !global->imported) {
           error(
               "only immutable imported globals can be used in initializer "
@@ -1176,36 +1171,36 @@ class ModuleDecoderImpl : public Decoder {
           break;
         }
         expr.kind = WasmInitExpr::kGlobalIndex;
-        expr.val.global_index = imm.index;
-        len = imm.length;
+        expr.val.global_index = operand.index;
+        len = operand.length;
         break;
       }
       case kExprI32Const: {
-        ImmI32Immediate<Decoder::kValidate> imm(this, pc() - 1);
+        ImmI32Operand<Decoder::kValidate> operand(this, pc() - 1);
         expr.kind = WasmInitExpr::kI32Const;
-        expr.val.i32_const = imm.value;
-        len = imm.length;
+        expr.val.i32_const = operand.value;
+        len = operand.length;
         break;
       }
       case kExprF32Const: {
-        ImmF32Immediate<Decoder::kValidate> imm(this, pc() - 1);
+        ImmF32Operand<Decoder::kValidate> operand(this, pc() - 1);
         expr.kind = WasmInitExpr::kF32Const;
-        expr.val.f32_const = imm.value;
-        len = imm.length;
+        expr.val.f32_const = operand.value;
+        len = operand.length;
         break;
       }
       case kExprI64Const: {
-        ImmI64Immediate<Decoder::kValidate> imm(this, pc() - 1);
+        ImmI64Operand<Decoder::kValidate> operand(this, pc() - 1);
         expr.kind = WasmInitExpr::kI64Const;
-        expr.val.i64_const = imm.value;
-        len = imm.length;
+        expr.val.i64_const = operand.value;
+        len = operand.length;
         break;
       }
       case kExprF64Const: {
-        ImmF64Immediate<Decoder::kValidate> imm(this, pc() - 1);
+        ImmF64Operand<Decoder::kValidate> operand(this, pc() - 1);
         expr.kind = WasmInitExpr::kF64Const;
-        expr.val.f64_const = imm.value;
-        len = imm.length;
+        expr.val.f64_const = operand.value;
+        len = operand.length;
         break;
       }
       case kExprRefNull: {
@@ -1228,8 +1223,8 @@ class ModuleDecoderImpl : public Decoder {
     }
     if (expected != kWasmStmt && TypeOf(module, expr) != kWasmI32) {
       errorf(pos, "type error in init expression, expected %s, got %s",
-             ValueTypes::TypeName(expected),
-             ValueTypes::TypeName(TypeOf(module, expr)));
+             WasmOpcodes::TypeName(expected),
+             WasmOpcodes::TypeName(TypeOf(module, expr)));
     }
     return expr;
   }

@@ -59,16 +59,8 @@ class Debug::TemporaryObjectsTracker : public HeapObjectAllocationTracker {
     objects_.insert(to);
   }
 
-  bool HasObject(Handle<HeapObject> obj) const {
-    if (obj->IsJSObject() &&
-        Handle<JSObject>::cast(obj)->GetEmbedderFieldCount()) {
-      // Embedder may store any pointers using embedder fields and implements
-      // non trivial logic, e.g. create wrappers lazily and store pointer to
-      // native object inside embedder field. We should consider all objects
-      // with embedder fields as non temporary.
-      return false;
-    }
-    return objects_.find(obj->address()) != objects_.end();
+  bool HasObject(Address addr) const {
+    return objects_.find(addr) != objects_.end();
   }
 
  private:
@@ -347,7 +339,7 @@ void Debug::ThreadInit() {
   thread_local_.async_task_count_ = 0;
   thread_local_.last_breakpoint_id_ = 0;
   clear_suspended_generator();
-  thread_local_.restart_fp_ = kNullAddress;
+  thread_local_.restart_fp_ = nullptr;
   base::Relaxed_Store(&thread_local_.current_debug_scope_,
                       static_cast<base::AtomicWord>(0));
   UpdateHookOnFunctionCall();
@@ -681,10 +673,10 @@ bool Debug::SetBreakPointForScript(Handle<Script> script,
   Handle<BreakPoint> break_point =
       isolate_->factory()->NewBreakPoint(*id, condition);
   if (script->type() == Script::TYPE_WASM) {
-    Handle<WasmModuleObject> module_object(
-        WasmModuleObject::cast(script->wasm_module_object()), isolate_);
-    return WasmModuleObject::SetBreakPoint(module_object, source_position,
-                                           break_point);
+    Handle<WasmCompiledModule> compiled_module(
+        WasmCompiledModule::cast(script->wasm_compiled_module()), isolate_);
+    return WasmCompiledModule::SetBreakPoint(compiled_module, source_position,
+                                             break_point);
   }
 
   HandleScope scope(isolate_);
@@ -2335,10 +2327,6 @@ void Debug::StartSideEffectCheckMode() {
   DCHECK(!temporary_objects_);
   temporary_objects_.reset(new TemporaryObjectsTracker());
   isolate_->heap()->AddHeapObjectAllocationTracker(temporary_objects_.get());
-  Handle<FixedArray> array(
-      isolate_->native_context()->regexp_last_match_info());
-  regexp_match_info_ =
-      Handle<RegExpMatchInfo>::cast(isolate_->factory()->CopyFixedArray(array));
 }
 
 void Debug::StopSideEffectCheckMode() {
@@ -2359,8 +2347,6 @@ void Debug::StopSideEffectCheckMode() {
   DCHECK(temporary_objects_);
   isolate_->heap()->RemoveHeapObjectAllocationTracker(temporary_objects_.get());
   temporary_objects_.reset();
-  isolate_->native_context()->set_regexp_last_match_info(*regexp_match_info_);
-  regexp_match_info_ = Handle<RegExpMatchInfo>::null();
 }
 
 void Debug::ApplySideEffectChecks(Handle<DebugInfo> debug_info) {
@@ -2381,58 +2367,40 @@ void Debug::ClearSideEffectChecks(Handle<DebugInfo> debug_info) {
   }
 }
 
-bool Debug::PerformSideEffectCheck(Handle<JSFunction> function,
-                                   Handle<Object> receiver) {
+bool Debug::PerformSideEffectCheck(Handle<JSFunction> function) {
   DCHECK_EQ(isolate_->debug_execution_mode(), DebugInfo::kSideEffects);
   DisallowJavascriptExecution no_js(isolate_);
   if (!function->is_compiled() &&
       !Compiler::Compile(function, Compiler::KEEP_EXCEPTION)) {
     return false;
   }
-  SharedFunctionInfo::SideEffectState side_effect_state =
-      SharedFunctionInfo::GetSideEffectState(handle(function->shared()));
-  switch (side_effect_state) {
-    case SharedFunctionInfo::kHasSideEffects:
-      if (FLAG_trace_side_effect_free_debug_evaluate) {
-        PrintF("[debug-evaluate] Function %s failed side effect check.\n",
-               function->shared()->DebugName()->ToCString().get());
-      }
-      side_effect_check_failed_ = true;
-      // Throw an uncatchable termination exception.
-      isolate_->TerminateExecution();
-      return false;
-    case SharedFunctionInfo::kRequiresRuntimeChecks: {
-      Handle<SharedFunctionInfo> shared(function->shared());
-      if (!shared->HasBytecodeArray()) {
-        return PerformSideEffectCheckForObject(receiver);
-      }
-      // If function has bytecode array then prepare function for debug
-      // execution to perform runtime side effect checks.
-      DCHECK(shared->is_compiled());
-      if (shared->GetCode() ==
-          isolate_->builtins()->builtin(Builtins::kDeserializeLazy)) {
-        Snapshot::EnsureBuiltinIsDeserialized(isolate_, shared);
-      }
-      GetOrCreateDebugInfo(shared);
-      PrepareFunctionForDebugExecution(shared);
-      return true;
+  if (!SharedFunctionInfo::HasNoSideEffect(handle(function->shared()))) {
+    if (FLAG_trace_side_effect_free_debug_evaluate) {
+      PrintF("[debug-evaluate] Function %s failed side effect check.\n",
+             function->shared()->DebugName()->ToCString().get());
     }
-    case SharedFunctionInfo::kHasNoSideEffect:
-      return true;
-    case SharedFunctionInfo::kNotComputed:
-      UNREACHABLE();
-      return false;
+    side_effect_check_failed_ = true;
+    // Throw an uncatchable termination exception.
+    isolate_->TerminateExecution();
+    return false;
   }
-  UNREACHABLE();
-  return false;
+  // If function has bytecode array then prepare function for debug execution
+  // to perform runtime side effect checks.
+  if (function->shared()->requires_runtime_side_effect_checks()) {
+    Handle<SharedFunctionInfo> shared(function->shared());
+    DCHECK(shared->is_compiled());
+    if (shared->GetCode() ==
+        isolate_->builtins()->builtin(Builtins::kDeserializeLazy)) {
+      Snapshot::EnsureBuiltinIsDeserialized(isolate_, shared);
+    }
+    GetOrCreateDebugInfo(shared);
+    PrepareFunctionForDebugExecution(shared);
+  }
+  return true;
 }
 
 bool Debug::PerformSideEffectCheckForCallback(Handle<Object> callback_info) {
   DCHECK_EQ(isolate_->debug_execution_mode(), DebugInfo::kSideEffects);
-  if (!callback_info.is_null() && callback_info->IsCallHandlerInfo() &&
-      i::CallHandlerInfo::cast(*callback_info)->NextCallHasNoSideEffect()) {
-    return true;
-  }
   // TODO(7515): always pass a valid callback info object.
   if (!callback_info.is_null() &&
       DebugEvaluate::CallbackHasNoSideEffect(*callback_info)) {
@@ -2467,19 +2435,15 @@ bool Debug::PerformSideEffectCheckAtBytecode(InterpretedFrame* frame) {
   }
   Handle<Object> object =
       handle(frame->ReadInterpreterRegister(reg.index()), isolate_);
-  return PerformSideEffectCheckForObject(object);
-}
-
-bool Debug::PerformSideEffectCheckForObject(Handle<Object> object) {
-  DCHECK_EQ(isolate_->debug_execution_mode(), DebugInfo::kSideEffects);
-
   if (object->IsHeapObject()) {
-    if (temporary_objects_->HasObject(Handle<HeapObject>::cast(object))) {
+    Address address = Handle<HeapObject>::cast(object)->address();
+    if (temporary_objects_->HasObject(address)) {
       return true;
     }
   }
   if (FLAG_trace_side_effect_free_debug_evaluate) {
-    PrintF("[debug-evaluate] failed runtime side effect check.\n");
+    PrintF("[debug-evaluate] %s failed runtime side effect check.\n",
+           interpreter::Bytecodes::ToString(bytecode));
   }
   side_effect_check_failed_ = true;
   // Throw an uncatchable termination exception.

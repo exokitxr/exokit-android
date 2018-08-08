@@ -175,20 +175,15 @@ class MachineRepresentationInferrer {
           case IrOpcode::kChangeInt32ToTagged:
           case IrOpcode::kChangeUint32ToTagged:
           case IrOpcode::kBitcastWordToTagged:
-          case IrOpcode::kTaggedPoisonOnSpeculation:
+          case IrOpcode::kPoisonOnSpeculationTagged:
             representation_vector_[node->id()] = MachineRepresentation::kTagged;
-            break;
-          case IrOpcode::kWord32PoisonOnSpeculation:
-            representation_vector_[node->id()] = MachineRepresentation::kWord32;
-            break;
-          case IrOpcode::kWord64PoisonOnSpeculation:
-            representation_vector_[node->id()] = MachineRepresentation::kWord64;
             break;
           case IrOpcode::kExternalConstant:
             representation_vector_[node->id()] =
                 MachineType::PointerRepresentation();
             break;
           case IrOpcode::kBitcastTaggedToWord:
+          case IrOpcode::kPoisonOnSpeculationWord:
             representation_vector_[node->id()] =
                 MachineType::PointerRepresentation();
             break;
@@ -339,19 +334,12 @@ class MachineRepresentationChecker {
             break;
           case IrOpcode::kBitcastWordToTagged:
           case IrOpcode::kBitcastWordToTaggedSigned:
+          case IrOpcode::kPoisonOnSpeculationWord:
             CheckValueInputRepresentationIs(
                 node, 0, MachineType::PointerRepresentation());
             break;
-          case IrOpcode::kWord32PoisonOnSpeculation:
-            CheckValueInputRepresentationIs(node, 0,
-                                            MachineRepresentation::kWord32);
-            break;
-          case IrOpcode::kWord64PoisonOnSpeculation:
-            CheckValueInputRepresentationIs(node, 0,
-                                            MachineRepresentation::kWord64);
-            break;
           case IrOpcode::kBitcastTaggedToWord:
-          case IrOpcode::kTaggedPoisonOnSpeculation:
+          case IrOpcode::kPoisonOnSpeculationTagged:
             CheckValueInputIsTagged(node, 0);
             break;
           case IrOpcode::kTruncateFloat64ToWord32:

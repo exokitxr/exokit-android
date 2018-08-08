@@ -12,10 +12,9 @@ namespace v8 {
 
 std::unique_ptr<TracingCpuProfiler> TracingCpuProfiler::Create(
     v8::Isolate* isolate) {
-  // Dummy profiler that does nothing.
-  // Remove it along with the deprecated code.
-  // The actual profiler is created by the isolate itself.
-  return std::unique_ptr<TracingCpuProfiler>(new TracingCpuProfiler());
+  return std::unique_ptr<TracingCpuProfiler>(
+      new internal::TracingCpuProfilerImpl(
+          reinterpret_cast<internal::Isolate*>(isolate)));
 }
 
 namespace internal {

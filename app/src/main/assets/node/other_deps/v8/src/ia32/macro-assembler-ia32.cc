@@ -9,7 +9,6 @@
 #include "src/base/utils/random-number-generator.h"
 #include "src/bootstrapper.h"
 #include "src/callable.h"
-#include "src/code-factory.h"
 #include "src/code-stubs.h"
 #include "src/debug/debug.h"
 #include "src/external-reference-table.h"
@@ -29,24 +28,14 @@ namespace internal {
 
 MacroAssembler::MacroAssembler(Isolate* isolate, void* buffer, int size,
                                CodeObjectRequired create_code_object)
-    : TurboAssembler(isolate, buffer, size, create_code_object) {
-  if (create_code_object == CodeObjectRequired::kYes) {
-    // Unlike TurboAssembler, which can be used off the main thread and may not
-    // allocate, macro assembler creates its own copy of the self-reference
-    // marker in order to disambiguate between self-references during nested
-    // code generation (e.g.: codegen of the current object triggers stub
-    // compilation through CodeStub::GetCode()).
-    code_object_ = Handle<HeapObject>::New(
-        *isolate->factory()->NewSelfReferenceMarker(), isolate);
-  }
-}
+    : TurboAssembler(isolate, buffer, size, create_code_object) {}
 
 TurboAssembler::TurboAssembler(Isolate* isolate, void* buffer, int buffer_size,
                                CodeObjectRequired create_code_object)
     : Assembler(isolate, buffer, buffer_size), isolate_(isolate) {
   if (create_code_object == CodeObjectRequired::kYes) {
-    code_object_ = Handle<HeapObject>::New(
-        isolate->heap()->self_reference_marker(), isolate);
+    code_object_ =
+        Handle<HeapObject>::New(isolate->heap()->undefined_value(), isolate);
   }
 }
 
@@ -188,6 +177,10 @@ int TurboAssembler::PopCallerSaved(SaveFPRegsMode fp_mode, Register exclusion1,
   return bytes;
 }
 
+void TurboAssembler::SlowTruncateToIDelayed(Zone* zone, Register result_reg) {
+  CallStubDelayed(new (zone) DoubleToIStub(nullptr, result_reg));
+}
+
 void MacroAssembler::DoubleToI(Register result_reg, XMMRegister input_reg,
                                XMMRegister scratch, Label* lost_precision,
                                Label* is_nan, Label::Distance dst) {
@@ -197,6 +190,17 @@ void MacroAssembler::DoubleToI(Register result_reg, XMMRegister input_reg,
   ucomisd(scratch, input_reg);
   j(not_equal, lost_precision, dst);
   j(parity_even, is_nan, dst);
+}
+
+void TurboAssembler::LoadUint32(XMMRegister dst, Operand src) {
+  Label done;
+  cmp(src, Immediate(0));
+  ExternalReference uint32_bias =
+      ExternalReference::address_of_uint32_bias(isolate());
+  Cvtsi2sd(dst, src);
+  j(not_sign, &done, Label::kNear);
+  addsd(dst, Operand::StaticVariable(uint32_bias));
+  bind(&done);
 }
 
 void MacroAssembler::RecordWriteField(Register object, int offset,
@@ -365,64 +369,27 @@ void MacroAssembler::MaybeDropFrames() {
     RelocInfo::CODE_TARGET);
 }
 
-void TurboAssembler::Cvtsi2ss(XMMRegister dst, Operand src) {
-  xorps(dst, dst);
-  cvtsi2ss(dst, src);
-}
-
 void TurboAssembler::Cvtsi2sd(XMMRegister dst, Operand src) {
-  xorpd(dst, dst);
+  xorps(dst, dst);
   cvtsi2sd(dst, src);
 }
 
-void TurboAssembler::Cvtui2ss(XMMRegister dst, Operand src, Register tmp) {
-  Label done;
-  Register src_reg = src.is_reg_only() ? src.reg() : tmp;
-  if (src_reg == tmp) mov(tmp, src);
-  cvtsi2ss(dst, src_reg);
-  test(src_reg, src_reg);
-  j(positive, &done, Label::kNear);
-
-  // Compute {src/2 | (src&1)} (retain the LSB to avoid rounding errors).
-  if (src_reg != tmp) mov(tmp, src_reg);
-  shr(tmp, 1);
-  // The LSB is shifted into CF. If it is set, set the LSB in {tmp}.
-  Label msb_not_set;
-  j(not_carry, &msb_not_set, Label::kNear);
-  or_(tmp, Immediate(1));
-  bind(&msb_not_set);
-  cvtsi2ss(dst, tmp);
+void TurboAssembler::Cvtui2ss(XMMRegister dst, Register src, Register tmp) {
+  Label msb_set_src;
+  Label jmp_return;
+  test(src, src);
+  j(sign, &msb_set_src, Label::kNear);
+  cvtsi2ss(dst, src);
+  jmp(&jmp_return, Label::kNear);
+  bind(&msb_set_src);
+  mov(tmp, src);
+  shr(src, 1);
+  // Recover the least significant bit to avoid rounding errors.
+  and_(tmp, Immediate(1));
+  or_(src, tmp);
+  cvtsi2ss(dst, src);
   addss(dst, dst);
-  bind(&done);
-}
-
-void TurboAssembler::Cvttss2ui(Register dst, Operand src, XMMRegister tmp) {
-  Label done;
-  cvttss2si(dst, src);
-  test(dst, dst);
-  j(positive, &done);
-  Move(tmp, static_cast<float>(INT32_MIN));
-  addss(tmp, src);
-  cvttss2si(dst, tmp);
-  or_(dst, Immediate(0x80000000));
-  bind(&done);
-}
-
-void TurboAssembler::Cvtui2sd(XMMRegister dst, Operand src) {
-  Label done;
-  cmp(src, Immediate(0));
-  ExternalReference uint32_bias = ExternalReference::address_of_uint32_bias();
-  Cvtsi2sd(dst, src);
-  j(not_sign, &done, Label::kNear);
-  addsd(dst, Operand::StaticVariable(uint32_bias));
-  bind(&done);
-}
-
-void TurboAssembler::Cvttsd2ui(Register dst, Operand src, XMMRegister tmp) {
-  Move(tmp, -2147483648.0);
-  addsd(tmp, src);
-  cvttsd2si(dst, tmp);
-  add(dst, Immediate(0x80000000));
+  bind(&jmp_return);
 }
 
 void TurboAssembler::ShlPair(Register high, Register low, uint8_t shift) {
@@ -678,12 +645,12 @@ void MacroAssembler::EnterExitFramePrologue(StackFrame::Type frame_type) {
   push(Immediate(CodeObject()));  // Accessed from ExitFrame::code_slot.
 
   // Save the frame pointer and the context in top.
-  ExternalReference c_entry_fp_address =
-      ExternalReference::Create(IsolateAddressId::kCEntryFPAddress, isolate());
-  ExternalReference context_address =
-      ExternalReference::Create(IsolateAddressId::kContextAddress, isolate());
-  ExternalReference c_function_address =
-      ExternalReference::Create(IsolateAddressId::kCFunctionAddress, isolate());
+  ExternalReference c_entry_fp_address(IsolateAddressId::kCEntryFPAddress,
+                                       isolate());
+  ExternalReference context_address(IsolateAddressId::kContextAddress,
+                                    isolate());
+  ExternalReference c_function_address(IsolateAddressId::kCFunctionAddress,
+                                       isolate());
   mov(Operand::StaticVariable(c_entry_fp_address), ebp);
   mov(Operand::StaticVariable(context_address), esi);
   mov(Operand::StaticVariable(c_function_address), ebx);
@@ -765,8 +732,8 @@ void MacroAssembler::LeaveExitFrame(bool save_doubles, bool pop_arguments) {
 
 void MacroAssembler::LeaveExitFrameEpilogue() {
   // Restore current context from top and clear it in debug mode.
-  ExternalReference context_address =
-      ExternalReference::Create(IsolateAddressId::kContextAddress, isolate());
+  ExternalReference context_address(IsolateAddressId::kContextAddress,
+                                    isolate());
   mov(esi, Operand::StaticVariable(context_address));
 #ifdef DEBUG
   mov(Operand::StaticVariable(context_address),
@@ -774,8 +741,8 @@ void MacroAssembler::LeaveExitFrameEpilogue() {
 #endif
 
   // Clear the top frame.
-  ExternalReference c_entry_fp_address =
-      ExternalReference::Create(IsolateAddressId::kCEntryFPAddress, isolate());
+  ExternalReference c_entry_fp_address(IsolateAddressId::kCEntryFPAddress,
+                                       isolate());
   mov(Operand::StaticVariable(c_entry_fp_address), Immediate(0));
 }
 
@@ -795,8 +762,8 @@ void MacroAssembler::PushStackHandler() {
   push(Immediate(0));  // Padding.
 
   // Link the current handler as the next handler.
-  ExternalReference handler_address =
-      ExternalReference::Create(IsolateAddressId::kHandlerAddress, isolate());
+  ExternalReference handler_address(IsolateAddressId::kHandlerAddress,
+                                    isolate());
   push(Operand::StaticVariable(handler_address));
 
   // Set this new handler as the current one.
@@ -806,8 +773,8 @@ void MacroAssembler::PushStackHandler() {
 
 void MacroAssembler::PopStackHandler() {
   STATIC_ASSERT(StackHandlerConstants::kNextOffset == 0);
-  ExternalReference handler_address =
-      ExternalReference::Create(IsolateAddressId::kHandlerAddress, isolate());
+  ExternalReference handler_address(IsolateAddressId::kHandlerAddress,
+                                    isolate());
   pop(Operand::StaticVariable(handler_address));
   add(esp, Immediate(StackHandlerConstants::kSize - kPointerSize));
 }
@@ -844,10 +811,9 @@ void MacroAssembler::CallRuntime(const Runtime::Function* f,
   // should remove this need and make the runtime routine entry code
   // smarter.
   Move(eax, Immediate(num_arguments));
-  mov(ebx, Immediate(ExternalReference::Create(f)));
-  Handle<Code> code =
-      CodeFactory::CEntry(isolate(), f->result_size, save_doubles);
-  Call(code, RelocInfo::CODE_TARGET);
+  mov(ebx, Immediate(ExternalReference(f, isolate())));
+  CEntryStub ces(isolate(), 1, save_doubles);
+  CallStub(&ces);
 }
 
 void TurboAssembler::CallRuntimeDelayed(Zone* zone, Runtime::FunctionId fid,
@@ -858,10 +824,8 @@ void TurboAssembler::CallRuntimeDelayed(Zone* zone, Runtime::FunctionId fid,
   // should remove this need and make the runtime routine entry code
   // smarter.
   Move(eax, Immediate(f->nargs));
-  mov(ebx, Immediate(ExternalReference::Create(f)));
-  Handle<Code> code =
-      CodeFactory::CEntry(isolate(), f->result_size, save_doubles);
-  Call(code, RelocInfo::CODE_TARGET);
+  mov(ebx, Immediate(ExternalReference(f, isolate())));
+  CallStubDelayed(new (zone) CEntryStub(nullptr, 1, save_doubles));
 }
 
 void MacroAssembler::TailCallRuntime(Runtime::FunctionId fid) {
@@ -884,16 +848,16 @@ void MacroAssembler::TailCallRuntime(Runtime::FunctionId fid) {
     // smarter.
     mov(eax, Immediate(function->nargs));
   }
-  JumpToExternalReference(ExternalReference::Create(fid));
+  JumpToExternalReference(ExternalReference(fid, isolate()));
 }
 
 void MacroAssembler::JumpToExternalReference(const ExternalReference& ext,
                                              bool builtin_exit_frame) {
   // Set the entry point and jump to the C entry runtime stub.
   mov(ebx, Immediate(ext));
-  Handle<Code> code = CodeFactory::CEntry(isolate(), 1, kDontSaveFPRegs,
-                                          kArgvOnStack, builtin_exit_frame);
-  Jump(code, RelocInfo::CODE_TARGET);
+  CEntryStub ces(isolate(), 1, kDontSaveFPRegs, kArgvOnStack,
+                 builtin_exit_frame);
+  jmp(ces.GetCode(), RelocInfo::CODE_TARGET);
 }
 
 void MacroAssembler::JumpToInstructionStream(Address entry) {
@@ -1057,19 +1021,12 @@ void MacroAssembler::CheckDebugHook(Register fun, Register new_target,
     if (actual.is_reg()) {
       SmiTag(actual.reg());
       Push(actual.reg());
-      SmiUntag(actual.reg());
     }
     if (new_target.is_valid()) {
       Push(new_target);
     }
     Push(fun);
     Push(fun);
-    Operand receiver_op =
-        actual.is_reg()
-            ? Operand(ebp, actual.reg(), times_pointer_size, kPointerSize * 2)
-            : Operand(ebp, actual.immediate() * times_pointer_size +
-                               kPointerSize * 2);
-    Push(receiver_op);
     CallRuntime(Runtime::kDebugOnFunctionCall);
     Pop(fun);
     if (new_target.is_valid()) {
@@ -1336,20 +1293,6 @@ void TurboAssembler::Psignd(XMMRegister dst, Operand src) {
   UNREACHABLE();
 }
 
-void TurboAssembler::Ptest(XMMRegister dst, Operand src) {
-  if (CpuFeatures::IsSupported(AVX)) {
-    CpuFeatureScope scope(this, AVX);
-    vptest(dst, src);
-    return;
-  }
-  if (CpuFeatures::IsSupported(SSE4_1)) {
-    CpuFeatureScope sse_scope(this, SSE4_1);
-    ptest(dst, src);
-    return;
-  }
-  UNREACHABLE();
-}
-
 void TurboAssembler::Pshufb(XMMRegister dst, Operand src) {
   if (CpuFeatures::IsSupported(AVX)) {
     CpuFeatureScope scope(this, AVX);
@@ -1486,8 +1429,7 @@ void MacroAssembler::LoadWeakValue(Register in_out, Label* target_if_cleared) {
 void MacroAssembler::IncrementCounter(StatsCounter* counter, int value) {
   DCHECK_GT(value, 0);
   if (FLAG_native_code_counters && counter->Enabled()) {
-    Operand operand =
-        Operand::StaticVariable(ExternalReference::Create(counter));
+    Operand operand = Operand::StaticVariable(ExternalReference(counter));
     if (value == 1) {
       inc(operand);
     } else {
@@ -1500,8 +1442,7 @@ void MacroAssembler::IncrementCounter(StatsCounter* counter, int value) {
 void MacroAssembler::DecrementCounter(StatsCounter* counter, int value) {
   DCHECK_GT(value, 0);
   if (FLAG_native_code_counters && counter->Enabled()) {
-    Operand operand =
-        Operand::StaticVariable(ExternalReference::Create(counter));
+    Operand operand = Operand::StaticVariable(ExternalReference(counter));
     if (value == 1) {
       dec(operand);
     } else {

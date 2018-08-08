@@ -8,14 +8,21 @@
 #include "src/transitions.h"
 
 #include "src/ic/handler-configuration-inl.h"
-#include "src/objects/fixed-array-inl.h"
-#include "src/objects/maybe-object-inl.h"
 
 // Has to be the last include (doesn't have include guards):
 #include "src/objects/object-macros.h"
 
 namespace v8 {
 namespace internal {
+
+WeakCell* TransitionsAccessor::GetTargetCell() {
+  DCHECK(!needs_reload_);
+  if (target_cell_ == nullptr) {
+    target_cell_ =
+        StoreHandler::GetTransitionCell(raw_transitions_->ToStrongHeapObject());
+  }
+  return target_cell_;
+}
 
 TransitionArray* TransitionsAccessor::transitions() {
   DCHECK_EQ(kFullTransitionArray, encoding());
@@ -25,67 +32,69 @@ TransitionArray* TransitionsAccessor::transitions() {
 CAST_ACCESSOR(TransitionArray)
 
 bool TransitionArray::HasPrototypeTransitions() {
-  return Get(kPrototypeTransitionsIndex) != MaybeObject::FromSmi(Smi::kZero);
+  return get(kPrototypeTransitionsIndex) != Smi::kZero;
 }
 
-WeakFixedArray* TransitionArray::GetPrototypeTransitions() {
+
+FixedArray* TransitionArray::GetPrototypeTransitions() {
   DCHECK(HasPrototypeTransitions());  // Callers must check first.
-  Object* prototype_transitions =
-      Get(kPrototypeTransitionsIndex)->ToStrongHeapObject();
-  return WeakFixedArray::cast(prototype_transitions);
+  Object* prototype_transitions = get(kPrototypeTransitionsIndex);
+  return FixedArray::cast(prototype_transitions);
 }
 
-HeapObjectReference** TransitionArray::GetKeySlot(int transition_number) {
+
+void TransitionArray::SetPrototypeTransitions(FixedArray* transitions) {
+  DCHECK(transitions->IsFixedArray());
+  set(kPrototypeTransitionsIndex, transitions);
+}
+
+
+Object** TransitionArray::GetPrototypeTransitionsSlot() {
+  return RawFieldOfElementAt(kPrototypeTransitionsIndex);
+}
+
+
+Object** TransitionArray::GetKeySlot(int transition_number) {
   DCHECK(transition_number < number_of_transitions());
-  return reinterpret_cast<HeapObjectReference**>(
-      RawFieldOfElementAt(ToKeyIndex(transition_number)));
+  return RawFieldOfElementAt(ToKeyIndex(transition_number));
 }
 
-void TransitionArray::SetPrototypeTransitions(WeakFixedArray* transitions) {
-  DCHECK(transitions->IsWeakFixedArray());
-  WeakFixedArray::Set(kPrototypeTransitionsIndex,
-                      HeapObjectReference::Strong(transitions));
-}
-
-int TransitionArray::NumberOfPrototypeTransitions(
-    WeakFixedArray* proto_transitions) {
-  if (proto_transitions->length() == 0) return 0;
-  MaybeObject* raw =
-      proto_transitions->Get(kProtoTransitionNumberOfEntriesOffset);
-  return Smi::ToInt(raw->ToSmi());
-}
 
 Name* TransitionArray::GetKey(int transition_number) {
   DCHECK(transition_number < number_of_transitions());
-  return Name::cast(Get(ToKeyIndex(transition_number))->ToStrongHeapObject());
+  return Name::cast(get(ToKeyIndex(transition_number)));
 }
 
 Name* TransitionsAccessor::GetKey(int transition_number) {
+  Map* map = nullptr;
   switch (encoding()) {
     case kPrototypeInfo:
     case kUninitialized:
       UNREACHABLE();
       return nullptr;
-    case kWeakRef: {
-      Map* map = Map::cast(raw_transitions_->ToWeakHeapObject());
-      return GetSimpleTransitionKey(map);
+    case kWeakRef:
+      map = Map::cast(raw_transitions_->ToWeakHeapObject());
+      break;
+    case kHandler: {
+      WeakCell* cell = GetTargetCell();
+      DCHECK(!cell->cleared());
+      map = Map::cast(cell->value());
+      break;
     }
     case kFullTransitionArray:
       return transitions()->GetKey(transition_number);
   }
-  UNREACHABLE();
+  return GetSimpleTransitionKey(map);
 }
 
 void TransitionArray::SetKey(int transition_number, Name* key) {
   DCHECK(transition_number < number_of_transitions());
-  WeakFixedArray::Set(ToKeyIndex(transition_number),
-                      HeapObjectReference::Strong(key));
+  set(ToKeyIndex(transition_number), key);
 }
 
-HeapObjectReference** TransitionArray::GetTargetSlot(int transition_number) {
+Object** TransitionArray::GetTargetSlot(int transition_number) {
   DCHECK(transition_number < number_of_transitions());
-  return reinterpret_cast<HeapObjectReference**>(
-      RawFieldOfElementAt(ToTargetIndex(transition_number)));
+  return RawFieldOfElementAt(ToTargetIndex(transition_number));
 }
 
 // static
@@ -99,17 +108,18 @@ PropertyDetails TransitionsAccessor::GetTargetDetails(Name* name, Map* target) {
 }
 
 // static
-Map* TransitionsAccessor::GetTargetFromRaw(MaybeObject* raw) {
-  return Map::cast(raw->ToWeakHeapObject());
+Map* TransitionsAccessor::GetTargetFromRaw(Object* raw) {
+  if (raw->IsWeakCell()) return Map::cast(WeakCell::cast(raw)->value());
+  return Map::cast(StoreHandler::GetTransitionCell(raw)->value());
 }
 
-MaybeObject* TransitionArray::GetRawTarget(int transition_number) {
+Object* TransitionArray::GetRawTarget(int transition_number) {
   DCHECK(transition_number < number_of_transitions());
-  return Get(ToTargetIndex(transition_number));
+  return get(ToTargetIndex(transition_number));
 }
 
 Map* TransitionArray::GetTarget(int transition_number) {
-  MaybeObject* raw = GetRawTarget(transition_number);
+  Object* raw = GetRawTarget(transition_number);
   return TransitionsAccessor::GetTargetFromRaw(raw);
 }
 
@@ -121,24 +131,27 @@ Map* TransitionsAccessor::GetTarget(int transition_number) {
       return nullptr;
     case kWeakRef:
       return Map::cast(raw_transitions_->ToWeakHeapObject());
+    case kHandler: {
+      WeakCell* cell = GetTargetCell();
+      DCHECK(!cell->cleared());
+      return Map::cast(cell->value());
+    }
     case kFullTransitionArray:
       return transitions()->GetTarget(transition_number);
   }
   UNREACHABLE();
 }
 
-void TransitionArray::SetRawTarget(int transition_number, MaybeObject* value) {
+void TransitionArray::SetTarget(int transition_number, Object* value) {
+  DCHECK(!value->IsMap());
   DCHECK(transition_number < number_of_transitions());
-  DCHECK(value->IsWeakHeapObject() && value->ToWeakHeapObject()->IsMap());
-  WeakFixedArray::Set(ToTargetIndex(transition_number), value);
+  set(ToTargetIndex(transition_number), value);
 }
 
 bool TransitionArray::GetTargetIfExists(int transition_number, Isolate* isolate,
                                         Map** target) {
-  MaybeObject* raw = GetRawTarget(transition_number);
-  HeapObject* heap_object;
-  if (raw->ToStrongHeapObject(&heap_object) &&
-      heap_object->IsUndefined(isolate)) {
+  Object* raw = GetRawTarget(transition_number);
+  if (raw->IsUndefined(isolate)) {
     return false;
   }
   *target = TransitionsAccessor::GetTargetFromRaw(raw);
@@ -149,11 +162,6 @@ int TransitionArray::SearchName(Name* name, int* out_insertion_index) {
   DCHECK(name->IsUniqueName());
   return internal::Search<ALL_ENTRIES>(this, name, number_of_entries(),
                                        out_insertion_index);
-}
-
-int TransitionArray::number_of_transitions() const {
-  if (length() < kFirstIndex) return 0;
-  return Smi::ToInt(Get(kTransitionLengthIndex)->ToSmi());
 }
 
 int TransitionArray::CompareKeys(Name* key1, uint32_t hash1, PropertyKind kind1,
@@ -192,11 +200,9 @@ int TransitionArray::CompareDetails(PropertyKind kind1,
   return 0;
 }
 
-void TransitionArray::Set(int transition_number, Name* key,
-                          MaybeObject* target) {
-  WeakFixedArray::Set(ToKeyIndex(transition_number),
-                      MaybeObject::FromObject(key));
-  WeakFixedArray::Set(ToTargetIndex(transition_number), target);
+void TransitionArray::Set(int transition_number, Name* key, Object* target) {
+  set(ToKeyIndex(transition_number), key);
+  set(ToTargetIndex(transition_number), target);
 }
 
 int TransitionArray::Capacity() {
@@ -206,9 +212,7 @@ int TransitionArray::Capacity() {
 
 void TransitionArray::SetNumberOfTransitions(int number_of_transitions) {
   DCHECK(number_of_transitions <= Capacity());
-  WeakFixedArray::Set(
-      kTransitionLengthIndex,
-      MaybeObject::FromSmi(Smi::FromInt(number_of_transitions)));
+  set(kTransitionLengthIndex, Smi::FromInt(number_of_transitions));
 }
 
 }  // namespace internal

@@ -140,14 +140,10 @@ class V8_EXPORT_PRIVATE EhFrameWriter {
     WriteBytes(reinterpret_cast<const byte*>(&value), sizeof(value));
   }
   void PatchInt32(int base_offset, uint32_t value) {
-    DCHECK_EQ(
-        ReadUnalignedUInt32(reinterpret_cast<Address>(eh_frame_buffer_.data()) +
-                            base_offset),
-        kInt32Placeholder);
+    DCHECK_EQ(ReadUnalignedUInt32(eh_frame_buffer_.data() + base_offset),
+              kInt32Placeholder);
     DCHECK_LT(base_offset + kInt32Size, eh_frame_offset());
-    WriteUnalignedUInt32(
-        reinterpret_cast<Address>(eh_frame_buffer_.data()) + base_offset,
-        value);
+    WriteUnalignedUInt32(eh_frame_buffer_.data() + base_offset, value);
   }
 
   // Write the common information entry, which includes encoding specifiers,
@@ -213,7 +209,7 @@ class V8_EXPORT_PRIVATE EhFrameIterator {
 
   void SkipCie() {
     DCHECK_EQ(next_, start_);
-    next_ += ReadUnalignedUInt32(reinterpret_cast<Address>(next_)) + kInt32Size;
+    next_ += ReadUnalignedUInt32(next_) + kInt32Size;
   }
 
   void SkipToFdeDirectives() {
@@ -264,7 +260,7 @@ class V8_EXPORT_PRIVATE EhFrameIterator {
   T GetNextValue() {
     T result;
     DCHECK_LE(next_ + sizeof(result), end_);
-    result = ReadUnalignedValue<T>(reinterpret_cast<Address>(next_));
+    result = ReadUnalignedValue<T>(next_);
     next_ += sizeof(result);
     return result;
   }

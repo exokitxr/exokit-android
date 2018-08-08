@@ -852,6 +852,25 @@ FieldAccess AccessBuilder::ForContextSlot(size_t index) {
 }
 
 // static
+FieldAccess AccessBuilder::ForContextExtensionScopeInfo() {
+  FieldAccess access = {
+      kTaggedBase,           ContextExtension::kScopeInfoOffset,
+      Handle<Name>(),        MaybeHandle<Map>(),
+      Type::OtherInternal(), MachineType::AnyTagged(),
+      kFullWriteBarrier};
+  return access;
+}
+
+// static
+FieldAccess AccessBuilder::ForContextExtensionExtension() {
+  FieldAccess access = {kTaggedBase,      ContextExtension::kExtensionOffset,
+                        Handle<Name>(),   MaybeHandle<Map>(),
+                        Type::Any(),      MachineType::AnyTagged(),
+                        kFullWriteBarrier};
+  return access;
+}
+
+// static
 ElementAccess AccessBuilder::ForFixedArrayElement() {
   ElementAccess access = {kTaggedBase, FixedArray::kHeaderSize, Type::Any(),
                           MachineType::AnyTagged(), kFullWriteBarrier};
@@ -859,11 +878,9 @@ ElementAccess AccessBuilder::ForFixedArrayElement() {
 }
 
 // static
-ElementAccess AccessBuilder::ForFixedArrayElement(
-    ElementsKind kind, LoadSensitivity load_sensitivity) {
-  ElementAccess access = {kTaggedBase,       FixedArray::kHeaderSize,
-                          Type::Any(),       MachineType::AnyTagged(),
-                          kFullWriteBarrier, load_sensitivity};
+ElementAccess AccessBuilder::ForFixedArrayElement(ElementsKind kind) {
+  ElementAccess access = {kTaggedBase, FixedArray::kHeaderSize, Type::Any(),
+                          MachineType::AnyTagged(), kFullWriteBarrier};
   switch (kind) {
     case PACKED_SMI_ELEMENTS:
       access.type = Type::SignedSmall();
@@ -922,59 +939,50 @@ FieldAccess AccessBuilder::ForEnumCacheIndices() {
 }
 
 // static
-ElementAccess AccessBuilder::ForTypedArrayElement(
-    ExternalArrayType type, bool is_external,
-    LoadSensitivity load_sensitivity) {
+ElementAccess AccessBuilder::ForTypedArrayElement(ExternalArrayType type,
+                                                  bool is_external) {
   BaseTaggedness taggedness = is_external ? kUntaggedBase : kTaggedBase;
   int header_size = is_external ? 0 : FixedTypedArrayBase::kDataOffset;
   switch (type) {
     case kExternalInt8Array: {
-      ElementAccess access = {taggedness,       header_size,
-                              Type::Signed32(), MachineType::Int8(),
-                              kNoWriteBarrier,  load_sensitivity};
+      ElementAccess access = {taggedness, header_size, Type::Signed32(),
+                              MachineType::Int8(), kNoWriteBarrier};
       return access;
     }
     case kExternalUint8Array:
     case kExternalUint8ClampedArray: {
-      ElementAccess access = {taggedness,         header_size,
-                              Type::Unsigned32(), MachineType::Uint8(),
-                              kNoWriteBarrier,    load_sensitivity};
+      ElementAccess access = {taggedness, header_size, Type::Unsigned32(),
+                              MachineType::Uint8(), kNoWriteBarrier};
       return access;
     }
     case kExternalInt16Array: {
-      ElementAccess access = {taggedness,       header_size,
-                              Type::Signed32(), MachineType::Int16(),
-                              kNoWriteBarrier,  load_sensitivity};
+      ElementAccess access = {taggedness, header_size, Type::Signed32(),
+                              MachineType::Int16(), kNoWriteBarrier};
       return access;
     }
     case kExternalUint16Array: {
-      ElementAccess access = {taggedness,         header_size,
-                              Type::Unsigned32(), MachineType::Uint16(),
-                              kNoWriteBarrier,    load_sensitivity};
+      ElementAccess access = {taggedness, header_size, Type::Unsigned32(),
+                              MachineType::Uint16(), kNoWriteBarrier};
       return access;
     }
     case kExternalInt32Array: {
-      ElementAccess access = {taggedness,       header_size,
-                              Type::Signed32(), MachineType::Int32(),
-                              kNoWriteBarrier,  load_sensitivity};
+      ElementAccess access = {taggedness, header_size, Type::Signed32(),
+                              MachineType::Int32(), kNoWriteBarrier};
       return access;
     }
     case kExternalUint32Array: {
-      ElementAccess access = {taggedness,         header_size,
-                              Type::Unsigned32(), MachineType::Uint32(),
-                              kNoWriteBarrier,    load_sensitivity};
+      ElementAccess access = {taggedness, header_size, Type::Unsigned32(),
+                              MachineType::Uint32(), kNoWriteBarrier};
       return access;
     }
     case kExternalFloat32Array: {
-      ElementAccess access = {taggedness,      header_size,
-                              Type::Number(),  MachineType::Float32(),
-                              kNoWriteBarrier, load_sensitivity};
+      ElementAccess access = {taggedness, header_size, Type::Number(),
+                              MachineType::Float32(), kNoWriteBarrier};
       return access;
     }
     case kExternalFloat64Array: {
-      ElementAccess access = {taggedness,      header_size,
-                              Type::Number(),  MachineType::Float64(),
-                              kNoWriteBarrier, load_sensitivity};
+      ElementAccess access = {taggedness, header_size, Type::Number(),
+                              MachineType::Float64(), kNoWriteBarrier};
       return access;
     }
     case kExternalBigInt64Array:

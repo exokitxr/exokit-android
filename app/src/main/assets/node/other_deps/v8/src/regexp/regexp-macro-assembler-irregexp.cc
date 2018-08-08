@@ -439,7 +439,8 @@ int RegExpMacroAssemblerIrregexp::length() {
   return pc_;
 }
 
-void RegExpMacroAssemblerIrregexp::Copy(byte* a) {
+
+void RegExpMacroAssemblerIrregexp::Copy(Address a) {
   MemCopy(a, buffer_.start(), length());
 }
 

@@ -354,12 +354,6 @@ class Instruction {
     return (high16 << 16) | low16;
   }
 
-  bool IsUnconditionalBranch() const {
-    return Mask(UnconditionalBranchMask) == B;
-  }
-
-  bool IsBranchAndLink() const { return Mask(UnconditionalBranchMask) == BL; }
-
   bool IsBranchAndLinkToRegister() const {
     return Mask(UnconditionalBranchToRegisterMask) == BLR;
   }

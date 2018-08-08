@@ -4,23 +4,19 @@
 
 #include "src/zone/zone-segment.h"
 
-#include "src/msan.h"
-
 namespace v8 {
 namespace internal {
 
 void Segment::ZapContents() {
 #ifdef DEBUG
-  memset(reinterpret_cast<void*>(start()), kZapDeadByte, capacity());
+  memset(start(), kZapDeadByte, capacity());
 #endif
-  MSAN_ALLOCATED_UNINITIALIZED_MEMORY(start(), capacity());
 }
 
 void Segment::ZapHeader() {
 #ifdef DEBUG
   memset(this, kZapDeadByte, sizeof(Segment));
 #endif
-  MSAN_ALLOCATED_UNINITIALIZED_MEMORY(start(), sizeof(Segment));
 }
 
 }  // namespace internal

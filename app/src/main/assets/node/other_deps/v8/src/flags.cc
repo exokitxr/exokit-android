@@ -312,15 +312,18 @@ inline char NormalizeChar(char ch) {
 }
 
 // Helper function to parse flags: Takes an argument arg and splits it into
-// a flag name and flag value (or nullptr if they are missing). negated is set
+// a flag name and flag value (or nullptr if they are missing). is_bool is set
 // if the arg started with "-no" or "--no". The buffer may be used to NUL-
 // terminate the name, it must be large enough to hold any possible name.
-static void SplitArgument(const char* arg, char* buffer, int buffer_size,
-                          const char** name, const char** value,
-                          bool* negated) {
+static void SplitArgument(const char* arg,
+                          char* buffer,
+                          int buffer_size,
+                          const char** name,
+                          const char** value,
+                          bool* is_bool) {
   *name = nullptr;
   *value = nullptr;
-  *negated = false;
+  *is_bool = false;
 
   if (arg != nullptr && *arg == '-') {
     // find the begin of the flag name
@@ -336,7 +339,7 @@ static void SplitArgument(const char* arg, char* buffer, int buffer_size,
     if (arg[0] == 'n' && arg[1] == 'o') {
       arg += 2;  // remove "no"
       if (NormalizeChar(arg[0]) == '-') arg++;  // remove dash after "no".
-      *negated = true;
+      *is_bool = true;
     }
     *name = arg;
 
@@ -389,7 +392,9 @@ bool TryParseUnsigned(Flag* flag, const char* arg, const char* value,
   if (val < 0 || static_cast<uint64_t>(val) > max || errno != 0) {
     PrintF(stderr,
            "Error: Value for flag %s of type %s is out of bounds "
-           "[0-%" PRIu64 "]\n",
+           "[0-%" PRIu64
+           "]\n"
+           "Try --help for options\n",
            arg, Type2String(flag->type()), max);
     return false;
   }
@@ -411,8 +416,8 @@ int FlagList::SetFlagsFromCommandLine(int* argc,
     char buffer[1*KB];
     const char* name;
     const char* value;
-    bool negated;
-    SplitArgument(arg, buffer, sizeof buffer, &name, &value, &negated);
+    bool is_bool;
+    SplitArgument(arg, buffer, sizeof buffer, &name, &value, &is_bool);
 
     if (name != nullptr) {
       // lookup the flag
@@ -425,7 +430,8 @@ int FlagList::SetFlagsFromCommandLine(int* argc,
           // sense there.
           continue;
         } else {
-          PrintF(stderr, "Error: unrecognized flag %s\n", arg);
+          PrintF(stderr, "Error: unrecognized flag %s\n"
+                 "Try --help for options\n", arg);
           return_code = j;
           break;
         }
@@ -439,8 +445,9 @@ int FlagList::SetFlagsFromCommandLine(int* argc,
           value = argv[i++];
         }
         if (!value) {
-          PrintF(stderr, "Error: missing value for flag %s of type %s\n", arg,
-                 Type2String(flag->type()));
+          PrintF(stderr, "Error: missing value for flag %s of type %s\n"
+                 "Try --help for options\n",
+                 arg, Type2String(flag->type()));
           return_code = j;
           break;
         }
@@ -450,10 +457,10 @@ int FlagList::SetFlagsFromCommandLine(int* argc,
       char* endp = const_cast<char*>("");  // *endp is only read
       switch (flag->type()) {
         case Flag::TYPE_BOOL:
-          *flag->bool_variable() = !negated;
+          *flag->bool_variable() = !is_bool;
           break;
         case Flag::TYPE_MAYBE_BOOL:
-          *flag->maybe_bool_variable() = MaybeBoolFlag::Create(true, !negated);
+          *flag->maybe_bool_variable() = MaybeBoolFlag::Create(true, !is_bool);
           break;
         case Flag::TYPE_INT:
           *flag->int_variable() = static_cast<int>(strtol(value, &endp, 10));
@@ -495,12 +502,11 @@ int FlagList::SetFlagsFromCommandLine(int* argc,
       // handle errors
       bool is_bool_type = flag->type() == Flag::TYPE_BOOL ||
           flag->type() == Flag::TYPE_MAYBE_BOOL;
-      if ((is_bool_type && value != nullptr) || (!is_bool_type && negated) ||
+      if ((is_bool_type && value != nullptr) || (!is_bool_type && is_bool) ||
           *endp != '\0') {
-        // TODO(neis): TryParseUnsigned may return with {*endp == '\0'} even in
-        // an error case.
-        PrintF(stderr, "Error: illegal value for flag %s of type %s\n", arg,
-               Type2String(flag->type()));
+        PrintF(stderr, "Error: illegal value for flag %s of type %s\n"
+               "Try --help for options\n",
+               arg, Type2String(flag->type()));
         if (is_bool_type) {
           PrintF(stderr,
                  "To set or unset a boolean flag, use --flag or --no-flag.\n");
@@ -518,29 +524,20 @@ int FlagList::SetFlagsFromCommandLine(int* argc,
     }
   }
 
-  if (FLAG_help) {
-    PrintHelp();
-    exit(0);
-  }
-
+  // shrink the argument list
   if (remove_flags) {
-    // shrink the argument list
     int j = 1;
     for (int i = 1; i < *argc; i++) {
       if (argv[i] != nullptr) argv[j++] = argv[i];
     }
     *argc = j;
-  } else if (return_code != 0) {
-    if (return_code + 1 < *argc) {
-      PrintF(stderr, "The remaining arguments were ignored:");
-      for (int i = return_code + 1; i < *argc; ++i) {
-        PrintF(stderr, " %s", argv[i]);
-      }
-      PrintF(stderr, "\n");
-    }
   }
-  if (return_code != 0) PrintF(stderr, "Try --help for options\n");
 
+  if (FLAG_help) {
+    PrintHelp();
+    exit(0);
+  }
+  // parsed all flags successfully
   return return_code;
 }
 
@@ -586,7 +583,10 @@ int FlagList::SetFlagsFromString(const char* str, int len) {
     p = SkipWhiteSpace(p);
   }
 
-  return SetFlagsFromCommandLine(&argc, argv.start(), false);
+  // set the flags
+  int result = SetFlagsFromCommandLine(&argc, argv.start(), false);
+
+  return result;
 }
 
 
@@ -605,12 +605,18 @@ void FlagList::PrintHelp() {
   CpuFeatures::PrintFeatures();
 
   OFStream os(stdout);
-  os << "Synopsis:\n"
-        "  shell [options] [--shell] [<file>...]\n"
-        "  d8 [options] [-e <string>] [--shell] [[--module] <file>...]\n\n"
-        "  -e        execute a string in V8\n"
-        "  --shell   run an interactive JavaScript shell\n"
-        "  --module  execute a file as a JavaScript module\n\n"
+  os << "Usage:\n"
+        "  shell [options] -e string\n"
+        "    execute string in V8\n"
+        "  shell [options] file1 file2 ... filek\n"
+        "    run JavaScript scripts in file1, file2, ..., filek\n"
+        "  shell [options]\n"
+        "  shell [options] --shell [file1 file2 ... filek]\n"
+        "    run an interactive JavaScript shell\n"
+        "  d8 [options] file1 file2 ... filek\n"
+        "  d8 [options]\n"
+        "  d8 [options] --shell [file1 file2 ... filek]\n"
+        "    run the new debugging shell\n\n"
         "Options:\n";
 
   for (const Flag& f : flags) {
@@ -633,9 +639,6 @@ void ComputeFlagListHash() {
 #ifdef DEBUG
   modified_args_as_string << "debug";
 #endif  // DEBUG
-#ifdef V8_EMBEDDED_BUILTINS
-  modified_args_as_string << "embedded";
-#endif  // V8_EMBEDDED_BUILTINS
   for (size_t i = 0; i < num_flags; ++i) {
     Flag* current = &flags[i];
     if (!current->IsDefault()) {

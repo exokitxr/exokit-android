@@ -5,8 +5,6 @@
 #ifndef V8_OBJECTS_MAYBE_OBJECT_INL_H_
 #define V8_OBJECTS_MAYBE_OBJECT_INL_H_
 
-#include "src/objects/maybe-object.h"
-
 #include "include/v8.h"
 #include "src/globals.h"
 
@@ -19,11 +17,6 @@ bool MaybeObject::ToSmi(Smi** value) {
     return true;
   }
   return false;
-}
-
-Smi* MaybeObject::ToSmi() {
-  DCHECK(HAS_SMI_TAG(this));
-  return Smi::cast(reinterpret_cast<Object*>(this));
 }
 
 bool MaybeObject::IsStrongOrWeakHeapObject() {
@@ -74,10 +67,6 @@ bool MaybeObject::IsWeakHeapObject() {
   return HasWeakHeapObjectTag(this) && !IsClearedWeakHeapObject();
 }
 
-bool MaybeObject::IsWeakOrClearedHeapObject() {
-  return HasWeakHeapObjectTag(this);
-}
-
 bool MaybeObject::ToWeakHeapObject(HeapObject** result) {
   if (HasWeakHeapObjectTag(this) && !IsClearedWeakHeapObject()) {
     *result = GetHeapObject();
@@ -95,23 +84,6 @@ HeapObject* MaybeObject::GetHeapObject() {
   DCHECK(!IsSmi());
   DCHECK(!IsClearedWeakHeapObject());
   return RemoveWeakHeapObjectMask(reinterpret_cast<HeapObjectReference*>(this));
-}
-
-Object* MaybeObject::GetHeapObjectOrSmi() {
-  if (IsSmi()) {
-    return reinterpret_cast<Object*>(this);
-  }
-  return GetHeapObject();
-}
-
-Object* MaybeObject::ToObject() {
-  DCHECK(!HasWeakHeapObjectTag(this));
-  return reinterpret_cast<Object*>(this);
-}
-
-MaybeObject* MaybeObject::MakeWeak(MaybeObject* object) {
-  DCHECK(object->IsStrongOrWeakHeapObject());
-  return AddWeakHeapObjectMask(object);
 }
 
 }  // namespace internal

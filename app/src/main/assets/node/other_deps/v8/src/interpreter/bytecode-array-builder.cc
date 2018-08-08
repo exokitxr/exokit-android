@@ -511,17 +511,15 @@ BytecodeArrayBuilder& BytecodeArrayBuilder::CompareOperation(
 BytecodeArrayBuilder& BytecodeArrayBuilder::CompareOperation(Token::Value op,
                                                              Register reg) {
   switch (op) {
+    case Token::Value::EQ_STRICT:
+      OutputTestEqualStrictNoFeedback(reg);
+      break;
     case Token::Value::IN:
       OutputTestIn(reg);
       break;
     default:
       UNREACHABLE();
   }
-  return *this;
-}
-
-BytecodeArrayBuilder& BytecodeArrayBuilder::CompareReference(Register reg) {
-  OutputTestReferenceEqual(reg);
   return *this;
 }
 
@@ -906,23 +904,20 @@ BytecodeArrayBuilder& BytecodeArrayBuilder::CreateBlockContext(
 }
 
 BytecodeArrayBuilder& BytecodeArrayBuilder::CreateCatchContext(
-    Register exception, const Scope* scope) {
+    Register exception, const AstRawString* name, const Scope* scope) {
+  size_t name_index = GetConstantPoolEntry(name);
   size_t scope_index = GetConstantPoolEntry(scope);
-  OutputCreateCatchContext(exception, scope_index);
+  OutputCreateCatchContext(exception, name_index, scope_index);
   return *this;
 }
 
-BytecodeArrayBuilder& BytecodeArrayBuilder::CreateFunctionContext(
-    const Scope* scope, int slots) {
-  size_t scope_index = GetConstantPoolEntry(scope);
-  OutputCreateFunctionContext(scope_index, slots);
+BytecodeArrayBuilder& BytecodeArrayBuilder::CreateFunctionContext(int slots) {
+  OutputCreateFunctionContext(slots);
   return *this;
 }
 
-BytecodeArrayBuilder& BytecodeArrayBuilder::CreateEvalContext(
-    const Scope* scope, int slots) {
-  size_t scope_index = GetConstantPoolEntry(scope);
-  OutputCreateEvalContext(scope_index, slots);
+BytecodeArrayBuilder& BytecodeArrayBuilder::CreateEvalContext(int slots) {
+  OutputCreateEvalContext(slots);
   return *this;
 }
 

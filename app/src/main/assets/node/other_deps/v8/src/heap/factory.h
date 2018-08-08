@@ -15,7 +15,6 @@
 #include "src/objects/hash-table.h"
 #include "src/objects/js-array.h"
 #include "src/objects/js-regexp.h"
-#include "src/objects/ordered-hash-table.h"
 #include "src/objects/string.h"
 
 namespace v8 {
@@ -28,7 +27,6 @@ class BreakPoint;
 class BreakPointInfo;
 class CallableTask;
 class CallbackTask;
-class CallHandlerInfo;
 class ConstantElementsPair;
 class CoverageInfo;
 class DebugInfo;
@@ -50,7 +48,6 @@ class RegExpMatchInfo;
 class ScriptContextTable;
 class StoreHandler;
 class TemplateObjectDescription;
-class WasmExportedFunctionData;
 struct SourceRange;
 template <typename T>
 class ZoneVector;
@@ -84,28 +81,17 @@ enum FunctionMode {
 };
 
 // Interface for handle based allocation.
-class V8_EXPORT_PRIVATE Factory {
+class V8_EXPORT_PRIVATE Factory final {
  public:
   Handle<Oddball> NewOddball(Handle<Map> map, const char* to_string,
                              Handle<Object> to_number, const char* type_of,
-                             byte kind,
-                             PretenureFlag pretenure = TENURED_READ_ONLY);
-
-  // Marks self references within code generation.
-  Handle<Oddball> NewSelfReferenceMarker(PretenureFlag pretenure = TENURED);
+                             byte kind);
 
   // Allocates a fixed array-like object with given map and initialized with
   // undefined values.
   template <typename T = FixedArray>
   Handle<T> NewFixedArrayWithMap(Heap::RootListIndex map_root_index, int length,
                                  PretenureFlag pretenure = NOT_TENURED);
-
-  // Allocates a weak fixed array-like object with given map and initialized
-  // with undefined values.
-  template <typename T = WeakFixedArray>
-  Handle<T> NewWeakFixedArrayWithMap(Heap::RootListIndex map_root_index,
-                                     int length,
-                                     PretenureFlag pretenure = NOT_TENURED);
 
   // Allocates a fixed array initialized with undefined values.
   Handle<FixedArray> NewFixedArray(int length,
@@ -159,8 +145,7 @@ class V8_EXPORT_PRIVATE Factory {
       int size, PretenureFlag pretenure = NOT_TENURED);
 
   // Allocates a FeedbackMedata object and zeroes the data section.
-  Handle<FeedbackMetadata> NewFeedbackMetadata(int slot_count,
-                                               PretenureFlag tenure = TENURED);
+  Handle<FeedbackMetadata> NewFeedbackMetadata(int slot_count);
 
   Handle<FrameArray> NewFrameArray(int number_of_frames,
                                    PretenureFlag pretenure = NOT_TENURED);
@@ -189,6 +174,10 @@ class V8_EXPORT_PRIVATE Factory {
   // Create a new Tuple3 struct.
   Handle<Tuple3> NewTuple3(Handle<Object> value1, Handle<Object> value2,
                            Handle<Object> value3, PretenureFlag pretenure);
+
+  // Create a new ContextExtension struct.
+  Handle<ContextExtension> NewContextExtension(Handle<ScopeInfo> scope_info,
+                                               Handle<Object> extension);
 
   // Create a new ConstantElementsPair struct.
   Handle<ConstantElementsPair> NewConstantElementsPair(
@@ -348,36 +337,40 @@ class V8_EXPORT_PRIVATE Factory {
   Handle<ExternalOneByteString> NewNativeSourceString(
       const ExternalOneByteString::Resource* resource);
 
-  // Create a symbol in old or read-only space.
-  Handle<Symbol> NewSymbol(PretenureFlag pretenure = TENURED);
-  Handle<Symbol> NewPrivateSymbol(PretenureFlag pretenure = TENURED);
+  // Create a symbol in old space.
+  Handle<Symbol> NewSymbol();
+  Handle<Symbol> NewPrivateSymbol();
   Handle<Symbol> NewPrivateFieldSymbol();
 
   // Create a global (but otherwise uninitialized) context.
   Handle<Context> NewNativeContext();
 
   // Create a script context.
-  Handle<Context> NewScriptContext(Handle<Context> outer,
+  Handle<Context> NewScriptContext(Handle<JSFunction> function,
                                    Handle<ScopeInfo> scope_info);
 
   // Create an empty script context table.
   Handle<ScriptContextTable> NewScriptContextTable();
 
   // Create a module context.
-  Handle<Context> NewModuleContext(Handle<Module> module, Handle<Context> outer,
+  Handle<Context> NewModuleContext(Handle<Module> module,
+                                   Handle<JSFunction> function,
                                    Handle<ScopeInfo> scope_info);
 
   // Create a function or eval context.
-  Handle<Context> NewFunctionContext(Handle<Context> outer,
-                                     Handle<ScopeInfo> scope_info);
+  Handle<Context> NewFunctionContext(int length, Handle<JSFunction> function,
+                                     ScopeType scope_type);
 
   // Create a catch context.
-  Handle<Context> NewCatchContext(Handle<Context> previous,
+  Handle<Context> NewCatchContext(Handle<JSFunction> function,
+                                  Handle<Context> previous,
                                   Handle<ScopeInfo> scope_info,
+                                  Handle<String> name,
                                   Handle<Object> thrown_object);
 
   // Create a 'with' context.
-  Handle<Context> NewWithContext(Handle<Context> previous,
+  Handle<Context> NewWithContext(Handle<JSFunction> function,
+                                 Handle<Context> previous,
                                  Handle<ScopeInfo> scope_info,
                                  Handle<JSReceiver> extension);
 
@@ -388,7 +381,8 @@ class V8_EXPORT_PRIVATE Factory {
                                           Handle<StringSet> whitelist);
 
   // Create a block context.
-  Handle<Context> NewBlockContext(Handle<Context> previous,
+  Handle<Context> NewBlockContext(Handle<JSFunction> function,
+                                  Handle<Context> previous,
                                   Handle<ScopeInfo> scope_info);
 
   Handle<Struct> NewStruct(InstanceType type,
@@ -399,8 +393,7 @@ class V8_EXPORT_PRIVATE Factory {
 
   Handle<AccessorInfo> NewAccessorInfo();
 
-  Handle<Script> NewScript(Handle<String> source,
-                           PretenureFlag tenure = TENURED);
+  Handle<Script> NewScript(Handle<String> source);
 
   Handle<BreakPointInfo> NewBreakPointInfo(int source_position);
   Handle<BreakPoint> NewBreakPoint(int id, Handle<String> condition);
@@ -440,18 +433,15 @@ class V8_EXPORT_PRIVATE Factory {
 
   Handle<Cell> NewCell(Handle<Object> value);
 
-  Handle<PropertyCell> NewPropertyCell(Handle<Name> name,
-                                       PretenureFlag pretenure = TENURED);
+  Handle<PropertyCell> NewPropertyCell(Handle<Name> name);
 
-  Handle<WeakCell> NewWeakCell(Handle<HeapObject> value,
-                               PretenureFlag pretenure = TENURED);
+  Handle<WeakCell> NewWeakCell(Handle<HeapObject> value);
 
   Handle<FeedbackCell> NewNoClosuresCell(Handle<HeapObject> value);
   Handle<FeedbackCell> NewOneClosureCell(Handle<HeapObject> value);
   Handle<FeedbackCell> NewManyClosuresCell(Handle<HeapObject> value);
 
-  Handle<TransitionArray> NewTransitionArray(int number_of_transitions,
-                                             int slack = 0);
+  Handle<TransitionArray> NewTransitionArray(int capacity);
 
   // Allocate a tenured AllocationSite. Its payload is null.
   Handle<AllocationSite> NewAllocationSite();
@@ -485,14 +475,6 @@ class V8_EXPORT_PRIVATE Factory {
 
   Handle<FixedArray> CopyFixedArrayAndGrow(
       Handle<FixedArray> array, int grow_by,
-      PretenureFlag pretenure = NOT_TENURED);
-
-  Handle<WeakFixedArray> CopyWeakFixedArrayAndGrow(
-      Handle<WeakFixedArray> array, int grow_by,
-      PretenureFlag pretenure = NOT_TENURED);
-
-  Handle<WeakArrayList> CopyWeakArrayListAndGrow(
-      Handle<WeakArrayList> array, int grow_by,
       PretenureFlag pretenure = NOT_TENURED);
 
   Handle<PropertyArray> CopyPropertyArrayAndGrow(
@@ -683,7 +665,7 @@ class V8_EXPORT_PRIVATE Factory {
 
   Handle<JSFunction> NewFunctionFromSharedFunctionInfo(
       Handle<Map> initial_map, Handle<SharedFunctionInfo> function_info,
-      Handle<Context> context, Handle<FeedbackCell> feedback_cell,
+      Handle<Object> context_or_undefined, Handle<FeedbackCell> feedback_cell,
       PretenureFlag pretenure = TENURED);
 
   Handle<JSFunction> NewFunctionFromSharedFunctionInfo(
@@ -692,7 +674,7 @@ class V8_EXPORT_PRIVATE Factory {
 
   Handle<JSFunction> NewFunctionFromSharedFunctionInfo(
       Handle<Map> initial_map, Handle<SharedFunctionInfo> function_info,
-      Handle<Context> context, PretenureFlag pretenure = TENURED);
+      Handle<Object> context_or_undefined, PretenureFlag pretenure = TENURED);
 
   Handle<JSFunction> NewFunctionFromSharedFunctionInfo(
       Handle<SharedFunctionInfo> function_info, Handle<Context> context,
@@ -702,7 +684,7 @@ class V8_EXPORT_PRIVATE Factory {
   // initialization. All other utility methods call into this.
   Handle<JSFunction> NewFunction(Handle<Map> map,
                                  Handle<SharedFunctionInfo> info,
-                                 Handle<Context> context,
+                                 Handle<Object> context_or_undefined,
                                  PretenureFlag pretenure = TENURED);
 
   // Create a serialized scope info.
@@ -734,20 +716,6 @@ class V8_EXPORT_PRIVATE Factory {
                        bool is_turbofanned = false, int stack_slots = 0,
                        int safepoint_table_offset = 0,
                        int handler_table_offset = 0);
-
-  // Like NewCode, this function allocates a new code object (fully
-  // initialized). It may return an empty handle if the allocation does not
-  // succeed.
-  V8_WARN_UNUSED_RESULT MaybeHandle<Code> TryNewCode(
-      const CodeDesc& desc, Code::Kind kind, Handle<Object> self_reference,
-      int32_t builtin_index = Builtins::kNoBuiltinId,
-      MaybeHandle<ByteArray> maybe_source_position_table =
-          MaybeHandle<ByteArray>(),
-      MaybeHandle<DeoptimizationData> maybe_deopt_data =
-          MaybeHandle<DeoptimizationData>(),
-      Movability movability = kMovable, uint32_t stub_key = 0,
-      bool is_turbofanned = false, int stack_slots = 0,
-      int safepoint_table_offset = 0, int handler_table_offset = 0);
 
   // Allocates a new, empty code object for use by builtin deserialization. The
   // given {size} argument specifies the size of the entire code object.
@@ -922,12 +890,7 @@ class V8_EXPORT_PRIVATE Factory {
   }
 
  private:
-  Isolate* isolate() {
-    // Downcast to the privately inherited sub-class using c-style casts to
-    // avoid undefined behavior (as static_cast cannot cast across private
-    // bases).
-    return (Isolate*)this;  // NOLINT(readability/casting)
-  }
+  Isolate* isolate() { return reinterpret_cast<Isolate*>(this); }
 
   HeapObject* AllocateRawWithImmortalMap(
       int size, PretenureFlag pretenure, Map* map,
@@ -939,7 +902,6 @@ class V8_EXPORT_PRIVATE Factory {
   // Allocate memory for an uninitialized array (e.g., a FixedArray or similar).
   HeapObject* AllocateRawArray(int size, PretenureFlag pretenure);
   HeapObject* AllocateRawFixedArray(int length, PretenureFlag pretenure);
-  HeapObject* AllocateRawWeakArrayList(int length, PretenureFlag pretenure);
   Handle<FixedArray> NewFixedArrayWithFiller(Heap::RootListIndex map_root_index,
                                              int length, Object* filler,
                                              PretenureFlag pretenure);
@@ -999,9 +961,8 @@ class V8_EXPORT_PRIVATE Factory {
 // Utility class to simplify argument handling around JSFunction creation.
 class NewFunctionArgs final {
  public:
-  static NewFunctionArgs ForWasm(
-      Handle<String> name,
-      Handle<WasmExportedFunctionData> exported_function_data, Handle<Map> map);
+  static NewFunctionArgs ForWasm(Handle<String> name, Handle<Code> code,
+                                 Handle<Map> map);
   static NewFunctionArgs ForBuiltin(Handle<String> name, Handle<Map> map,
                                     int builtin_id);
   static NewFunctionArgs ForFunctionWithoutCode(Handle<String> name,
@@ -1029,7 +990,7 @@ class NewFunctionArgs final {
 
   Handle<String> name_;
   MaybeHandle<Map> maybe_map_;
-  MaybeHandle<WasmExportedFunctionData> maybe_exported_function_data_;
+  MaybeHandle<Code> maybe_code_;
 
   bool should_create_and_set_initial_map_ = false;
   InstanceType type_;

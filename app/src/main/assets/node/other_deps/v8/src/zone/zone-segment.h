@@ -46,9 +46,7 @@ class Segment {
 #endif
 
   // Computes the address of the nth byte in this segment.
-  Address address(size_t n) const {
-    return reinterpret_cast<Address>(this) + n;
-  }
+  Address address(size_t n) const { return Address(this) + n; }
 
   Zone* zone_;
   Segment* next_;

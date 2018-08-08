@@ -23,7 +23,6 @@
 #include "src/log.h"
 #include "src/msan.h"
 #include "src/objects-inl.h"
-#include "src/objects/api-callbacks-inl.h"
 #include "src/objects/descriptor-array.h"
 #include "src/objects/literal-objects.h"
 #include "src/objects/scope-info.h"
@@ -184,7 +183,6 @@ AllocationResult Heap::AllocateRaw(int size_in_bytes, AllocationSpace space,
     DCHECK(isolate_->serializer_enabled());
 #endif
     DCHECK(!large_object);
-    DCHECK(CanAllocateInReadOnlySpace());
     allocation = read_only_space_->AllocateRaw(size_in_bytes, alignment);
   } else {
     // NEW_SPACE is not allowed here.
@@ -263,12 +261,6 @@ void Heap::OnMoveEvent(HeapObject* target, HeapObject* source,
   }
 }
 
-bool Heap::CanAllocateInReadOnlySpace() {
-  return !deserialization_complete_ &&
-         (isolate()->serializer_enabled() ||
-          !isolate()->initialized_from_snapshot());
-}
-
 void Heap::UpdateAllocationsHash(HeapObject* object) {
   Address object_address = object->address();
   MemoryChunk* memory_chunk = MemoryChunk::FromAddress(object_address);
@@ -327,7 +319,7 @@ bool Heap::InNewSpace(MaybeObject* object) {
 
 bool Heap::InNewSpace(HeapObject* heap_object) {
   // Inlined check from NewSpace::Contains.
-  bool result = MemoryChunk::FromHeapObject(heap_object)->InNewSpace();
+  bool result = Page::FromAddress(heap_object->address())->InNewSpace();
   DCHECK(!result ||                 // Either not in new space
          gc_state_ != NOT_IN_GC ||  // ... or in the middle of GC
          InToSpace(heap_object));   // ... or in to-space (where we allocate).
@@ -346,7 +338,7 @@ bool Heap::InFromSpace(MaybeObject* object) {
 }
 
 bool Heap::InFromSpace(HeapObject* heap_object) {
-  return MemoryChunk::FromHeapObject(heap_object)
+  return MemoryChunk::FromAddress(heap_object->address())
       ->IsFlagSet(Page::IN_FROM_SPACE);
 }
 
@@ -362,14 +354,11 @@ bool Heap::InToSpace(MaybeObject* object) {
 }
 
 bool Heap::InToSpace(HeapObject* heap_object) {
-  return MemoryChunk::FromHeapObject(heap_object)->IsFlagSet(Page::IN_TO_SPACE);
+  return MemoryChunk::FromAddress(heap_object->address())
+      ->IsFlagSet(Page::IN_TO_SPACE);
 }
 
 bool Heap::InOldSpace(Object* object) { return old_space_->Contains(object); }
-
-bool Heap::InReadOnlySpace(Object* object) {
-  return read_only_space_->Contains(object);
-}
 
 bool Heap::InNewSpaceSlow(Address address) {
   return new_space_->ContainsSlow(address);
@@ -389,8 +378,9 @@ bool Heap::ShouldBePromoted(Address old_address) {
 void Heap::RecordWrite(Object* object, Object** slot, Object* value) {
   DCHECK(!HasWeakHeapObjectTag(*slot));
   DCHECK(!HasWeakHeapObjectTag(value));
-  DCHECK(object->IsHeapObject());  // Can't write to slots of a Smi.
-  if (!InNewSpace(value) || InNewSpace(HeapObject::cast(object))) return;
+  if (!InNewSpace(value) || !object->IsHeapObject() || InNewSpace(object)) {
+    return;
+  }
   store_buffer()->InsertEntry(reinterpret_cast<Address>(slot));
 }
 
@@ -562,11 +552,11 @@ int Heap::GetNextTemplateSerialNumber() {
 
 AlwaysAllocateScope::AlwaysAllocateScope(Isolate* isolate)
     : heap_(isolate->heap()) {
-  heap_->always_allocate_scope_count_++;
+  heap_->always_allocate_scope_count_.Increment(1);
 }
 
 AlwaysAllocateScope::~AlwaysAllocateScope() {
-  heap_->always_allocate_scope_count_--;
+  heap_->always_allocate_scope_count_.Decrement(1);
 }
 
 CodeSpaceMemoryModificationScope::CodeSpaceMemoryModificationScope(Heap* heap)

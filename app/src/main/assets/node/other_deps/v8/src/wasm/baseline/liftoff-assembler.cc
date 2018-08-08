@@ -7,6 +7,7 @@
 #include "src/assembler-inl.h"
 #include "src/compiler/linkage.h"
 #include "src/compiler/wasm-compiler.h"
+#include "src/counters.h"
 #include "src/macro-assembler-inl.h"
 #include "src/wasm/function-body-decoder-impl.h"
 #include "src/wasm/wasm-opcodes.h"
@@ -451,7 +452,6 @@ void LiftoffAssembler::PrepareCall(wasm::FunctionSig* sig,
     slot.MakeStack();
   }
 
-  LiftoffStackSlots stack_slots(this);
   StackTransferRecipe stack_transfers(this);
   LiftoffRegList param_regs;
 
@@ -500,7 +500,7 @@ void LiftoffAssembler::PrepareCall(wasm::FunctionSig* sig,
         }
       } else {
         DCHECK(loc.IsCallerFrameSlot());
-        stack_slots.Add(slot, stack_idx, half);
+        PushCallerFrameSlot(slot, stack_idx, half);
       }
     }
   }
@@ -518,14 +518,11 @@ void LiftoffAssembler::PrepareCall(wasm::FunctionSig* sig,
                                    kWasmIntPtr);
       *target = new_target.gp();
     } else {
-      stack_slots.Add(LiftoffAssembler::VarState(LiftoffAssembler::kWasmIntPtr,
-                                                 LiftoffRegister(*target)));
+      PushCallerFrameSlot(LiftoffRegister(*target), kWasmIntPtr);
       *target = no_reg;
     }
   }
 
-  // Create all the slots.
-  stack_slots.Construct();
   // Execute the stack transfers before filling the instance register.
   stack_transfers.Execute();
 
@@ -628,7 +625,7 @@ void LiftoffAssembler::set_num_locals(uint32_t num_locals) {
 }
 
 std::ostream& operator<<(std::ostream& os, VarState slot) {
-  os << ValueTypes::TypeName(slot.type()) << ":";
+  os << WasmOpcodes::TypeName(slot.type()) << ":";
   switch (slot.loc()) {
     case VarState::kStack:
       return os << "s";

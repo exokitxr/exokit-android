@@ -27,7 +27,6 @@ class JSGraph;
 class Graph;
 class Schedule;
 class SourcePositionTable;
-class NodeOriginTable;
 
 class V8_EXPORT_PRIVATE EffectControlLinearizer {
  public:
@@ -35,7 +34,6 @@ class V8_EXPORT_PRIVATE EffectControlLinearizer {
 
   EffectControlLinearizer(JSGraph* graph, Schedule* schedule, Zone* temp_zone,
                           SourcePositionTable* source_positions,
-                          NodeOriginTable* node_origins,
                           MaskArrayIndexEnable mask_array_index);
 
   void Run();
@@ -58,7 +56,7 @@ class V8_EXPORT_PRIVATE EffectControlLinearizer {
   Node* LowerChangeTaggedToUint32(Node* node);
   Node* LowerChangeTaggedToTaggedSigned(Node* node);
   Node* LowerCheckBounds(Node* node, Node* frame_state);
-  Node* LowerPoisonIndex(Node* node);
+  Node* LowerMaskIndexWithBound(Node* node);
   Node* LowerCheckInternalizedString(Node* node, Node* frame_state);
   void LowerCheckMaps(Node* node, Node* frame_state);
   Node* LowerCompareMaps(Node* node);
@@ -99,7 +97,6 @@ class V8_EXPORT_PRIVATE EffectControlLinearizer {
   Node* LowerObjectIsDetectableCallable(Node* node);
   Node* LowerObjectIsMinusZero(Node* node);
   Node* LowerObjectIsNaN(Node* node);
-  Node* LowerNumberIsNaN(Node* node);
   Node* LowerObjectIsNonCallable(Node* node);
   Node* LowerObjectIsNumber(Node* node);
   Node* LowerObjectIsReceiver(Node* node);
@@ -160,7 +157,6 @@ class V8_EXPORT_PRIVATE EffectControlLinearizer {
   void LowerTransitionAndStoreNonNumberElement(Node* node);
   void LowerRuntimeAbort(Node* node);
   Node* LowerConvertReceiver(Node* node);
-  Node* LowerDateNow(Node* node);
 
   // Lowering of optional operators.
   Maybe<Node*> LowerFloat64RoundUp(Node* node);
@@ -215,7 +211,6 @@ class V8_EXPORT_PRIVATE EffectControlLinearizer {
   MaskArrayIndexEnable mask_array_index_;
   RegionObservability region_observability_ = RegionObservability::kObservable;
   SourcePositionTable* source_positions_;
-  NodeOriginTable* node_origins_;
   GraphAssembler graph_assembler_;
   Node* frame_state_zapper_;  // For tracking down compiler::Node::New crashes.
 };

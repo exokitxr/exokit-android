@@ -1325,7 +1325,7 @@ void AstPrinter::VisitCompareOperation(CompareOperation* node) {
 
 
 void AstPrinter::VisitSpread(Spread* node) {
-  IndentedScope indent(this, "SPREAD", node->position());
+  IndentedScope indent(this, "...", node->position());
   Visit(node->expression());
 }
 

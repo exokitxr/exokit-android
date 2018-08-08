@@ -28,7 +28,7 @@ OptimizedCompilationInfo::OptimizedCompilationInfo(
   SetFlag(kCalledWithCodeStartRegister);
   if (FLAG_function_context_specialization) MarkAsFunctionContextSpecializing();
   if (FLAG_turbo_splitting) MarkAsSplittingEnabled();
-  SetFlag(kSwitchJumpTableEnabled);
+  if (!FLAG_turbo_disable_switch_jump_table) SetFlag(kSwitchJumpTableEnabled);
   if (FLAG_untrusted_code_mitigations) MarkAsPoisoningRegisterArguments();
 
   // TODO(yangguo): Disable this in case of debugging for crbug.com/826613
@@ -42,8 +42,6 @@ OptimizedCompilationInfo::OptimizedCompilationInfo(
   if (isolate->NeedsSourcePositionsForProfiling()) {
     MarkAsSourcePositionsEnabled();
   }
-
-  SetTracingFlags(shared->PassesFilter(FLAG_trace_turbo_filter));
 }
 
 OptimizedCompilationInfo::OptimizedCompilationInfo(
@@ -60,13 +58,6 @@ OptimizedCompilationInfo::OptimizedCompilationInfo(
   }
 #endif
 #endif
-  SetTracingFlags(
-      PassesFilter(debug_name, CStrVector(FLAG_trace_turbo_filter)));
-  // Embedded builtins don't support embedded absolute code addresses, so we
-  // cannot use jump tables.
-  if (code_kind != Code::BUILTIN) {
-    SetFlag(kSwitchJumpTableEnabled);
-  }
 }
 
 OptimizedCompilationInfo::OptimizedCompilationInfo(
@@ -174,13 +165,6 @@ int OptimizedCompilationInfo::AddInlinedFunction(
   int id = static_cast<int>(inlined_functions_.size());
   inlined_functions_.push_back(InlinedFunctionHolder(inlined_function, pos));
   return id;
-}
-
-void OptimizedCompilationInfo::SetTracingFlags(bool passes_filter) {
-  if (!passes_filter) return;
-  if (FLAG_trace_turbo) SetFlag(kTraceTurboJson);
-  if (FLAG_trace_turbo_graph) SetFlag(kTraceTurboGraph);
-  if (FLAG_trace_turbo_scheduled) SetFlag(kTraceTurboScheduled);
 }
 
 }  // namespace internal

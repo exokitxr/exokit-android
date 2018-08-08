@@ -603,7 +603,8 @@ std::ostream& operator<<(std::ostream& os, const Constant& constant) {
     case Constant::kFloat64:
       return os << constant.ToFloat64().value();
     case Constant::kExternalReference:
-      return os << constant.ToExternalReference().address();
+      return os << static_cast<const void*>(
+                       constant.ToExternalReference().address());
     case Constant::kHeapObject:
       return os << Brief(*constant.ToHeapObject());
     case Constant::kRpoNumber:

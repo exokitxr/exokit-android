@@ -1073,8 +1073,11 @@ Token::Value Scanner::ScanString() {
     AddLiteralChar(c);
   }
 
-  while (c0_ != quote && c0_ != kEndOfInput &&
-         !unibrow::IsStringLiteralLineTerminator(c0_)) {
+  bool (*line_terminator_func)(unsigned int) =
+      FLAG_harmony_subsume_json ? unibrow::IsStringLiteralLineTerminator
+                                : unibrow::IsLineTerminator;
+
+  while (c0_ != quote && c0_ != kEndOfInput && !line_terminator_func(c0_)) {
     uc32 c = c0_;
     Advance();
     if (c == '\\') {

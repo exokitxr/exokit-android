@@ -14,8 +14,6 @@
 #include "src/layout-descriptor.h"
 #include "src/objects-body-descriptors.h"
 #include "src/objects-inl.h"
-#include "src/objects/api-callbacks.h"
-#include "src/objects/hash-table-inl.h"
 #include "src/profiler/allocation-tracker.h"
 #include "src/profiler/heap-profiler.h"
 #include "src/profiler/heap-snapshot-generator-inl.h"
@@ -317,29 +315,27 @@ HeapObjectsMap::HeapObjectsMap(Heap* heap)
   // an entry with zero value. Otherwise it's impossible to tell if
   // LookupOrInsert has added a new item or just returning exisiting one
   // having the value of zero.
-  entries_.emplace_back(0, kNullAddress, 0, true);
+  entries_.emplace_back(0, nullptr, 0, true);
 }
 
 bool HeapObjectsMap::MoveObject(Address from, Address to, int object_size) {
-  DCHECK_NE(kNullAddress, to);
-  DCHECK_NE(kNullAddress, from);
+  DCHECK_NOT_NULL(to);
+  DCHECK_NOT_NULL(from);
   if (from == to) return false;
-  void* from_value = entries_map_.Remove(reinterpret_cast<void*>(from),
-                                         ComputeAddressHash(from));
+  void* from_value = entries_map_.Remove(from, ComputePointerHash(from));
   if (from_value == nullptr) {
     // It may occur that some untracked object moves to an address X and there
     // is a tracked object at that address. In this case we should remove the
     // entry as we know that the object has died.
-    void* to_value = entries_map_.Remove(reinterpret_cast<void*>(to),
-                                         ComputeAddressHash(to));
+    void* to_value = entries_map_.Remove(to, ComputePointerHash(to));
     if (to_value != nullptr) {
       int to_entry_info_index =
           static_cast<int>(reinterpret_cast<intptr_t>(to_value));
-      entries_.at(to_entry_info_index).addr = kNullAddress;
+      entries_.at(to_entry_info_index).addr = nullptr;
     }
   } else {
-    base::HashMap::Entry* to_entry = entries_map_.LookupOrInsert(
-        reinterpret_cast<void*>(to), ComputeAddressHash(to));
+    base::HashMap::Entry* to_entry =
+        entries_map_.LookupOrInsert(to, ComputePointerHash(to));
     if (to_entry->value != nullptr) {
       // We found the existing entry with to address for an old object.
       // Without this operation we will have two EntryInfo's with the same
@@ -348,7 +344,7 @@ bool HeapObjectsMap::MoveObject(Address from, Address to, int object_size) {
       // entry.
       int to_entry_info_index =
           static_cast<int>(reinterpret_cast<intptr_t>(to_entry->value));
-      entries_.at(to_entry_info_index).addr = kNullAddress;
+      entries_.at(to_entry_info_index).addr = nullptr;
     }
     int from_entry_info_index =
         static_cast<int>(reinterpret_cast<intptr_t>(from_value));
@@ -358,7 +354,7 @@ bool HeapObjectsMap::MoveObject(Address from, Address to, int object_size) {
     // object is migrated.
     if (FLAG_heap_profiler_trace_objects) {
       PrintF("Move object from %p to %p old size %6d new size %6d\n",
-             reinterpret_cast<void*>(from), reinterpret_cast<void*>(to),
+             static_cast<void*>(from), static_cast<void*>(to),
              entries_.at(from_entry_info_index).size, object_size);
     }
     entries_.at(from_entry_info_index).size = object_size;
@@ -374,8 +370,8 @@ void HeapObjectsMap::UpdateObjectSize(Address addr, int size) {
 
 
 SnapshotObjectId HeapObjectsMap::FindEntry(Address addr) {
-  base::HashMap::Entry* entry = entries_map_.Lookup(
-      reinterpret_cast<void*>(addr), ComputeAddressHash(addr));
+  base::HashMap::Entry* entry =
+      entries_map_.Lookup(addr, ComputePointerHash(addr));
   if (entry == nullptr) return 0;
   int entry_index = static_cast<int>(reinterpret_cast<intptr_t>(entry->value));
   EntryInfo& entry_info = entries_.at(entry_index);
@@ -388,8 +384,8 @@ SnapshotObjectId HeapObjectsMap::FindOrAddEntry(Address addr,
                                                 unsigned int size,
                                                 bool accessed) {
   DCHECK(static_cast<uint32_t>(entries_.size()) > entries_map_.occupancy());
-  base::HashMap::Entry* entry = entries_map_.LookupOrInsert(
-      reinterpret_cast<void*>(addr), ComputeAddressHash(addr));
+  base::HashMap::Entry* entry =
+      entries_map_.LookupOrInsert(addr, ComputePointerHash(addr));
   if (entry->value != nullptr) {
     int entry_index =
         static_cast<int>(reinterpret_cast<intptr_t>(entry->value));
@@ -397,7 +393,7 @@ SnapshotObjectId HeapObjectsMap::FindOrAddEntry(Address addr,
     entry_info.accessed = accessed;
     if (FLAG_heap_profiler_trace_objects) {
       PrintF("Update object size : %p with old size %d and new size %d\n",
-             reinterpret_cast<void*>(addr), entry_info.size, size);
+             static_cast<void*>(addr), entry_info.size, size);
     }
     entry_info.size = size;
     return entry_info.id;
@@ -425,8 +421,8 @@ void HeapObjectsMap::UpdateHeapObjectsMap() {
     FindOrAddEntry(obj->address(), obj->Size());
     if (FLAG_heap_profiler_trace_objects) {
       PrintF("Update object      : %p %6d. Next address is %p\n",
-             reinterpret_cast<void*>(obj->address()), obj->Size(),
-             reinterpret_cast<void*>(obj->address() + obj->Size()));
+             static_cast<void*>(obj->address()), obj->Size(),
+             static_cast<void*>(obj->address() + obj->Size()));
     }
   }
   RemoveDeadEntries();
@@ -488,7 +484,7 @@ SnapshotObjectId HeapObjectsMap::PushHeapObjectsStats(OutputStream* stream,
 
 void HeapObjectsMap::RemoveDeadEntries() {
   DCHECK(entries_.size() > 0 && entries_.at(0).id == 0 &&
-         entries_.at(0).addr == kNullAddress);
+         entries_.at(0).addr == nullptr);
   size_t first_free_entry = 1;
   for (size_t i = 1; i < entries_.size(); ++i) {
     EntryInfo& entry_info = entries_.at(i);
@@ -497,16 +493,15 @@ void HeapObjectsMap::RemoveDeadEntries() {
         entries_.at(first_free_entry) = entry_info;
       }
       entries_.at(first_free_entry).accessed = false;
-      base::HashMap::Entry* entry =
-          entries_map_.Lookup(reinterpret_cast<void*>(entry_info.addr),
-                              ComputeAddressHash(entry_info.addr));
+      base::HashMap::Entry* entry = entries_map_.Lookup(
+          entry_info.addr, ComputePointerHash(entry_info.addr));
       DCHECK(entry);
       entry->value = reinterpret_cast<void*>(first_free_entry);
       ++first_free_entry;
     } else {
       if (entry_info.addr) {
-        entries_map_.Remove(reinterpret_cast<void*>(entry_info.addr),
-                            ComputeAddressHash(entry_info.addr));
+        entries_map_.Remove(entry_info.addr,
+                            ComputePointerHash(entry_info.addr));
       }
     }
   }
@@ -820,8 +815,9 @@ class IndexedReferencesExtractor : public ObjectVisitor {
         continue;
       }
       HeapObject* heap_object;
-      if ((*p)->ToWeakHeapObject(&heap_object) ||
-          (*p)->ToStrongHeapObject(&heap_object)) {
+      // Weak references have been handled explicitly.
+      DCHECK(!(*p)->ToWeakHeapObject(&heap_object));
+      if ((*p)->ToStrongHeapObject(&heap_object)) {
         generator_->SetHiddenReference(parent_obj_, parent_, next_index,
                                        heap_object, index * kPointerSize);
       }
@@ -886,11 +882,7 @@ bool V8HeapExplorer::ExtractReferencesPass1(int entry, HeapObject* obj) {
   } else if (obj->IsFeedbackVector()) {
     ExtractFeedbackVectorReferences(entry, FeedbackVector::cast(obj));
   } else if (obj->IsWeakFixedArray()) {
-    ExtractWeakArrayReferences(WeakFixedArray::kHeaderSize, entry,
-                               WeakFixedArray::cast(obj));
-  } else if (obj->IsWeakArrayList()) {
-    ExtractWeakArrayReferences(WeakArrayList::kHeaderSize, entry,
-                               WeakArrayList::cast(obj));
+    ExtractWeakFixedArrayReferences(entry, WeakFixedArray::cast(obj));
   }
   return true;
 }
@@ -1072,7 +1064,7 @@ void V8HeapExplorer::ExtractContextReferences(int entry, Context* context) {
     SetWeakReference(context, entry, #name, context->get(Context::index), \
         FixedArray::OffsetOfElementAt(Context::index)); \
   }
-  EXTRACT_CONTEXT_FIELD(SCOPE_INFO_INDEX, ScopeInfo, scope_info);
+  EXTRACT_CONTEXT_FIELD(CLOSURE_INDEX, JSFunction, closure);
   EXTRACT_CONTEXT_FIELD(PREVIOUS_INDEX, Context, previous);
   EXTRACT_CONTEXT_FIELD(EXTENSION_INDEX, HeapObject, extension);
   EXTRACT_CONTEXT_FIELD(NATIVE_CONTEXT_INDEX, Context, native_context);
@@ -1318,9 +1310,9 @@ class JSArrayBufferDataEntryAllocator : public HeapEntriesAllocator {
       , explorer_(explorer) {
   }
   virtual HeapEntry* AllocateEntry(HeapThing ptr) {
-    return explorer_->AddEntry(reinterpret_cast<Address>(ptr),
-                               HeapEntry::kNative, "system / JSArrayBufferData",
-                               size_);
+    return explorer_->AddEntry(
+        static_cast<Address>(ptr),
+        HeapEntry::kNative, "system / JSArrayBufferData", size_);
   }
  private:
   size_t size_;
@@ -1350,7 +1342,6 @@ void V8HeapExplorer::ExtractFixedArrayReferences(int entry, FixedArray* array) {
   auto it = array_types_.find(array);
   if (it == array_types_.end()) {
     for (int i = 0, l = array->length(); i < l; ++i) {
-      DCHECK(!HasWeakHeapObjectTag(array->get(i)));
       SetInternalReference(array, entry, i, array->get(i),
                            array->OffsetOfElementAt(i));
     }
@@ -1404,15 +1395,14 @@ void V8HeapExplorer::ExtractFeedbackVectorReferences(
   }
 }
 
-template <typename T>
-void V8HeapExplorer::ExtractWeakArrayReferences(int header_size, int entry,
-                                                T* array) {
+void V8HeapExplorer::ExtractWeakFixedArrayReferences(int entry,
+                                                     WeakFixedArray* array) {
   for (int i = 0; i < array->length(); ++i) {
     MaybeObject* object = array->Get(i);
     HeapObject* heap_object;
     if (object->ToWeakHeapObject(&heap_object)) {
       SetWeakReference(array, entry, i, heap_object,
-                       header_size + i * kPointerSize);
+                       WeakFixedArray::kHeaderSize + i * kPointerSize);
     }
   }
 }
@@ -1804,6 +1794,7 @@ void V8HeapExplorer::SetWeakReference(HeapObject* parent_obj,
   MarkVisitedField(field_offset);
 }
 
+
 void V8HeapExplorer::SetDataOrAccessorPropertyReference(
     PropertyKind kind, JSObject* parent_obj, int parent_entry,
     Name* reference_name, Object* child_obj, const char* name_format_string,
@@ -2140,38 +2131,14 @@ HeapEntry* EmbedderGraphEntriesAllocator::AllocateEntry(HeapThing ptr) {
       static_cast<int>(size), 0);
 }
 
-class NativeGroupRetainedObjectInfo : public v8::RetainedObjectInfo {
- public:
-  explicit NativeGroupRetainedObjectInfo(const char* label)
-      : disposed_(false),
-        hash_(reinterpret_cast<intptr_t>(label)),
-        label_(label) {}
-
-  virtual ~NativeGroupRetainedObjectInfo() {}
-  virtual void Dispose() {
-    CHECK(!disposed_);
-    disposed_ = true;
-    delete this;
-  }
-  virtual bool IsEquivalent(RetainedObjectInfo* other) {
-    return hash_ == other->GetHash() && !strcmp(label_, other->GetLabel());
-  }
-  virtual intptr_t GetHash() { return hash_; }
-  virtual const char* GetLabel() { return label_; }
-
- private:
-  bool disposed_;
-  intptr_t hash_;
-  const char* label_;
-};
-
 NativeObjectsExplorer::NativeObjectsExplorer(
     HeapSnapshot* snapshot, SnapshottingProgressReportingInterface* progress)
     : isolate_(snapshot->profiler()->heap_object_map()->heap()->isolate()),
       snapshot_(snapshot),
       names_(snapshot_->profiler()->names()),
       embedder_queried_(false),
-      native_groups_(0, SeededStringHasher(isolate_->heap()->HashSeed())),
+      objects_by_info_(RetainedInfosMatch),
+      native_groups_(StringsMatch),
       synthetic_entries_allocator_(
           new BasicHeapEntriesAllocator(snapshot, HeapEntry::kSynthetic)),
       native_entries_allocator_(
@@ -2181,14 +2148,19 @@ NativeObjectsExplorer::NativeObjectsExplorer(
       filler_(nullptr) {}
 
 NativeObjectsExplorer::~NativeObjectsExplorer() {
-  for (auto map_entry : objects_by_info_) {
-    v8::RetainedObjectInfo* info = map_entry.first;
+  for (base::HashMap::Entry* p = objects_by_info_.Start(); p != nullptr;
+       p = objects_by_info_.Next(p)) {
+    v8::RetainedObjectInfo* info =
+        reinterpret_cast<v8::RetainedObjectInfo*>(p->key);
     info->Dispose();
-    std::vector<HeapObject*>* objects = map_entry.second;
+    std::vector<HeapObject*>* objects =
+        reinterpret_cast<std::vector<HeapObject*>*>(p->value);
     delete objects;
   }
-  for (auto map_entry : native_groups_) {
-    NativeGroupRetainedObjectInfo* info = map_entry.second;
+  for (base::HashMap::Entry* p = native_groups_.Start(); p != nullptr;
+       p = native_groups_.Next(p)) {
+    v8::RetainedObjectInfo* info =
+        reinterpret_cast<v8::RetainedObjectInfo*>(p->value);
     info->Dispose();
   }
 }
@@ -2196,7 +2168,7 @@ NativeObjectsExplorer::~NativeObjectsExplorer() {
 
 int NativeObjectsExplorer::EstimateObjectsCount() {
   FillRetainedObjects();
-  return static_cast<int>(objects_by_info_.size());
+  return objects_by_info_.occupancy();
 }
 
 
@@ -2253,13 +2225,14 @@ void NativeObjectsExplorer::FillEdges() {
 
 std::vector<HeapObject*>* NativeObjectsExplorer::GetVectorMaybeDisposeInfo(
     v8::RetainedObjectInfo* info) {
-  auto map_entry = objects_by_info_.find(info);
-  if (map_entry != objects_by_info_.end()) {
+  base::HashMap::Entry* entry =
+      objects_by_info_.LookupOrInsert(info, InfoHash(info));
+  if (entry->value != nullptr) {
     info->Dispose();
   } else {
-    objects_by_info_[info] = new std::vector<HeapObject*>();
+    entry->value = new std::vector<HeapObject*>();
   }
-  return objects_by_info_[info];
+  return reinterpret_cast<std::vector<HeapObject*>*>(entry->value);
 }
 
 HeapEntry* NativeObjectsExplorer::EntryForEmbedderGraphNode(
@@ -2326,10 +2299,13 @@ bool NativeObjectsExplorer::IterateAndExtractReferences(
     FillRetainedObjects();
     FillEdges();
     if (EstimateObjectsCount() > 0) {
-      for (auto map_entry : objects_by_info_) {
-        v8::RetainedObjectInfo* info = map_entry.first;
+      for (base::HashMap::Entry* p = objects_by_info_.Start(); p != nullptr;
+           p = objects_by_info_.Next(p)) {
+        v8::RetainedObjectInfo* info =
+            reinterpret_cast<v8::RetainedObjectInfo*>(p->key);
         SetNativeRootReference(info);
-        std::vector<HeapObject*>* objects = map_entry.second;
+        std::vector<HeapObject*>* objects =
+            reinterpret_cast<std::vector<HeapObject*>*>(p->value);
         for (HeapObject* object : *objects) {
           SetWrapperNativeReferences(object, info);
         }
@@ -2341,15 +2317,49 @@ bool NativeObjectsExplorer::IterateAndExtractReferences(
   return true;
 }
 
+
+class NativeGroupRetainedObjectInfo : public v8::RetainedObjectInfo {
+ public:
+  explicit NativeGroupRetainedObjectInfo(const char* label)
+      : disposed_(false),
+        hash_(reinterpret_cast<intptr_t>(label)),
+        label_(label) {
+  }
+
+  virtual ~NativeGroupRetainedObjectInfo() {}
+  virtual void Dispose() {
+    CHECK(!disposed_);
+    disposed_ = true;
+    delete this;
+  }
+  virtual bool IsEquivalent(RetainedObjectInfo* other) {
+    return hash_ == other->GetHash() && !strcmp(label_, other->GetLabel());
+  }
+  virtual intptr_t GetHash() { return hash_; }
+  virtual const char* GetLabel() { return label_; }
+
+ private:
+  bool disposed_;
+  intptr_t hash_;
+  const char* label_;
+};
+
+
 NativeGroupRetainedObjectInfo* NativeObjectsExplorer::FindOrAddGroupInfo(
     const char* label) {
   const char* label_copy = names_->GetCopy(label);
-  auto map_entry = native_groups_.find(label_copy);
-  if (map_entry == native_groups_.end()) {
-    native_groups_[label_copy] = new NativeGroupRetainedObjectInfo(label);
+  uint32_t hash = StringHasher::HashSequentialString(
+      label_copy,
+      static_cast<int>(strlen(label_copy)),
+      isolate_->heap()->HashSeed());
+  base::HashMap::Entry* entry =
+      native_groups_.LookupOrInsert(const_cast<char*>(label_copy), hash);
+  if (entry->value == nullptr) {
+    entry->value = new NativeGroupRetainedObjectInfo(label);
   }
-  return native_groups_[label_copy];
+  return static_cast<NativeGroupRetainedObjectInfo*>(entry->value);
 }
+
 
 void NativeObjectsExplorer::SetNativeRootReference(
     v8::RetainedObjectInfo* info) {
@@ -2386,8 +2396,10 @@ void NativeObjectsExplorer::SetWrapperNativeReferences(
 
 
 void NativeObjectsExplorer::SetRootNativeRootsReference() {
-  for (auto map_entry : native_groups_) {
-    NativeGroupRetainedObjectInfo* group_info = map_entry.second;
+  for (base::HashMap::Entry* entry = native_groups_.Start(); entry;
+       entry = native_groups_.Next(entry)) {
+    NativeGroupRetainedObjectInfo* group_info =
+        static_cast<NativeGroupRetainedObjectInfo*>(entry->value);
     HeapEntry* group_entry =
         filler_->FindOrAddEntry(group_info, native_entries_allocator_.get());
     DCHECK_NOT_NULL(group_entry);

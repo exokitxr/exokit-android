@@ -14,8 +14,8 @@
 #include "src/global-handles.h"
 #include "src/heap/factory.h"
 #include "src/isolate.h"
+#include "src/managed.h"
 #include "src/objects-inl.h"
-#include "src/objects/managed.h"
 #include "src/property-descriptor.h"
 #include "unicode/brkiter.h"
 #include "unicode/bytestream.h"
@@ -72,7 +72,8 @@ bool ExtractIntegerSetting(Isolate* isolate, Handle<JSObject> options,
   Handle<Object> object =
       JSReceiver::GetProperty(options, str).ToHandleChecked();
   if (object->IsNumber()) {
-    return object->ToInt32(value);
+    object->ToInt32(value);
+    return true;
   }
   return false;
 }
@@ -952,7 +953,7 @@ bool Collator::InitializeCollator(Isolate* isolate,
   }
 
   Handle<Managed<icu::Collator>> managed =
-      Managed<icu::Collator>::FromRawPtr(isolate, collator);
+      Managed<icu::Collator>::From(isolate, collator);
   collator_holder->SetEmbedderField(0, *managed);
 
   return true;
@@ -960,7 +961,7 @@ bool Collator::InitializeCollator(Isolate* isolate,
 
 icu::Collator* Collator::UnpackCollator(Isolate* isolate,
                                         Handle<JSObject> obj) {
-  return Managed<icu::Collator>::cast(obj->GetEmbedderField(0))->raw();
+  return Managed<icu::Collator>::cast(obj->GetEmbedderField(0))->get();
 }
 
 bool PluralRules::InitializePluralRules(Isolate* isolate, Handle<String> locale,

@@ -22,8 +22,8 @@
 #include "src/libsampler/sampler.h"
 #include "src/log-inl.h"
 #include "src/macro-assembler.h"
-#include "src/objects/api-callbacks.h"
 #include "src/perf-jit.h"
+#include "src/profiler/profiler-listener.h"
 #include "src/profiler/tick-sample.h"
 #include "src/runtime-profiler.h"
 #include "src/source-position-table.h"
@@ -87,7 +87,7 @@ static const char* ComputeMarker(const wasm::WasmCode* code) {
   switch (code->kind()) {
     case wasm::WasmCode::kFunction:
       return code->is_liftoff() ? "" : "*";
-    case wasm::WasmCode::kInterpreterEntry:
+    case wasm::WasmCode::kInterpreterStub:
       return "~";
     default:
       return "";
@@ -336,14 +336,15 @@ void PerfBasicLogger::LogRecordedBuffer(AbstractCode* code, SharedFunctionInfo*,
     return;
   }
 
-  WriteLogRecordedBuffer(static_cast<uintptr_t>(code->InstructionStart()),
+  WriteLogRecordedBuffer(reinterpret_cast<uintptr_t>(code->InstructionStart()),
                          code->InstructionSize(), name, length);
 }
 
 void PerfBasicLogger::LogRecordedBuffer(const wasm::WasmCode* code,
                                         const char* name, int length) {
-  WriteLogRecordedBuffer(static_cast<uintptr_t>(code->instruction_start()),
-                         code->instructions().length(), name, length);
+  WriteLogRecordedBuffer(
+      reinterpret_cast<uintptr_t>(code->instructions().start()),
+      code->instructions().length(), name, length);
 }
 
 // External CodeEventListener
@@ -390,7 +391,7 @@ void ExternalCodeEventListener::CodeCreateEvent(
     const char* comment) {
   CodeEvent code_event;
   code_event.code_start_address =
-      static_cast<uintptr_t>(code->InstructionStart());
+      reinterpret_cast<uintptr_t>(code->InstructionStart());
   code_event.code_size = static_cast<size_t>(code->InstructionSize());
   code_event.function_name = isolate_->factory()->empty_string();
   code_event.script_name = isolate_->factory()->empty_string();
@@ -409,7 +410,7 @@ void ExternalCodeEventListener::CodeCreateEvent(
 
   CodeEvent code_event;
   code_event.code_start_address =
-      static_cast<uintptr_t>(code->InstructionStart());
+      reinterpret_cast<uintptr_t>(code->InstructionStart());
   code_event.code_size = static_cast<size_t>(code->InstructionSize());
   code_event.function_name = name_string;
   code_event.script_name = isolate_->factory()->empty_string();
@@ -429,7 +430,7 @@ void ExternalCodeEventListener::CodeCreateEvent(
 
   CodeEvent code_event;
   code_event.code_start_address =
-      static_cast<uintptr_t>(code->InstructionStart());
+      reinterpret_cast<uintptr_t>(code->InstructionStart());
   code_event.code_size = static_cast<size_t>(code->InstructionSize());
   code_event.function_name = name_string;
   code_event.script_name = isolate_->factory()->empty_string();
@@ -452,7 +453,7 @@ void ExternalCodeEventListener::CodeCreateEvent(
 
   CodeEvent code_event;
   code_event.code_start_address =
-      static_cast<uintptr_t>(code->InstructionStart());
+      reinterpret_cast<uintptr_t>(code->InstructionStart());
   code_event.code_size = static_cast<size_t>(code->InstructionSize());
   code_event.function_name = name_string;
   code_event.script_name = source_string;
@@ -474,7 +475,7 @@ void ExternalCodeEventListener::RegExpCodeCreateEvent(AbstractCode* code,
                                                       String* source) {
   CodeEvent code_event;
   code_event.code_start_address =
-      static_cast<uintptr_t>(code->InstructionStart());
+      reinterpret_cast<uintptr_t>(code->InstructionStart());
   code_event.code_size = static_cast<size_t>(code->InstructionSize());
   code_event.function_name = Handle<String>(source, isolate_);
   code_event.script_name = isolate_->factory()->empty_string();
@@ -602,11 +603,11 @@ void LowLevelLogger::LogRecordedBuffer(const wasm::WasmCode* code,
                                        const char* name, int length) {
   CodeCreateStruct event;
   event.name_size = length;
-  event.code_address = code->instruction_start();
+  event.code_address = code->instructions().start();
   event.code_size = code->instructions().length();
   LogWriteStruct(event);
   LogWriteBytes(name, length);
-  LogWriteBytes(reinterpret_cast<const char*>(code->instruction_start()),
+  LogWriteBytes(reinterpret_cast<const char*>(code->instructions().start()),
                 code->instructions().length());
 }
 
@@ -667,7 +668,7 @@ void JitLogger::LogRecordedBuffer(AbstractCode* code,
   JitCodeEvent event;
   memset(&event, 0, sizeof(event));
   event.type = JitCodeEvent::CODE_ADDED;
-  event.code_start = reinterpret_cast<void*>(code->InstructionStart());
+  event.code_start = code->InstructionStart();
   event.code_type =
       code->IsCode() ? JitCodeEvent::JIT_CODE : JitCodeEvent::BYTE_CODE;
   event.code_len = code->InstructionSize();
@@ -701,14 +702,14 @@ void JitLogger::CodeMoveEvent(AbstractCode* from, Address to) {
   event.type = JitCodeEvent::CODE_MOVED;
   event.code_type =
       from->IsCode() ? JitCodeEvent::JIT_CODE : JitCodeEvent::BYTE_CODE;
-  event.code_start = reinterpret_cast<void*>(from->InstructionStart());
+  event.code_start = from->InstructionStart();
   event.code_len = from->InstructionSize();
 
   // Calculate the header size.
   const size_t header_size = from->InstructionStart() - from->address();
 
   // Calculate the new start address of the instructions.
-  event.new_code_start = reinterpret_cast<void*>(to + header_size);
+  event.new_code_start = to + header_size;
 
   code_event_handler_(&event);
 }
@@ -744,7 +745,7 @@ void JitLogger::EndCodePosInfoEvent(Address start_address,
   JitCodeEvent event;
   memset(&event, 0, sizeof(event));
   event.type = JitCodeEvent::CODE_END_LINE_INFO_RECORDING;
-  event.code_start = reinterpret_cast<void*>(start_address);
+  event.code_start = start_address;
   event.user_data = jit_handler_data;
 
   code_event_handler_(&event);
@@ -980,12 +981,13 @@ Logger::~Logger() {
   delete log_;
 }
 
-void Logger::AddCodeEventListener(CodeEventListener* listener) {
+void Logger::addCodeEventListener(CodeEventListener* listener) {
   bool result = isolate_->code_event_dispatcher()->AddListener(listener);
-  CHECK(result);
+  USE(result);
+  DCHECK(result);
 }
 
-void Logger::RemoveCodeEventListener(CodeEventListener* listener) {
+void Logger::removeCodeEventListener(CodeEventListener* listener) {
   isolate_->code_event_dispatcher()->RemoveListener(listener);
 }
 
@@ -1234,8 +1236,7 @@ void AppendCodeCreateHeader(Log::MessageBuilder& msg,
 void AppendCodeCreateHeader(Log::MessageBuilder& msg,
                             CodeEventListener::LogEventsAndTags tag,
                             AbstractCode* code, base::ElapsedTimer* timer) {
-  AppendCodeCreateHeader(msg, tag, code->kind(),
-                         reinterpret_cast<uint8_t*>(code->InstructionStart()),
+  AppendCodeCreateHeader(msg, tag, code->kind(), code->InstructionStart(),
                          code->InstructionSize(), timer);
 }
 
@@ -1367,7 +1368,7 @@ void Logger::CodeCreateEvent(CodeEventListener::LogEventsAndTags tag,
   //   <fns> is the function table encoded as a sequence of strings
   //      S<shared-function-info-address>
   msg << "code-source-info" << kNext
-      << reinterpret_cast<void*>(code->InstructionStart()) << kNext << script_id
+      << static_cast<void*>(code->InstructionStart()) << kNext << script_id
       << kNext << shared->StartPosition() << kNext << shared->EndPosition()
       << kNext;
 
@@ -1415,8 +1416,7 @@ void Logger::CodeCreateEvent(CodeEventListener::LogEventsAndTags tag,
     msg << std::hex;
     for (int i = 0; i <= maxInlinedId; i++) {
       msg << "S"
-          << reinterpret_cast<void*>(
-                 deopt_data->GetInlinedFunction(i)->address());
+          << static_cast<void*>(deopt_data->GetInlinedFunction(i)->address());
     }
     msg << std::dec;
   }
@@ -1705,7 +1705,7 @@ void Logger::StopProfiler() {
   if (profiler_ != nullptr) {
     profiler_->Pause();
     is_logging_ = false;
-    RemoveCodeEventListener(this);
+    removeCodeEventListener(this);
   }
 }
 
@@ -1915,17 +1915,17 @@ bool Logger::SetUp(Isolate* isolate) {
 
   if (FLAG_perf_basic_prof) {
     perf_basic_logger_ = new PerfBasicLogger();
-    AddCodeEventListener(perf_basic_logger_);
+    addCodeEventListener(perf_basic_logger_);
   }
 
   if (FLAG_perf_prof) {
     perf_jit_logger_ = new PerfJitLogger();
-    AddCodeEventListener(perf_jit_logger_);
+    addCodeEventListener(perf_jit_logger_);
   }
 
   if (FLAG_ll_prof) {
     ll_logger_ = new LowLevelLogger(log_file_name.str().c_str());
-    AddCodeEventListener(ll_logger_);
+    addCodeEventListener(ll_logger_);
   }
 
   ticker_ = new Ticker(isolate, FLAG_prof_sampling_interval);
@@ -1942,8 +1942,10 @@ bool Logger::SetUp(Isolate* isolate) {
     profiler_->Engage();
   }
 
+  profiler_listener_.reset();
+
   if (is_logging_) {
-    AddCodeEventListener(this);
+    addCodeEventListener(this);
   }
 
   return true;
@@ -1953,20 +1955,33 @@ bool Logger::SetUp(Isolate* isolate) {
 void Logger::SetCodeEventHandler(uint32_t options,
                                  JitCodeEventHandler event_handler) {
   if (jit_logger_) {
-    RemoveCodeEventListener(jit_logger_);
-    delete jit_logger_;
-    jit_logger_ = nullptr;
+      removeCodeEventListener(jit_logger_);
+      delete jit_logger_;
+      jit_logger_ = nullptr;
   }
 
   if (event_handler) {
     jit_logger_ = new JitLogger(event_handler);
-    AddCodeEventListener(jit_logger_);
+    addCodeEventListener(jit_logger_);
     if (options & kJitCodeEventEnumExisting) {
       HandleScope scope(isolate_);
       LogCodeObjects();
       LogCompiledFunctions();
     }
   }
+}
+
+void Logger::SetUpProfilerListener() {
+  if (!is_initialized_) return;
+  if (profiler_listener_.get() == nullptr) {
+    profiler_listener_.reset(new ProfilerListener(isolate_));
+  }
+  addCodeEventListener(profiler_listener_.get());
+}
+
+void Logger::TearDownProfilerListener() {
+  if (profiler_listener_->HasObservers()) return;
+  removeCodeEventListener(profiler_listener_.get());
 }
 
 sampler::Sampler* Logger::sampler() {
@@ -1989,27 +2004,31 @@ FILE* Logger::TearDown() {
   ticker_ = nullptr;
 
   if (perf_basic_logger_) {
-    RemoveCodeEventListener(perf_basic_logger_);
+    removeCodeEventListener(perf_basic_logger_);
     delete perf_basic_logger_;
     perf_basic_logger_ = nullptr;
   }
 
   if (perf_jit_logger_) {
-    RemoveCodeEventListener(perf_jit_logger_);
+    removeCodeEventListener(perf_jit_logger_);
     delete perf_jit_logger_;
     perf_jit_logger_ = nullptr;
   }
 
   if (ll_logger_) {
-    RemoveCodeEventListener(ll_logger_);
+    removeCodeEventListener(ll_logger_);
     delete ll_logger_;
     ll_logger_ = nullptr;
   }
 
   if (jit_logger_) {
-    RemoveCodeEventListener(jit_logger_);
+    removeCodeEventListener(jit_logger_);
     delete jit_logger_;
     jit_logger_ = nullptr;
+  }
+
+  if (profiler_listener_.get() != nullptr) {
+    removeCodeEventListener(profiler_listener_.get());
   }
 
   return log_->Close();

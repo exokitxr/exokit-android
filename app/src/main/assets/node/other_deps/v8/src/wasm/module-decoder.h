@@ -13,9 +13,12 @@
 
 namespace v8 {
 namespace internal {
-namespace wasm {
 
+namespace compiler {
 struct ModuleEnv;
+}
+
+namespace wasm {
 
 inline bool IsValidSectionCode(uint8_t byte) {
   return kTypeSectionCode <= byte && byte <= kLastKnownModuleSection;
@@ -79,9 +82,10 @@ V8_EXPORT_PRIVATE FunctionResult SyncDecodeWasmFunction(
     const WasmModule* module, const byte* function_start,
     const byte* function_end);
 
-V8_EXPORT_PRIVATE FunctionResult AsyncDecodeWasmFunction(
-    Isolate* isolate, Zone* zone, ModuleEnv* env, const byte* function_start,
-    const byte* function_end, const std::shared_ptr<Counters> async_counters);
+V8_EXPORT_PRIVATE FunctionResult
+AsyncDecodeWasmFunction(Isolate* isolate, Zone* zone, compiler::ModuleEnv* env,
+                        const byte* function_start, const byte* function_end,
+                        const std::shared_ptr<Counters> async_counters);
 
 V8_EXPORT_PRIVATE WasmInitExpr DecodeWasmInitExprForTesting(const byte* start,
                                                             const byte* end);

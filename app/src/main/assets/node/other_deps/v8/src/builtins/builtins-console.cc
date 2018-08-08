@@ -30,7 +30,6 @@ namespace internal {
   V(GroupEnd, groupEnd)             \
   V(Clear, clear)                   \
   V(Count, count)                   \
-  V(CountReset, countReset)         \
   V(Assert, assert)                 \
   V(MarkTimeline, markTimeline)     \
   V(Profile, profile)               \

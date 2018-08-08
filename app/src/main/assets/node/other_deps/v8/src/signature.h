@@ -6,7 +6,6 @@
 #define V8_SIGNATURE_H_
 
 #include "src/base/iterator.h"
-#include "src/machine-type.h"
 #include "src/zone/zone.h"
 
 namespace v8 {
@@ -98,8 +97,6 @@ class Signature : public ZoneObject {
   size_t parameter_count_;
   const T* reps_;
 };
-
-typedef Signature<MachineType> MachineSignature;
 
 }  // namespace internal
 }  // namespace v8

@@ -13,9 +13,10 @@ file(GLOB app_src_files
   "src/main/assets/node/node_modules/exokit/deps/exokit-bindings/canvascontext/src/*.cc"
   "src/main/assets/node/node_modules/exokit/deps/exokit-bindings/webglcontext/src/*.cc"
   "src/main/assets/node/node_modules/exokit/deps/exokit-bindings/webaudiocontext/src/*.cpp"
+  "src/main/assets/node/node_modules/exokit/deps/exokit-bindings/webaudiocontext/include/LabSound/rtaudio/src/*.cpp"
   "src/main/assets/node/node_modules/exokit/deps/exokit-bindings/videocontext/src/*.cpp"
   "src/main/assets/node/node_modules/exokit/deps/exokit-bindings/videocontext/src/linux/*.cpp"
-  "src/main/assets/node/node_modules/exokit/deps/exokit-bindings/glfw/src/*.cc"
+  "src/main/assets/node/other_deps/context/android/*.cpp"
 )
 add_library( nodebinding SHARED ${app_src_files} )
 
@@ -29,8 +30,13 @@ include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_module
 include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/exokit/deps/exokit-bindings/canvascontext/include )
 include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/exokit/deps/exokit-bindings/webglcontext/include )
 include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/exokit/deps/exokit-bindings/webaudiocontext/include )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/exokit/deps/exokit-bindings/webaudiocontext/include/LabSound )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/exokit/deps/exokit-bindings/webaudiocontext/include/LabSound/core )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/exokit/deps/exokit-bindings/webaudiocontext/include/LabSound/extended )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/exokit/deps/exokit-bindings/webaudiocontext/include/LabSound/rtaudio )
+
+
 include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/exokit/deps/exokit-bindings/videocontext/include )
-include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/exokit/deps/exokit-bindings/glfw/include )
 include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/other_deps/context/android )
 
 
@@ -39,15 +45,11 @@ include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/other_deps/
 
 add_library( node SHARED IMPORTED )
 set_target_properties( node PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/jniLibs/arm64-v8a/libnode.so )
-include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/other_deps/node )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/exokit/deps/exokit-bindings/node )
 include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/other_deps/v8/include )
 
 
-add_library( GLEW STATIC IMPORTED )
-set_target_properties( GLEW PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/native-graphics-deps/lib2/arm64/glew/libGLEW.a )
-add_library( glfw3 STATIC IMPORTED )
-set_target_properties( glfw3 PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/native-graphics-deps/lib2/arm64/glfw/libglfw3.a )
-include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/native-graphics-deps/include )
+
 
 
 add_library( png16 STATIC IMPORTED )
@@ -62,29 +64,23 @@ include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_module
 
 add_library( LabSound STATIC IMPORTED )
 set_target_properties( LabSound PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/native-audio-deps/lib2/arm64/libLabSound.a )
-include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/native-audio-deps/include )
 
 
-
-
-add_library( avcodec STATIC IMPORTED )
-set_target_properties( avcodec PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/native-video-deps/lib2/arm64/libavcodec.a )
-add_library( avdevice STATIC IMPORTED )
-set_target_properties( avdevice PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/native-video-deps/lib2/arm64/libavdevice.a )
-add_library( avfilter STATIC IMPORTED )
-set_target_properties( avfilter PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/native-video-deps/lib2/arm64/libavfilter.a )
-add_library( avformat STATIC IMPORTED )
-set_target_properties( avformat PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/native-video-deps/lib2/arm64/libavformat.a )
-add_library( avutil STATIC IMPORTED )
-set_target_properties( avutil PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/native-video-deps/lib2/arm64/libavutil.a )
-add_library( swresample STATIC IMPORTED )
-set_target_properties( swresample PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/native-video-deps/lib2/arm64/libswresample.a )
-add_library( swscale STATIC IMPORTED )
-set_target_properties( swscale PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/native-video-deps/lib2/arm64/libswscale.a )
+add_library( avcodec SHARED IMPORTED )
+set_target_properties( avcodec PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/jniLibs/arm64-v8a/libavcodec.so )
+add_library( avdevice SHARED IMPORTED )
+set_target_properties( avdevice PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/jniLibs/arm64-v8a/libavdevice.so )
+add_library( avfilter SHARED IMPORTED )
+set_target_properties( avfilter PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/jniLibs/arm64-v8a/libavfilter.so )
+add_library( avformat SHARED IMPORTED )
+set_target_properties( avformat PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/jniLibs/arm64-v8a/libavformat.so )
+add_library( avutil SHARED IMPORTED )
+set_target_properties( avutil PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/jniLibs/arm64-v8a/libavutil.so )
+add_library( swresample SHARED IMPORTED )
+set_target_properties( swresample PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/jniLibs/arm64-v8a/libswresample.so )
+add_library( swscale SHARED IMPORTED )
+set_target_properties( swscale PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/jniLibs/arm64-v8a/libswscale.so )
 include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/native-video-deps/include )
-
-
-
 
 
 find_library( log-lib log )
@@ -108,6 +104,6 @@ target_link_libraries( nodebinding
                        avcodec
                        avutil
                        avdevice
-                       swscale
                        swresample
+                       swscale
                        )

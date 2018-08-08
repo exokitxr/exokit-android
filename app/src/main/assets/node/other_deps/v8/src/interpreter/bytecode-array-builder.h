@@ -208,21 +208,24 @@ class V8_EXPORT_PRIVATE BytecodeArrayBuilder final {
   BytecodeArrayBuilder& CreateClosure(size_t shared_function_info_entry,
                                       int slot, int flags);
 
-  // Create a new local context for a |scope|.
+  // Create a new local context for a |scope| and a closure which should be
+  // in the accumulator.
   BytecodeArrayBuilder& CreateBlockContext(const Scope* scope);
 
-  // Create a new context for a catch block with |exception| and |scope|.
+  // Create a new context for a catch block with |exception|, |name|,
+  // |scope|, and the closure in the accumulator.
   BytecodeArrayBuilder& CreateCatchContext(Register exception,
+                                           const AstRawString* name,
                                            const Scope* scope);
 
-  // Create a new context with the given |scope| and size |slots|.
-  BytecodeArrayBuilder& CreateFunctionContext(const Scope* scope, int slots);
+  // Create a new context with size |slots|.
+  BytecodeArrayBuilder& CreateFunctionContext(int slots);
 
-  // Create a new eval context with the given |scope| and size |slots|.
-  BytecodeArrayBuilder& CreateEvalContext(const Scope* scope, int slots);
+  // Create a new eval context with size |slots|.
+  BytecodeArrayBuilder& CreateEvalContext(int slots);
 
   // Creates a new context with the given |scope| for a with-statement
-  // with the |object| in a register.
+  // with the |object| in a register and the closure in the accumulator.
   BytecodeArrayBuilder& CreateWithContext(Register object, const Scope* scope);
 
   // Create a new arguments object in the accumulator.
@@ -363,7 +366,6 @@ class V8_EXPORT_PRIVATE BytecodeArrayBuilder final {
   BytecodeArrayBuilder& CompareOperation(Token::Value op, Register reg,
                                          int feedback_slot);
   BytecodeArrayBuilder& CompareOperation(Token::Value op, Register reg);
-  BytecodeArrayBuilder& CompareReference(Register reg);
   BytecodeArrayBuilder& CompareUndetectable();
   BytecodeArrayBuilder& CompareUndefined();
   BytecodeArrayBuilder& CompareNull();

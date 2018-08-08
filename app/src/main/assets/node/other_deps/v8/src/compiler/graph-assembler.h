@@ -213,14 +213,13 @@ class GraphAssembler {
   Node* Retain(Node* buffer);
   Node* UnsafePointerAdd(Node* base, Node* external);
 
-  Node* Word32PoisonOnSpeculation(Node* value);
-
   Node* DeoptimizeIf(DeoptimizeReason reason, VectorSlotPair const& feedback,
                      Node* condition, Node* frame_state);
-  Node* DeoptimizeIfNot(
-      DeoptimizeReason reason, VectorSlotPair const& feedback, Node* condition,
-      Node* frame_state,
-      IsSafetyCheck is_safety_check = IsSafetyCheck::kSafetyCheck);
+  Node* DeoptimizeIfNot(DeoptimizeKind kind, DeoptimizeReason reason,
+                        VectorSlotPair const& feedback, Node* condition,
+                        Node* frame_state);
+  Node* DeoptimizeIfNot(DeoptimizeReason reason, VectorSlotPair const& feedback,
+                        Node* condition, Node* frame_state);
   template <typename... Args>
   Node* Call(const CallDescriptor* call_descriptor, Args... args);
   template <typename... Args>

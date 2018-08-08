@@ -521,7 +521,7 @@ JsonStringifier::Result JsonStringifier::SerializeJSObject(
   if (stack_push != SUCCESS) return stack_push;
 
   if (property_list_.is_null() &&
-      !object->map()->IsCustomElementsReceiverMap() &&
+      object->map()->instance_type() > LAST_CUSTOM_ELEMENTS_RECEIVER &&
       object->HasFastProperties() &&
       Handle<JSObject>::cast(object)->elements()->length() == 0) {
     DCHECK(object->IsJSObject());

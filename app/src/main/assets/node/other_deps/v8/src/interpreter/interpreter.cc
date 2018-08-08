@@ -115,7 +115,7 @@ size_t Interpreter::GetDispatchTableIndex(Bytecode bytecode,
 void Interpreter::IterateDispatchTable(RootVisitor* v) {
   for (int i = 0; i < kDispatchTableSize; i++) {
     Address code_entry = dispatch_table_[i];
-    Object* code = code_entry == kNullAddress
+    Object* code = code_entry == nullptr
                        ? nullptr
                        : Code::GetCodeFromTargetAddress(code_entry);
     Object* old_code = code;
@@ -230,7 +230,7 @@ UnoptimizedCompilationJob* Interpreter::NewCompilationJob(
 }
 
 bool Interpreter::IsDispatchTableInitialized() const {
-  return dispatch_table_[0] != kNullAddress;
+  return dispatch_table_[0] != nullptr;
 }
 
 const char* Interpreter::LookupNameOfBytecodeHandler(Code* code) {

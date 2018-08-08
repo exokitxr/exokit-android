@@ -5,23 +5,18 @@
 #ifndef V8_WASM_WASM_OBJECTS_INL_H_
 #define V8_WASM_WASM_OBJECTS_INL_H_
 
-#include "src/wasm/wasm-objects.h"
-
-#include "src/contexts-inl.h"
 #include "src/heap/heap-inl.h"
-#include "src/objects/js-array-inl.h"
 #include "src/v8memory.h"
-#include "src/wasm/wasm-module.h"
-
-// Has to be the last include (doesn't have include guards)
-#include "src/objects/object-macros.h"
+#include "src/wasm/wasm-objects.h"
 
 namespace v8 {
 namespace internal {
 
+// Has to be the last include (doesn't have include guards)
+#include "src/objects/object-macros.h"
+
 CAST_ACCESSOR(WasmCompiledModule)
 CAST_ACCESSOR(WasmDebugInfo)
-CAST_ACCESSOR(WasmExportedFunctionData)
 CAST_ACCESSOR(WasmGlobalObject)
 CAST_ACCESSOR(WasmInstanceObject)
 CAST_ACCESSOR(WasmMemoryObject)
@@ -36,7 +31,7 @@ CAST_ACCESSOR(WasmTableObject)
   ACCESSORS(holder, name, type, offset)
 
 #define READ_PRIMITIVE_FIELD(p, type, offset) \
-  (*reinterpret_cast<type const*>(FIELD_ADDR(p, offset)))
+  (*reinterpret_cast<type const*>(FIELD_ADDR_CONST(p, offset)))
 
 #define WRITE_PRIMITIVE_FIELD(p, type, offset, value) \
   (*reinterpret_cast<type*>(FIELD_ADDR(p, offset)) = value)
@@ -52,8 +47,6 @@ CAST_ACCESSOR(WasmTableObject)
 // WasmModuleObject
 ACCESSORS(WasmModuleObject, compiled_module, WasmCompiledModule,
           kCompiledModuleOffset)
-ACCESSORS(WasmModuleObject, export_wrappers, FixedArray, kExportWrappersOffset)
-ACCESSORS(WasmModuleObject, shared, WasmSharedModuleData, kSharedOffset)
 
 // WasmTableObject
 ACCESSORS(WasmTableObject, functions, FixedArray, kFunctionsOffset)
@@ -74,21 +67,22 @@ BIT_FIELD_ACCESSORS(WasmGlobalObject, flags, type, WasmGlobalObject::TypeBits)
 BIT_FIELD_ACCESSORS(WasmGlobalObject, flags, is_mutable,
                     WasmGlobalObject::IsMutableBit)
 
-int WasmGlobalObject::type_size() const {
-  return wasm::ValueTypes::ElementSizeInBytes(type());
+// static
+uint32_t WasmGlobalObject::TypeSize(wasm::ValueType type) {
+  return 1U << ElementSizeLog2Of(type);
 }
+
+uint32_t WasmGlobalObject::type_size() const { return TypeSize(type()); }
 
 Address WasmGlobalObject::address() const {
   uint32_t buffer_size = 0;
   DCHECK(array_buffer()->byte_length()->ToUint32(&buffer_size));
-  DCHECK_LE(offset() + type_size(), buffer_size);
+  DCHECK(offset() + type_size() <= buffer_size);
   USE(buffer_size);
   return Address(array_buffer()->backing_store()) + offset();
 }
 
 int32_t WasmGlobalObject::GetI32() { return Memory::int32_at(address()); }
-
-int64_t WasmGlobalObject::GetI64() { return Memory::int64_at(address()); }
 
 float WasmGlobalObject::GetF32() { return Memory::float_at(address()); }
 
@@ -96,10 +90,6 @@ double WasmGlobalObject::GetF64() { return Memory::double_at(address()); }
 
 void WasmGlobalObject::SetI32(int32_t value) {
   Memory::int32_at(address()) = value;
-}
-
-void WasmGlobalObject::SetI64(int64_t value) {
-  Memory::int64_at(address()) = value;
 }
 
 void WasmGlobalObject::SetF32(float value) {
@@ -120,8 +110,6 @@ PRIMITIVE_ACCESSORS(WasmInstanceObject, imported_function_targets, Address*,
                     kImportedFunctionTargetsOffset)
 PRIMITIVE_ACCESSORS(WasmInstanceObject, globals_start, byte*,
                     kGlobalsStartOffset)
-PRIMITIVE_ACCESSORS(WasmInstanceObject, imported_mutable_globals, Address*,
-                    kImportedMutableGlobalsOffset)
 PRIMITIVE_ACCESSORS(WasmInstanceObject, indirect_function_table_size, uint32_t,
                     kIndirectFunctionTableSizeOffset)
 PRIMITIVE_ACCESSORS(WasmInstanceObject, indirect_function_table_sig_ids,
@@ -131,16 +119,11 @@ PRIMITIVE_ACCESSORS(WasmInstanceObject, indirect_function_table_targets,
 
 ACCESSORS(WasmInstanceObject, compiled_module, WasmCompiledModule,
           kCompiledModuleOffset)
-ACCESSORS(WasmInstanceObject, module_object, WasmModuleObject,
-          kModuleObjectOffset)
 ACCESSORS(WasmInstanceObject, exports_object, JSObject, kExportsObjectOffset)
-ACCESSORS(WasmInstanceObject, native_context, Context, kNativeContextOffset)
 OPTIONAL_ACCESSORS(WasmInstanceObject, memory_object, WasmMemoryObject,
                    kMemoryObjectOffset)
-OPTIONAL_ACCESSORS(WasmInstanceObject, globals_buffer, JSArrayBuffer,
-                   kGlobalsBufferOffset)
-OPTIONAL_ACCESSORS(WasmInstanceObject, imported_mutable_globals_buffers,
-                   FixedArray, kImportedMutableGlobalsBuffersOffset)
+ACCESSORS(WasmInstanceObject, globals_buffer, JSArrayBuffer,
+          kGlobalsBufferOffset)
 OPTIONAL_ACCESSORS(WasmInstanceObject, debug_info, WasmDebugInfo,
                    kDebugInfoOffset)
 OPTIONAL_ACCESSORS(WasmInstanceObject, table_object, WasmTableObject,
@@ -151,8 +134,8 @@ ACCESSORS(WasmInstanceObject, imported_function_callables, FixedArray,
           kImportedFunctionCallablesOffset)
 OPTIONAL_ACCESSORS(WasmInstanceObject, indirect_function_table_instances,
                    FixedArray, kIndirectFunctionTableInstancesOffset)
-OPTIONAL_ACCESSORS(WasmInstanceObject, managed_native_allocations, Foreign,
-                   kManagedNativeAllocationsOffset)
+ACCESSORS(WasmInstanceObject, managed_native_allocations, Foreign,
+          kManagedNativeAllocationsOffset)
 OPTIONAL_ACCESSORS(WasmInstanceObject, managed_indirect_patcher, Foreign,
                    kManagedIndirectPatcherOffset)
 
@@ -161,27 +144,21 @@ inline bool WasmInstanceObject::has_indirect_function_table() {
 }
 
 IndirectFunctionTableEntry::IndirectFunctionTableEntry(
-    Handle<WasmInstanceObject> instance, int index)
+    WasmInstanceObject* instance, int index)
     : instance_(instance), index_(index) {
   DCHECK_GE(index, 0);
   DCHECK_LT(index, instance->indirect_function_table_size());
 }
 
-ImportedFunctionEntry::ImportedFunctionEntry(
-    Handle<WasmInstanceObject> instance, int index)
+ImportedFunctionEntry::ImportedFunctionEntry(WasmInstanceObject* instance,
+                                             int index)
     : instance_(instance), index_(index) {
   DCHECK_GE(index, 0);
   DCHECK_LT(index, instance->module()->num_imported_functions);
 }
 
-// WasmExportedFunctionData
-ACCESSORS(WasmExportedFunctionData, wrapper_code, Code, kWrapperCodeOffset)
-ACCESSORS(WasmExportedFunctionData, instance, WasmInstanceObject,
-          kInstanceOffset)
-SMI_ACCESSORS(WasmExportedFunctionData, function_index, kFunctionIndexOffset)
-
 // WasmSharedModuleData
-ACCESSORS(WasmSharedModuleData, managed_module, Object, kManagedModuleOffset)
+ACCESSORS(WasmSharedModuleData, module_wrapper, Object, kModuleWrapperOffset)
 ACCESSORS(WasmSharedModuleData, module_bytes, SeqOneByteString,
           kModuleBytesOffset)
 ACCESSORS(WasmSharedModuleData, script, Script, kScriptOffset)
@@ -222,6 +199,15 @@ OPTIONAL_ACCESSORS(WasmDebugInfo, c_wasm_entry_map, Managed<wasm::SignatureMap>,
 #define WCM_OBJECT(TYPE, NAME, OFFSET) \
   WCM_OBJECT_OR_WEAK(TYPE, NAME, OFFSET, value->Is##TYPE())
 
+#define WCM_SMALL_CONST_NUMBER(TYPE, NAME, OFFSET)                  \
+  TYPE WasmCompiledModule::NAME() const {                           \
+    return static_cast<TYPE>(Smi::ToInt(READ_FIELD(this, OFFSET))); \
+  }                                                                 \
+                                                                    \
+  void WasmCompiledModule::set_##NAME(TYPE value) {                 \
+    WRITE_FIELD(this, OFFSET, Smi::FromInt(value));                 \
+  }
+
 #define WCM_WEAK_LINK(TYPE, NAME, OFFSET)                                \
   WCM_OBJECT_OR_WEAK(WeakCell, weak_##NAME, OFFSET, value->IsWeakCell()) \
                                                                          \
@@ -231,15 +217,21 @@ OPTIONAL_ACCESSORS(WasmDebugInfo, c_wasm_entry_map, Managed<wasm::SignatureMap>,
   }
 
 // WasmCompiledModule
+WCM_OBJECT(WasmSharedModuleData, shared, kSharedOffset)
+WCM_WEAK_LINK(Context, native_context, kNativeContextOffset)
+WCM_OBJECT(FixedArray, export_wrappers, kExportWrappersOffset)
 WCM_OBJECT(WasmCompiledModule, next_instance, kNextInstanceOffset)
 WCM_OBJECT(WasmCompiledModule, prev_instance, kPrevInstanceOffset)
 WCM_WEAK_LINK(WasmInstanceObject, owning_instance, kOwningInstanceOffset)
+WCM_WEAK_LINK(WasmModuleObject, wasm_module, kWasmModuleOffset)
 WCM_OBJECT(Foreign, native_module, kNativeModuleOffset)
+WCM_SMALL_CONST_NUMBER(bool, use_trap_handler, kUseTrapHandlerOffset)
 ACCESSORS(WasmCompiledModule, raw_next_instance, Object, kNextInstanceOffset);
 ACCESSORS(WasmCompiledModule, raw_prev_instance, Object, kPrevInstanceOffset);
 
 #undef WCM_OBJECT_OR_WEAK
 #undef WCM_OBJECT
+#undef WCM_SMALL_CONST_NUMBER
 #undef WCM_WEAK_LINK
 #undef READ_PRIMITIVE_FIELD
 #undef WRITE_PRIMITIVE_FIELD

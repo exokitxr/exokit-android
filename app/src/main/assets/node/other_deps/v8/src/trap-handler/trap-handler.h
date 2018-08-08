@@ -45,7 +45,7 @@ const int kInvalidIndex = -1;
 ///
 /// This returns a number that can be used to identify the handler data to
 /// ReleaseHandlerData, or -1 on failure.
-int RegisterHandlerData(Address base, size_t size,
+int RegisterHandlerData(void* base, size_t size,
                         size_t num_protected_instructions,
                         const ProtectedInstructionData* protected_instructions);
 
@@ -99,7 +99,7 @@ class ThreadInWasmScope {
   ~ThreadInWasmScope() { ClearThreadInWasm(); }
 };
 
-bool RegisterDefaultTrapHandler();
+bool RegisterDefaultSignalHandler();
 V8_EXPORT_PRIVATE void RestoreOriginalSignalHandler();
 
 #if V8_OS_LINUX

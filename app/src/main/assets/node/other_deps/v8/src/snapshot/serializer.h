@@ -21,11 +21,11 @@ namespace internal {
 class CodeAddressMap : public CodeEventLogger {
  public:
   explicit CodeAddressMap(Isolate* isolate) : isolate_(isolate) {
-    isolate->logger()->AddCodeEventListener(this);
+    isolate->logger()->addCodeEventListener(this);
   }
 
   ~CodeAddressMap() override {
-    isolate_->logger()->RemoveCodeEventListener(this);
+    isolate_->logger()->removeCodeEventListener(this);
   }
 
   void CodeMoveEvent(AbstractCode* from, Address to) override {
@@ -96,13 +96,12 @@ class CodeAddressMap : public CodeEventLogger {
     }
 
     base::HashMap::Entry* FindOrCreateEntry(Address code_address) {
-      return impl_.LookupOrInsert(reinterpret_cast<void*>(code_address),
-                                  ComputeAddressHash(code_address));
+      return impl_.LookupOrInsert(code_address,
+                                  ComputePointerHash(code_address));
     }
 
     base::HashMap::Entry* FindEntry(Address code_address) {
-      return impl_.Lookup(reinterpret_cast<void*>(code_address),
-                          ComputeAddressHash(code_address));
+      return impl_.Lookup(code_address, ComputePointerHash(code_address));
     }
 
     void RemoveEntry(base::HashMap::Entry* entry) {
@@ -226,7 +225,7 @@ class Serializer : public SerializerDeserializer {
   void OutputStatistics(const char* name);
 
 #ifdef OBJECT_PRINT
-  void CountInstanceType(Map* map, int size, AllocationSpace space);
+  void CountInstanceType(Map* map, int size);
 #endif  // OBJECT_PRINT
 
 #ifdef DEBUG
@@ -256,8 +255,6 @@ class Serializer : public SerializerDeserializer {
   static const int kInstanceTypes = LAST_TYPE + 1;
   int* instance_type_count_;
   size_t* instance_type_size_;
-  int* read_only_instance_type_count_;
-  size_t* read_only_instance_type_size_;
 #endif  // OBJECT_PRINT
 
 #ifdef DEBUG
@@ -268,8 +265,6 @@ class Serializer : public SerializerDeserializer {
 
   DISALLOW_COPY_AND_ASSIGN(Serializer);
 };
-
-class RelocInfoIterator;
 
 template <class AllocatorT>
 class Serializer<AllocatorT>::ObjectSerializer : public ObjectVisitor {
@@ -304,8 +299,6 @@ class Serializer<AllocatorT>::ObjectSerializer : public ObjectVisitor {
   void VisitCodeTarget(Code* host, RelocInfo* target) override;
   void VisitRuntimeEntry(Code* host, RelocInfo* reloc) override;
   void VisitOffHeapTarget(Code* host, RelocInfo* target) override;
-  // Relocation info needs to be visited sorted by target_address_address.
-  void VisitRelocInfo(RelocIterator* it) override;
 
  private:
   void SerializePrologue(AllocationSpace space, int size, Map* map);

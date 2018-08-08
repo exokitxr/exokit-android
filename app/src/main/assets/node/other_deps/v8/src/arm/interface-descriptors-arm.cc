@@ -34,7 +34,7 @@ void RecordWriteDescriptor::InitializePlatformSpecific(
   data->InitializePlatformSpecific(kParameterCount, default_stub_registers);
 }
 
-const Register FastNewFunctionContextDescriptor::ScopeInfoRegister() {
+const Register FastNewFunctionContextDescriptor::FunctionRegister() {
   return r1;
 }
 const Register FastNewFunctionContextDescriptor::SlotsRegister() { return r0; }
@@ -249,6 +249,12 @@ void CompareDescriptor::InitializePlatformSpecific(
 
 
 void BinaryOpDescriptor::InitializePlatformSpecific(
+    CallInterfaceDescriptorData* data) {
+  Register registers[] = {r1, r0};
+  data->InitializePlatformSpecific(arraysize(registers), registers);
+}
+
+void StringAddDescriptor::InitializePlatformSpecific(
     CallInterfaceDescriptorData* data) {
   Register registers[] = {r1, r0};
   data->InitializePlatformSpecific(arraysize(registers), registers);

@@ -5,12 +5,12 @@
 #ifndef V8_BUILTINS_BUILTINS_ARRAY_GEN_H_
 #define V8_BUILTINS_BUILTINS_ARRAY_GEN_H_
 
-#include "torque-generated/builtins-base-from-dsl-gen.h"
+#include "src/code-stub-assembler.h"
 
 namespace v8 {
 namespace internal {
 
-class ArrayBuiltinsAssembler : public BaseBuiltinsFromDSLAssembler {
+class ArrayBuiltinsAssembler : public CodeStubAssembler {
  public:
   explicit ArrayBuiltinsAssembler(compiler::CodeAssemblerState* state);
 
@@ -71,6 +71,7 @@ class ArrayBuiltinsAssembler : public BaseBuiltinsFromDSLAssembler {
  protected:
   TNode<Context> context() { return context_; }
   TNode<Object> receiver() { return receiver_; }
+  Node* new_target() { return new_target_; }
   TNode<IntPtrT> argc() { return argc_; }
   TNode<JSReceiver> o() { return o_; }
   TNode<Number> len() { return len_; }
@@ -83,7 +84,8 @@ class ArrayBuiltinsAssembler : public BaseBuiltinsFromDSLAssembler {
 
   void InitIteratingArrayBuiltinBody(TNode<Context> context,
                                      TNode<Object> receiver, Node* callbackfn,
-                                     Node* this_arg, TNode<IntPtrT> argc);
+                                     Node* this_arg, Node* new_target,
+                                     TNode<IntPtrT> argc);
 
   void GenerateIteratingArrayBuiltinBody(
       const char* name, const BuiltinResultGenerator& generator,
@@ -140,6 +142,7 @@ class ArrayBuiltinsAssembler : public BaseBuiltinsFromDSLAssembler {
   TNode<Number> len_;
   TNode<Context> context_;
   TNode<Object> receiver_;
+  Node* new_target_ = nullptr;
   TNode<IntPtrT> argc_;
   Node* fast_typed_array_target_ = nullptr;
   const char* name_ = nullptr;

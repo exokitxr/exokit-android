@@ -22,6 +22,7 @@ class PlatformInterfaceDescriptor;
   V(ContextOnly)                      \
   V(Load)                             \
   V(LoadWithVector)                   \
+  V(LoadField)                        \
   V(LoadGlobal)                       \
   V(LoadGlobalWithVector)             \
   V(Store)                            \
@@ -60,6 +61,7 @@ class PlatformInterfaceDescriptor;
   V(ArrayNArgumentsConstructor)       \
   V(Compare)                          \
   V(BinaryOp)                         \
+  V(StringAdd)                        \
   V(StringAt)                         \
   V(StringSubstring)                  \
   V(ForInPrepare)                     \
@@ -363,6 +365,18 @@ class LoadDescriptor : public CallInterfaceDescriptor {
   static const Register SlotRegister();
 };
 
+// LoadFieldDescriptor is used by the shared handler that loads a field from an
+// object based on the smi-encoded field description.
+class LoadFieldDescriptor : public CallInterfaceDescriptor {
+ public:
+  DEFINE_PARAMETERS(kReceiver, kSmiHandler)
+  DECLARE_DESCRIPTOR_WITH_CUSTOM_FUNCTION_TYPE(LoadFieldDescriptor,
+                                               CallInterfaceDescriptor)
+
+  static const Register ReceiverRegister();
+  static const Register SmiHandlerRegister();
+};
+
 class LoadGlobalDescriptor : public CallInterfaceDescriptor {
  public:
   DEFINE_PARAMETERS(kName, kSlot)
@@ -503,11 +517,11 @@ class LoadGlobalWithVectorDescriptor : public LoadGlobalDescriptor {
 
 class FastNewFunctionContextDescriptor : public CallInterfaceDescriptor {
  public:
-  DEFINE_PARAMETERS(kScopeInfo, kSlots)
+  DEFINE_PARAMETERS(kFunction, kSlots)
   DECLARE_DESCRIPTOR_WITH_CUSTOM_FUNCTION_TYPE(FastNewFunctionContextDescriptor,
                                                CallInterfaceDescriptor)
 
-  static const Register ScopeInfoRegister();
+  static const Register FunctionRegister();
   static const Register SlotsRegister();
 };
 
@@ -735,6 +749,13 @@ class BinaryOpDescriptor : public CallInterfaceDescriptor {
  public:
   DEFINE_PARAMETERS(kLeft, kRight)
   DECLARE_DESCRIPTOR(BinaryOpDescriptor, CallInterfaceDescriptor)
+};
+
+
+class StringAddDescriptor : public CallInterfaceDescriptor {
+ public:
+  DEFINE_PARAMETERS(kLeft, kRight)
+  DECLARE_DESCRIPTOR(StringAddDescriptor, CallInterfaceDescriptor)
 };
 
 // This desciptor is shared among String.p.charAt/charCodeAt/codePointAt

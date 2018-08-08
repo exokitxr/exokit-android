@@ -50,10 +50,7 @@ Handle<Code> BuildPlaceholder(Isolate* isolate, int32_t builtin_index) {
   DCHECK(!masm.has_frame());
   {
     FrameScope scope(&masm, StackFrame::NONE);
-    // The contents of placeholder don't matter, as long as they don't create
-    // embedded constants or external references.
-    masm.Move(kJavaScriptCallCodeStartRegister, Smi::kZero);
-    masm.Call(kJavaScriptCallCodeStartRegister);
+    masm.CallRuntime(Runtime::kSystemBreak);
   }
   CodeDesc desc;
   masm.GetCode(isolate, &desc);
@@ -119,7 +116,7 @@ Code* BuildWithCodeStubAssemblerJS(Isolate* isolate, int32_t builtin_index,
       (argc == SharedFunctionInfo::kDontAdaptArgumentsSentinel) ? 0 : argc + 1;
   compiler::CodeAssemblerState state(
       isolate, &zone, argc_with_recv, Code::BUILTIN, name,
-      PoisoningMitigationLevel::kDontPoison, builtin_index);
+      PoisoningMitigationLevel::kOff, builtin_index);
   generator(&state);
   Handle<Code> code = compiler::CodeAssembler::GenerateCode(&state);
   PostBuildProfileAndTracing(isolate, *code, name);
@@ -144,9 +141,9 @@ Code* BuildWithCodeStubAssemblerCS(Isolate* isolate, int32_t builtin_index,
   CallInterfaceDescriptor descriptor(isolate, interface_descriptor);
   // Ensure descriptor is already initialized.
   DCHECK_LE(0, descriptor.GetRegisterParameterCount());
-  compiler::CodeAssemblerState state(
-      isolate, &zone, descriptor, Code::BUILTIN, name,
-      PoisoningMitigationLevel::kDontPoison, result_size, 0, builtin_index);
+  compiler::CodeAssemblerState state(isolate, &zone, descriptor, Code::BUILTIN,
+                                     name, PoisoningMitigationLevel::kOff,
+                                     result_size, 0, builtin_index);
   generator(&state);
   Handle<Code> code = compiler::CodeAssembler::GenerateCode(&state);
   PostBuildProfileAndTracing(isolate, *code, name);

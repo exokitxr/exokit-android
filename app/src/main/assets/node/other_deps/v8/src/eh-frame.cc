@@ -577,8 +577,7 @@ void EhFrameDisassembler::DumpDwarfDirectives(std::ostream& stream,  // NOLINT
 
 void EhFrameDisassembler::DisassembleToStream(std::ostream& stream) {  // NOLINT
   // The encoded CIE size does not include the size field itself.
-  const int cie_size =
-      ReadUnalignedUInt32(reinterpret_cast<Address>(start_)) + kInt32Size;
+  const int cie_size = ReadUnalignedUInt32(start_) + kInt32Size;
   const int fde_offset = cie_size;
 
   const byte* cie_directives_start =
@@ -589,15 +588,13 @@ void EhFrameDisassembler::DisassembleToStream(std::ostream& stream) {  // NOLINT
   stream << reinterpret_cast<const void*>(start_) << "  .eh_frame: CIE\n";
   DumpDwarfDirectives(stream, cie_directives_start, cie_directives_end);
 
-  Address procedure_offset_address =
-      reinterpret_cast<Address>(start_) + fde_offset +
-      EhFrameConstants::kProcedureAddressOffsetInFde;
+  const byte* procedure_offset_address =
+      start_ + fde_offset + EhFrameConstants::kProcedureAddressOffsetInFde;
   int32_t procedure_offset =
       ReadUnalignedValue<int32_t>(procedure_offset_address);
 
-  Address procedure_size_address = reinterpret_cast<Address>(start_) +
-                                   fde_offset +
-                                   EhFrameConstants::kProcedureSizeOffsetInFde;
+  const byte* procedure_size_address =
+      start_ + fde_offset + EhFrameConstants::kProcedureSizeOffsetInFde;
   uint32_t procedure_size = ReadUnalignedUInt32(procedure_size_address);
 
   const byte* fde_start = start_ + fde_offset;

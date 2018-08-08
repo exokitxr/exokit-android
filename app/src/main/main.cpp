@@ -8,7 +8,7 @@
 
 #include <v8.h>
 #include <bindings.h>
-#include <glfw.h>
+//#include <glfw.h>
 
 #include <jni.h>
 #include <android/log.h>
@@ -91,6 +91,7 @@ using namespace v8;
 #ifdef __cplusplus
     extern "C" {
 #endif
+
 
     JNIEXPORT void JNICALL Java_com_mafintosh_nodeonandroid_NodeService_onResize
             (JNIEnv *env, jclass clas, jint width, jint height) {
@@ -213,10 +214,14 @@ using namespace v8;
 
         /* AAssetManager *aAssetManager = AAssetManager_fromJava(env, assetManager);
         canvas::AndroidContextFactory *canvasContextFactory = new canvas::AndroidContextFactory(aAssetManager, 1); */
+
         canvas::AndroidContextFactory::initialize(env, assetManager);
-        canvas::AndroidContextFactory *canvasContextFactory = new canvas::AndroidContextFactory(
-                nullptr, 1);
-//        CanvasRenderingContext2D::InitalizeStatic(canvasContextFactory);
+        canvas::AndroidContextFactory *canvasContextFactory = new canvas::AndroidContextFactory(nullptr, 1);
+        //CanvasRenderingContext2D::Initialize(isolate, imageDataCons, canvasGradientCons, canvasPatternCons);
+
+
+        //CanvasRenderingContext2D::Initialize(canvasContextFactory);
+        //  static Handle<Object> Initialize(Isolate *isolate, Local<Value> imageDataCons, Local<Value> canvasGradientCons, Local<Value> canvasPatternCons);
 
         const char *binPathString = env->GetStringUTFChars(binPath, NULL);
         const char *jsPathString = env->GetStringUTFChars(jsPath, NULL);
@@ -263,9 +268,9 @@ using namespace v8;
             Isolate *isolate = service->GetIsolate();
             Local<Object> global = service->GetContext()->Global();
 
-//            std::pair<Local<Value>, Local<FunctionTemplate>> glResult = makeGl();
-//            global->Set(v8::String::NewFromUtf8(Isolate::GetCurrent(), "nativeGl"), glResult.first);
-//
+            std::pair<Local<Value>, Local<FunctionTemplate>> glResult = makeGl();
+            global->Set(v8::String::NewFromUtf8(Isolate::GetCurrent(), "nativeGl"), glResult.first);
+
 //            std::pair<Local<Value>, Local<FunctionTemplate>> gl2Result = makeGl2();
 //            global->Set(v8::String::NewFromUtf8(Isolate::GetCurrent(), "nativeGl2"), gl2Result.first);
 
@@ -305,8 +310,8 @@ using namespace v8;
             /* Local<Value> glfw = makeGlfw();
             global->Set(v8::String::NewFromUtf8(Isolate::GetCurrent(), "nativeGlfw"), glfw); */
 
-            Local<Value> window = makeWindow();
-            global->Set(v8::String::NewFromUtf8(Isolate::GetCurrent(), "nativeWindow"), window);
+//            Local<Value> window = makeWindow();
+//            global->Set(v8::String::NewFromUtf8(Isolate::GetCurrent(), "nativeWindow"), window);
         };
         service = new node::NodeService(sizeof(args) / sizeof(args[0]), args,
                                         [](node::NodeService *service) {

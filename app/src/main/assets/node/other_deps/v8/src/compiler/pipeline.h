@@ -27,10 +27,9 @@ enum ModuleOrigin : uint8_t;
 namespace compiler {
 
 class CallDescriptor;
+class JSGraph;
 class Graph;
 class InstructionSequence;
-class MachineGraph;
-class NodeOriginTable;
 class Schedule;
 class SourcePositionTable;
 class WasmCompilationData;
@@ -43,9 +42,9 @@ class Pipeline : public AllStatic {
 
   // Returns a new compilation job for the WebAssembly compilation info.
   static OptimizedCompilationJob* NewWasmCompilationJob(
-      OptimizedCompilationInfo* info, Isolate* isolate, MachineGraph* mcgraph,
+      OptimizedCompilationInfo* info, Isolate* isolate, JSGraph* jsgraph,
       CallDescriptor* call_descriptor, SourcePositionTable* source_positions,
-      NodeOriginTable* node_origins, WasmCompilationData* wasm_compilation_data,
+      WasmCompilationData* wasm_compilation_data,
       wasm::ModuleOrigin wasm_origin);
 
   // Run the pipeline on a machine graph and generate code. The {schedule} must
@@ -54,7 +53,7 @@ class Pipeline : public AllStatic {
       Isolate* isolate, CallDescriptor* call_descriptor, Graph* graph,
       Schedule* schedule, Code::Kind kind, const char* debug_name,
       uint32_t stub_key, int32_t builtin_index, JumpOptimizationInfo* jump_opt,
-      PoisoningMitigationLevel poisoning_level);
+      PoisoningMitigationLevel poisoning_enabled);
 
   // Run the entire pipeline and generate a handle to a code object suitable for
   // testing.

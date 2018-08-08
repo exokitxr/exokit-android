@@ -10,7 +10,6 @@
 #include "src/counters.h"
 #include "src/log.h"
 #include "src/objects-inl.h"
-#include "src/objects/templates.h"
 #include "src/prototype.h"
 #include "src/visitors.h"
 
