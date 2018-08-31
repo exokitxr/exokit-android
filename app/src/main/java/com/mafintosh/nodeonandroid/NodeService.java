@@ -24,15 +24,6 @@ public class NodeService {
     static {
         System.loadLibrary("node");
         System.loadLibrary("nodebinding");
-        /*
-        System.loadLibrary( "nodebinding");
-        System.loadLibrary( "avformat");
-        System.loadLibrary( "avcodec");
-        System.loadLibrary( "avutil");
-        System.loadLibrary( "avdevice");
-        System.loadLibrary( "swresample");
-        System.loadLibrary( "swscale");
-        */
     }
 
     public NodeService(Context ctx) {
