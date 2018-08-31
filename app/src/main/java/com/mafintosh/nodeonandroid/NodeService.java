@@ -8,6 +8,8 @@ import android.support.annotation.Nullable;
 import android.content.Context;
 import android.util.Log;
 import android.util.TimingLogger;
+import org.w3c.dom.Node;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -20,12 +22,12 @@ public class NodeService {
     private Context context;
 
     static {
-      System.loadLibrary("node");
-      System.loadLibrary("nodebinding");
+        System.loadLibrary("node");
+        System.loadLibrary("nodebinding");
     }
 
     public NodeService(Context ctx) {
-      context = ctx;
+        context = ctx;
     }
 
     public void init(String url, String vrMode, int vrTexture) {
@@ -36,7 +38,7 @@ public class NodeService {
 
         String cache = context.getCacheDir().getAbsolutePath();
         String nodePath = cache + "/node";
-        String corePath = cache + "/node_modules";
+        String corePath = cache + "/exokit";
         AssetManager am = context.getAssets();
         copyAssets(am, "node_modules", corePath);
         copyAssets(am, "node", nodePath);
@@ -59,13 +61,17 @@ public class NodeService {
 
     // GL
     // public native void onSurfaceCreated();
+    @SuppressWarnings("JniMissingFunction")
     public native void onResize(int width, int height);
 
+    /*
     // VR
     public native void onNewFrame(float[] headViewMatrix, float[] headQuaternion);
     public native void onDrawEye(float[] eyeViewMatrix, float[] eyePerspectiveMatrix);
+    */
 
     // AR
+    @SuppressWarnings("JniMissingFunction")
     public native void onDrawFrame(float[] viewMatrix, float[] projectionMatrix, float[] centerArray);
 
     // helpers

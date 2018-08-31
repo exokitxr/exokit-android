@@ -1,36 +1,106 @@
 cmake_minimum_required(VERSION 3.6)
 
-add_compile_options(-std=c++14 -pthread)
+add_compile_options(-pthread )
+
+
 
 file(GLOB app_src_files
-  "src/main/jni/main.cpp"
-  "src/main/jni/deps/bindings/src/*.cc"
-  "src/main/jni/deps/canvas/src/*.cpp"
-  "src/main/jni/deps/nanosvg/src/*.cpp"
-  "src/main/jni/deps/canvascontext/src/*.cc"
-  "src/main/jni/deps/webglcontext/src/*.cc"
-  "src/main/jni/deps/platform/android/src/*.cpp"
+  "src/main/main.cpp"
+  "src/main/assets/node/exokit/deps/exokit-bindings/bindings/src/*.cc"
+  "src/main/assets/node/exokit/deps/exokit-bindings/util/src/*.cc"
+  "src/main/assets/node/exokit/deps/exokit-bindings/canvas/src/*.cpp"
+  "src/main/assets/node/exokit/deps/exokit-bindings/nanosvg/src/*.cpp"
+  "src/main/assets/node/exokit/deps/exokit-bindings/canvascontext/src/*.cc"
+  "src/main/assets/node/exokit/deps/exokit-bindings/webglcontext/src/*.cc"
+  "src/main/assets/node/exokit/deps/exokit-bindings/webaudiocontext/src/*.cpp"
+  "src/main/assets/node/exokit/deps/exokit-bindings/webaudiocontext/include/LabSound/rtaudio/src/*.cpp"
+  "src/main/assets/node/exokit/deps/exokit-bindings/videocontext/src/*.cpp"
+  "src/main/assets/node/exokit/deps/exokit-bindings/videocontext/src/linux/*.cpp"
+  "src/main/assets/node/exokit/deps/exokit-bindings/egl/src/*.cc"
+  "src/main/assets/node/other_deps/context/android/*.cpp"
 )
-
 add_library( nodebinding SHARED ${app_src_files} )
 
-include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/jni/deps )
-include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/jni/deps/node )
-include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/jni/deps/native_app_glue )
-include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/jni/deps/util/include )
-include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/jni/deps/bindings/include )
-include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/jni/deps/canvas/include )
-include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/jni/deps/nanosvg/include )
-include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/jni/deps/canvascontext/include )
-include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/jni/deps/webglcontext/include )
-include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/jni/deps/platform/android/include )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/exokit/deps/exokit-bindings )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/exokit/deps/exokit-bindings/utf8 )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/exokit/deps/exokit-bindings/native_app_glue )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/exokit/deps/exokit-bindings/util/include )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/exokit/deps/exokit-bindings/bindings/include )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/exokit/deps/exokit-bindings/canvas/include )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/exokit/deps/exokit-bindings/nanosvg/include )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/exokit/deps/exokit-bindings/canvascontext/include )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/exokit/deps/exokit-bindings/webglcontext/include )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/exokit/deps/exokit-bindings/webaudiocontext/include )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/exokit/deps/exokit-bindings/webaudiocontext/include/LabSound )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/exokit/deps/exokit-bindings/webaudiocontext/include/LabSound/core )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/exokit/deps/exokit-bindings/webaudiocontext/include/LabSound/extended )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/exokit/deps/exokit-bindings/webaudiocontext/include/LabSound/rtaudio )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/exokit/deps/exokit-bindings/videocontext/include )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/exokit/deps/exokit-bindings/egl/include )
 
-add_library( nodelib SHARED IMPORTED )
-set_target_properties( nodelib PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/jniLibs/${ANDROID_ABI}/libnode.so )
+
+add_library( node SHARED IMPORTED )
+set_target_properties( node PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/jniLibs/arm64-v8a/libnode.so )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/other_deps/node )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/other_deps/node/nan )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/other_deps/node/deps/uv/include )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/other_deps/v8/include )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/other_deps/context/android )
+
+
+
+add_library( png16 STATIC IMPORTED )
+set_target_properties( png16 PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/jniLibs/arm64-v8a/libpng16.a )
+add_library( skia STATIC IMPORTED )
+set_target_properties( skia PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/jniLibs/arm64-v8a/libskia.a )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/exokit/node_modules/native-canvas-deps/include/core )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/exokit/node_modules/native-canvas-deps/include/config )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/exokit/node_modules/native-canvas-deps/include/gpu )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/exokit/node_modules/native-canvas-deps/include/effects )
+
+
+add_library( LabSound STATIC IMPORTED )
+set_target_properties( LabSound PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/jniLibs/arm64-v8a/libLabSound.a )
+
+
+add_library( avcodec SHARED IMPORTED )
+set_target_properties( avcodec PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/jniLibs/arm64-v8a/libavcodec.so )
+add_library( avdevice SHARED IMPORTED )
+set_target_properties( avdevice PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/jniLibs/arm64-v8a/libavdevice.so )
+add_library( avfilter SHARED IMPORTED )
+set_target_properties( avfilter PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/jniLibs/arm64-v8a/libavfilter.so )
+add_library( avformat SHARED IMPORTED )
+set_target_properties( avformat PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/jniLibs/arm64-v8a/libavformat.so )
+add_library( avutil SHARED IMPORTED )
+set_target_properties( avutil PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/jniLibs/arm64-v8a/libavutil.so )
+add_library( swresample SHARED IMPORTED )
+set_target_properties( swresample PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/jniLibs/arm64-v8a/libswresample.so )
+add_library( swscale SHARED IMPORTED )
+set_target_properties( swscale PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/jniLibs/arm64-v8a/libswscale.so )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/exokit/node_modules/native-video-deps/include )
+
 
 find_library( log-lib log )
 find_library( android-lib android )
 find_library( egl-lib EGL )
+find_library( glesv2-lib GLESv2 )
 find_library( glesv3-lib GLESv3 )
 find_library( jnigraphics-lib jnigraphics )
-target_link_libraries( nodebinding ${log-lib} ${android-lib} ${egl-lib} ${glesv3-lib} ${jnigraphics-lib} nodelib )
+target_link_libraries( nodebinding
+                       ${log-lib}
+                       ${android-lib}
+                       ${glesv2-lib}
+                       ${glesv3-lib}
+                       ${egl-lib}
+                       ${jnigraphics-lib}
+                       node
+                       png16
+                       skia
+                       LabSound
+                       avformat
+                       avcodec
+                       avutil
+                       avdevice
+                       swresample
+                       swscale
+                       )

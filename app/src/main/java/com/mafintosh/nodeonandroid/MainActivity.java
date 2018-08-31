@@ -26,16 +26,17 @@ class MenuInterface {
         mContext = c;
     }
 
-    @JavascriptInterface
-    public void enterVr() {
-      System.out.println("enter vr interface");
-
-      Intent intent = new Intent(mContext, TreasureHuntActivity.class);
-      /* EditText editText = (EditText) findViewById(R.id.editText);
-      String message = editText.getText().toString();
-      intent.putExtra(EXTRA_MESSAGE, message); */
-      mContext.startActivity(intent);
-    }
+//    @JavascriptInterface
+//    public void enterVr() {
+//      System.out.println("enter vr interface");
+//
+//      Intent intent = new Intent(mContext, WebVR.class);
+//      /* EditText editText = (EditText) findViewById(R.id.editText);
+//      String message = editText.getText().toString();
+//      intent.putExtra(EXTRA_MESSAGE, message); */
+//      mContext.startActivity(intent);
+//    }
+//
 
     @JavascriptInterface
     public void enterAr() {

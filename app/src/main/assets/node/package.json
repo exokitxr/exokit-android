@@ -3,12 +3,8 @@
   "version": "0.0.1",
   "main": "index.js",
   "dependencies": {
-    "exokit": "0.0.22",
-    "skin-js": "0.0.16",
-    "skin-vr": "0.0.2",
-    "three-zeo": "0.0.15"
+    "exokit": "0.0.418"
   },
-  "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
