@@ -34,22 +34,14 @@ include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_module
 include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/exokit/deps/exokit-bindings/webaudiocontext/include/LabSound/core )
 include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/exokit/deps/exokit-bindings/webaudiocontext/include/LabSound/extended )
 include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/exokit/deps/exokit-bindings/webaudiocontext/include/LabSound/rtaudio )
-
-
 include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/exokit/deps/exokit-bindings/videocontext/include )
 include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/other_deps/context/android )
-
-
-
 
 
 add_library( node SHARED IMPORTED )
 set_target_properties( node PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/jniLibs/arm64-v8a/libnode.so )
 include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/node_modules/exokit/deps/exokit-bindings/node )
 include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/other_deps/v8/include )
-
-
-
 
 
 add_library( png16 STATIC IMPORTED )
