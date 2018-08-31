@@ -38,7 +38,7 @@ public class NodeService {
 
         String cache = context.getCacheDir().getAbsolutePath();
         String nodePath = cache + "/node";
-        String corePath = cache + "/node_modules";
+        String corePath = cache + "/exokit";
         AssetManager am = context.getAssets();
         copyAssets(am, "node_modules", corePath);
         copyAssets(am, "node", nodePath);
