@@ -16,6 +16,7 @@ file(GLOB app_src_files
   "src/main/assets/node/exokit/deps/exokit-bindings/webaudiocontext/include/LabSound/rtaudio/src/*.cpp"
   "src/main/assets/node/exokit/deps/exokit-bindings/videocontext/src/*.cpp"
   "src/main/assets/node/exokit/deps/exokit-bindings/videocontext/src/linux/*.cpp"
+  "src/main/assets/node/exokit/deps/exokit-bindings/egl/src/*.cc"
   "src/main/assets/node/other_deps/context/android/*.cpp"
 )
 add_library( nodebinding SHARED ${app_src_files} )
@@ -35,20 +36,23 @@ include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/exokit/deps
 include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/exokit/deps/exokit-bindings/webaudiocontext/include/LabSound/extended )
 include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/exokit/deps/exokit-bindings/webaudiocontext/include/LabSound/rtaudio )
 include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/exokit/deps/exokit-bindings/videocontext/include )
-include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/other_deps/context/android )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/exokit/deps/exokit-bindings/egl/include )
 
 
 add_library( node SHARED IMPORTED )
 set_target_properties( node PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/jniLibs/arm64-v8a/libnode.so )
-include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/exokit/deps/exokit-bindings/node )
-include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/exokit/deps/exokit-bindings/nan )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/other_deps/node )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/other_deps/node/nan )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/other_deps/node/deps/uv/include )
 include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/other_deps/v8/include )
+include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/other_deps/context/android )
+
 
 
 add_library( png16 STATIC IMPORTED )
-set_target_properties( png16 PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/assets/node/exokit/node_modules/native-canvas-deps/lib2/arm64/libpng16.a )
+set_target_properties( png16 PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/jniLibs/arm64-v8a/libpng16.a )
 add_library( skia STATIC IMPORTED )
-set_target_properties( skia PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/assets/node/exokit/node_modules/native-canvas-deps/lib2/arm64/libskia.a )
+set_target_properties( skia PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/jniLibs/arm64-v8a/libskia.a )
 include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/exokit/node_modules/native-canvas-deps/include/core )
 include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/exokit/node_modules/native-canvas-deps/include/config )
 include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/exokit/node_modules/native-canvas-deps/include/gpu )
@@ -56,7 +60,7 @@ include_directories( SYSTEM ${CMAKE_SOURCE_DIR}/src/main/assets/node/exokit/node
 
 
 add_library( LabSound STATIC IMPORTED )
-set_target_properties( LabSound PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/assets/node/exokit/node_modules/native-audio-deps/lib2/arm64/libLabSound.a )
+set_target_properties( LabSound PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/src/main/jniLibs/arm64-v8a/libLabSound.a )
 
 
 add_library( avcodec SHARED IMPORTED )
