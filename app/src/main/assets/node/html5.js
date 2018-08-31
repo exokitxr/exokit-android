@@ -69,6 +69,7 @@ global.onResize = (width, height) => {
   }
 };
 
+/*
 // VR
 global.onNewFrame = (headViewMatrixFloat32Array, headQuaternionFloat32Array) => {
   // console.log('js onNewFrame', headViewMatrixFloat32Array, headQuaternionFloat32Array);
@@ -76,6 +77,7 @@ global.onNewFrame = (headViewMatrixFloat32Array, headQuaternionFloat32Array) => 
 global.onDrawEye = (eyeViewMatrixFloat32Array, eyePerspectiveMatrixFloat32Array) => {
   // console.log('js onDrawEye', eyeViewMatrixFloat32Array, eyePerspectiveMatrixFloat32Array);
 };
+*/
 
 // AR
 const localMatrix = new THREE.Matrix4();
