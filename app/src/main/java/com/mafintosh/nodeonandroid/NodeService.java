@@ -8,11 +8,6 @@ import android.support.annotation.Nullable;
 import android.content.Context;
 import android.util.Log;
 import android.util.TimingLogger;
-
-import com.getkeepsafe.relinker.ReLinker;
-import com.getkeepsafe.relinker.ReLinker.LibraryLoader;
-import com.getkeepsafe.relinker.ReLinkerInstance;
-
 import org.w3c.dom.Node;
 
 import java.io.File;
@@ -26,25 +21,23 @@ public class NodeService {
 
     private Context context;
 
-
-//    static {
-//      ReLinker.loadLibrary(context, "node");
-//      ReLinker.loadLibrary(context, "nodebinding");
-//    }
-
+    static {
+        System.loadLibrary("node");
+        System.loadLibrary("nodebinding");
+        /*
+        System.loadLibrary( "nodebinding");
+        System.loadLibrary( "avformat");
+        System.loadLibrary( "avcodec");
+        System.loadLibrary( "avutil");
+        System.loadLibrary( "avdevice");
+        System.loadLibrary( "swresample");
+        System.loadLibrary( "swscale");
+        */
+    }
 
     public NodeService(Context ctx) {
         context = ctx;
-        ReLinker.loadLibrary(ctx, "node");
-        ReLinker.loadLibrary(ctx, "nodebinding");
-        ReLinker.loadLibrary(ctx, "avformat");
-        ReLinker.loadLibrary(ctx, "avcodec");
-        ReLinker.loadLibrary(ctx, "avutil");
-        ReLinker.loadLibrary(ctx, "avdevice");
-        ReLinker.loadLibrary(ctx, "swresample");
-        ReLinker.loadLibrary(ctx, "swscale");
     }
-
 
     public void init(String url, String vrMode, int vrTexture) {
       String nativeLibraryDir = context.getApplicationInfo().nativeLibraryDir;
@@ -77,13 +70,17 @@ public class NodeService {
 
     // GL
     // public native void onSurfaceCreated();
+    @SuppressWarnings("JniMissingFunction")
     public native void onResize(int width, int height);
 
+    /*
     // VR
     public native void onNewFrame(float[] headViewMatrix, float[] headQuaternion);
     public native void onDrawEye(float[] eyeViewMatrix, float[] eyePerspectiveMatrix);
+    */
 
     // AR
+    @SuppressWarnings("JniMissingFunction")
     public native void onDrawFrame(float[] viewMatrix, float[] projectionMatrix, float[] centerArray);
 
     // helpers

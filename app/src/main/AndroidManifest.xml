@@ -3,7 +3,7 @@
     package="com.mafintosh.nodeonandroid">
 
     <!-- The GVR SDK requires API 19+ and OpenGL ES 2+. -->
-    <uses-sdk android:minSdkVersion="24" android:targetSdkVersion="27" />
+    <uses-sdk android:minSdkVersion="27" android:targetSdkVersion="27" />
 
 
     <!-- Required for vibration feedback when the trigger action is performed. -->
@@ -20,11 +20,13 @@
     <uses-feature android:glEsVersion="0x00030000" android:required="true" />
 
     <!-- Make accelerometer and gyroscope hard requirements for good head tracking. -->
+    <!--
     <uses-feature android:name="android.hardware.sensor.accelerometer" android:required="true"/>
     <uses-feature android:name="android.hardware.sensor.gyroscope" android:required="true"/>
 
     <uses-feature android:name="android.software.vr.mode" android:required="false"/>
     <uses-feature android:name="android.hardware.vr.high_performance" android:required="false"/>
+    -->
 
     <application
         android:allowBackup="true"
@@ -43,6 +45,7 @@
             </intent-filter>
         </activity>
 
+        <!--
         <activity
             android:name=".TreasureHuntActivity"
             android:parentActivityName="com.mafintosh.nodeonandroid.MainActivity"
@@ -52,8 +55,7 @@
             android:enableVrMode="@string/gvr_vr_mode_component"
             android:theme="@style/VrActivityTheme"
             android:resizeableActivity="false">
-            <!-- The VR icon to be used in Daydream Home comes in two parts:
-                 a foreground icon and a background icon.  -->
+
             <meta-data android:name="com.google.android.vr.icon"
                 android:resource="@drawable/vr_icon" />
             <meta-data android:name="com.google.android.vr.icon_background"
@@ -66,42 +68,9 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        -->
 
-        <activity
-            android:name=".WebVR"
-            android:parentActivityName="com.mafintosh.nodeonandroid.MainActivity"
-            android:label="@string/app_name"
-            android:screenOrientation="landscape"
-            android:configChanges="density|keyboardHidden|navigation|orientation|screenSize|uiMode"
-            android:enableVrMode="@string/gvr_vr_mode_component"
-            android:theme="@style/VrActivityTheme"
-            android:resizeableActivity="false">
-            <!-- The VR icon to be used in Daydream Home comes in two parts:
-                 a foreground icon and a background icon.  -->
-            <meta-data android:name="com.google.android.vr.icon"
-                android:resource="@drawable/vr_icon" />
-            <meta-data android:name="com.google.android.vr.icon_background"
-                android:resource="@drawable/vr_icon_background" />
 
-            <intent-filter>
-                <action android:name="android.intent.action.SEND" />
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="com.google.intent.category.CARDBOARD" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-          </activity>
-
-          <!--<activity-->
-            <!--android:name=".HelloArActivity"-->
-            <!--android:label="@string/app_name"-->
-            <!--android:configChanges="orientation|screenSize"-->
-            <!--android:exported="true"-->
-            <!--android:screenOrientation="locked"-->
-            <!--android:resizeableActivity="false">-->
-            <!--<intent-filter>-->
-                <!--<action android:name="android.intent.action.SEND" />-->
-            <!--</intent-filter>-->
-        <!--</activity>-->
 
         <activity
             android:name="com.mafintosh.nodeonandroid.HelloArActivity"
